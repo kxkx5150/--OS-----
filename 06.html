@@ -1,0 +1,1103 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Cache-Control" content="no-cache" />
+    <title></title>
+    <link href="css/reference.css" rel="stylesheet" />
+  </head>
+  <body
+    text="#000000"
+    vlink="#666699"
+    alink="#000000"
+    link="#666699"
+    bgcolor="#ffffff"
+    leftmargin="0"
+    background="./en01_files/watermark.gif"
+    topmargin="0"
+    marginheight="0"
+    marginwidth="0"
+  >
+    <table cellspacing="0" cellpadding="3" width="80%" border="0">
+      <tbody>
+        <tr>
+          <td class="tblhdr">Operating Systems Development Series</td>
+        </tr>
+        <tr>
+          <td align="middle" colspan="2"></td>
+        </tr>
+      </tbody>
+    </table>
+    <table cellspacing="0" cellpadding="5" width="100%" border="0">
+      <tbody>
+        <tr>
+          <td>
+            <!-- Title -->
+
+            <div>
+              <span class="title">Protected Mode</span>
+
+              <br />
+              <span class="author">by Mike, 2008, 2009</span>
+            </div>
+
+            <h1 data-dl-uid="7" data-dl-original="true" data-dl-translated="true">はじめに</h1>
+            ようこそ!:)
+            <p data-dl-uid="8" data-dl-original="true" data-dl-translated="true">
+              このシリーズでは、これまでに多くのことを学びました。ブートローダ、システムアーキテクチャ、ファイルシステム、そしてリアルモードアドレッシングを深く見てきました。しかし、32
+              ビットの世界についてはまだ見ていません。そして、私たちは 32bit OS
+              を構築していないのでしょうか？
+            </p>
+            <p data-dl-uid="9" data-dl-original="true" data-dl-translated="true">
+              このチュートリアルでは、32ビットの<b
+                data-dl-uid="10"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >世界へ</b
+              >ようこそ！ということで、32ビットの世界へのジャンプをします。もちろん、まだ16ビットの世界は終わっていませんが、プロテクトモードに入るのはずっと簡単でしょう。
+            </p>
+            <p data-dl-uid="11" data-dl-original="true" data-dl-translated="true">
+              では、さっそく始めましょうこのチュートリアルは以下の内容をカバーしています。
+            </p>
+            <p data-dl-uid="12" data-dl-original="true" data-dl-translated="true"></p>
+            <ul data-dl-uid="13" data-dl-original="true" data-dl-translated="true">
+              <li data-dl-uid="14" data-dl-original="true" data-dl-translated="true">
+                プロテクトモード理論
+              </li>
+              <li data-dl-uid="15" data-dl-original="true" data-dl-translated="true">
+                プロテクトモードアドレッシング
+              </li>
+              <li data-dl-uid="16" data-dl-original="true" data-dl-translated="true">
+                プロテクトモードへの移行
+              </li>
+              <li data-dl-uid="17" data-dl-original="true" data-dl-translated="true">
+                グローバルディスクリプターテーブル(GDT)
+              </li>
+            </ul>
+            <i data-dl-uid="18" data-dl-original="true" data-dl-translated="true">準備はいいですか？</i>
+            <p data-dl-uid="19" data-dl-original="true" data-dl-translated="true"></p>
+
+            <h1 data-dl-uid="20" data-dl-original="true" data-dl-translated="true">stdio.inc</h1>
+            よりオブジェクト指向に近づけるために、すべての入出力ルーチンを stdio.inc
+            ファイルに移動しました。くれぐれも、C言語の標準ライブラリであるstdio.libと一緒にしないでください。両者にはほとんど共通点がありません。標準ライブラリについては、カーネルと並行して作業を開始する予定です。
+            <p data-dl-uid="21" data-dl-original="true" data-dl-translated="true">
+              とりあえず...このファイルです。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">;*************************************************
+;	stdio.inc
+;		-Input/Output routines
+;
+;	OS Development Series
+;*************************************************
+ 
+%ifndef __STDIO_INC_67343546FDCC56AAB872_INCLUDED__
+%define __STDIO_INC_67343546FDCC56AAB872_INCLUDED__
+ 
+;************************************************;
+;	Puts16 ()
+;		-Prints a null terminated string
+;	DS=&gt;SI: 0 terminated string
+;************************************************;
+ 
+bits	16
+ 
+Puts16:
+		pusha				; save registers
+.Loop1:
+		lodsb				; load next byte from string from SI to AL
+		or	al, al			; Does AL=0?
+		jz	Puts16Done		; Yep, null terminator found-bail out
+		mov	ah, 0eh			; Nope-Print the character
+		int	10h			; invoke BIOS
+		jmp	.Loop1			; Repeat until null terminator found
+Puts16Done:
+		popa				; restore registers
+		ret				; we are done, so return
+ 
+%endif ;__STDIO_INC_67343546FDCC56AAB872_INCLUDED__</div></pre>
+            </blockquote>
+
+            知らない人のために説明すると、*.INCファイルは<b
+              data-dl-uid="25"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >Include</b
+            >ファイルです。<b data-dl-uid="26" data-dl-original="true" data-dl-translated="true"
+              >puts16</b
+            >関数の説明は省略します--ブートローダで使ったのと全く同じルーチンですが、pusha/popaが追加されているだけです。
+
+            <h1 data-dl-uid="27" data-dl-original="true" data-dl-translated="true">
+              ステージ2へようこそ
+            </h1>
+            <p data-dl-uid="28" data-dl-original="true" data-dl-translated="true">
+              ブートローダは小さいです。ブートローダは小さいので、有用なことは何もできません。ブートローダは
+              512
+              バイトに制限されていることを思い出してください。それ以上でも以下でもありません。ステージ2をロードするコードは、すでにほぼ512バイトでした。これでは小さすぎるのです。
+            </p>
+            <p data-dl-uid="29" data-dl-original="true" data-dl-translated="true">
+              このため、ブートローダには別のプログラムをロードさせるだけでよいのです。FAT12ファイルシステムのおかげで、2番目のプログラムはほとんどどんなセクタ数でも可能です。このため、512バイトの制限はありません。
+              これは私たちにとって素晴らしいことです。これが読者の皆さん、ステージ2です。
+            </p>
+            <p data-dl-uid="30" data-dl-original="true" data-dl-translated="true">
+              Stage
+              2ブートローダは、カーネルのためにすべてをセットアップします。これはWindowsでいうところの<b
+                data-dl-uid="31"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >NTLDR</b
+              >（NT Loader）と同じようなものです。実際、私はこのプログラムを<b
+                data-dl-uid="32"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >KRNLDR</b
+              >(Kernel Loader)と名付けています。Stage
+              2はカーネルのロードを担当するので、KRNLDR.SYSとしました。
+            </p>
+            <p data-dl-uid="33" data-dl-original="true" data-dl-translated="true">
+              KRNLDR -- Stage 2ブートローダは、いくつかのことを行います。それは、次のようなことです。
+            </p>
+            <ul data-dl-uid="34" data-dl-original="true" data-dl-translated="true">
+              <li data-dl-uid="35" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="36" data-dl-original="true" data-dl-translated="true"
+                  >プロテクトモードを有効にし、プロテクトモードへ移行する</b
+                >
+              </li>
+              <li data-dl-uid="37" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="38" data-dl-original="true" data-dl-translated="true"
+                  >BIOS情報を取得する</b
+                >
+              </li>
+
+              <li data-dl-uid="39" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="40" data-dl-original="true" data-dl-translated="true"
+                  >カーネルをロードして実行する</b
+                >
+              </li>
+              <li data-dl-uid="41" data-dl-original="true" data-dl-translated="true">
+                ブートオプションの提供(例えば、セーフモード)
+              </li>
+              <li data-dl-uid="42" data-dl-original="true" data-dl-translated="true">
+                設定ファイルにより、KRNLDRを複数のOSカーネルからブートさせることができます。
+              </li>
+              <li data-dl-uid="43" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="44" data-dl-original="true" data-dl-translated="true"
+                  >最大4GBのメモリにアクセスするための20番目のアドレスラインを有効にする。</b
+                >
+              </li>
+              <li data-dl-uid="45" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="46" data-dl-original="true" data-dl-translated="true"
+                  >基本的な割り込み処理</b
+                >
+              </li>
+            </ul>
+
+            ...そしてもっと。実際、Stage
+            2のローダーはCとx86のアセンブリが混在していることがよくあります。
+            <p data-dl-uid="47" data-dl-original="true" data-dl-translated="true">
+              想像できるように、ステージ2ブートローダを書くこと自体が大きなプロジェクトになりえます。しかし、すでに動作しているカーネルがなければ、高度なブートローダを開発することはほぼ不可能です。このため、私たちは重要な細部
+              (上に太字で示した部分)
+              についてだけ心配するつもりです。動くカーネルを手に入れたら、ブートローダに戻ってくるかもしれません。
+            </p>
+            <p data-dl-uid="49" data-dl-original="true" data-dl-translated="true">
+              私たちはまず、保護されたモードに入ることに注目します。皆さんの多くは 32
+              ビットの世界に行きたくてうずうずしていることでしょう。
+            </p>
+
+            <h1 data-dl-uid="50" data-dl-original="true" data-dl-translated="true">
+              プロテクトモードの世界
+            </h1>
+            <p data-dl-uid="51" data-dl-original="true" data-dl-translated="true">
+              やったー!ついにその時が来たのです!私が「プロテクトモード」と言うのをよく耳にすると思いますが、以前にも少し詳しく説明しました。ご存知のように、プロテクトモードはメモリを保護するためのものです。80x86プロセッサは、<b
+                data-dl-uid="52"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >GDT（Global Descriptor Table</b
+              >）に基づいてメモリ領域をマッピングしています。<b
+                data-dl-uid="53"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >GDTに従わない場合、プロセッサはGPF(General Protection
+                Fault)例外を生成します。割込みハンドラを設定していないため、トリプルフォルトになります。</b
+              >
+            </p>
+            <p data-dl-uid="54" data-dl-original="true" data-dl-translated="true">
+              もう少し詳しく見てみましょう。
+            </p>
+            <h2 data-dl-uid="55" data-dl-original="true" data-dl-translated="true">
+              ディスクリプタ・テーブル
+            </h2>
+            <p data-dl-uid="56" data-dl-original="true" data-dl-translated="true">
+              ディスクリプタテーブルとは、何かを定義したり、マップしたりするものです。
+              ディスクリプタテーブルには、3つの種類があります。<b
+                data-dl-uid="57"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >グローバル記述子テーブル（GDT）、ローカル記述子テーブル（LDT）、割り込み記述子テーブル（IDT）で、それぞれのベースアドレスはGDTR、LDTR、IDTRのx86プロセッサレジスタに格納されています。</b
+              >これらは特殊なレジスタを使用するため、特殊な命令を必要とします。<b
+                data-dl-uid="58"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >注：これらの命令のいくつかは、Ring 0カーネルレベルプログラムに特有のものです。一般のRing
+                3プログラムがこれらを使用しようとすると、GPF(General Protection
+                Fault)例外が発生します。</b
+              >今回の場合は、まだ割り込みの処理をしていないので、トリプルフォールトが発生します。
+            </p>
+
+            <h3 data-dl-uid="59" data-dl-original="true" data-dl-translated="true">
+              グローバルディスクリプターテーブル
+            </h3>
+
+            <p data-dl-uid="60" data-dl-original="true" data-dl-translated="true">
+              これは私たちにとって重要で、ブートローダとカーネルの両方で見ることができます。
+            </p>
+            <p data-dl-uid="61" data-dl-original="true" data-dl-translated="true">
+              グローバル記述子テーブル(GDT)はグローバルメモリマップを定義しています。どのメモリを実行できるのか（<b
+                data-dl-uid="62"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >コードディスクリプタ</b
+              >）、どの領域にデータがあるのか<b
+                data-dl-uid="63"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >（データディスクリプタ</b
+              >）を定義しています。
+            </p>
+            <p data-dl-uid="64" data-dl-original="true" data-dl-translated="true">
+              ディスクリプタはプロパティを定義する--つまり、何かを記述するものであることを覚えておいてください。GDTの場合、開始アドレスとベースアドレス、セグメントリミット、そして仮想メモリまで記述します。このことは、実際に使ってみるとよくわかると思いますが、心配しないでください。
+            </p>
+            <p data-dl-uid="65" data-dl-original="true" data-dl-translated="true">
+              GDTは通常、<b data-dl-uid="66" data-dl-original="true" data-dl-translated="true"
+                >Nullディスクリプタ</b
+              >（すべてのゼロを含む）、<b
+                data-dl-uid="67"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >コードディスクリプタ</b
+              >、<b data-dl-uid="68" data-dl-original="true" data-dl-translated="true"
+                >データディスクリプタの</b
+              >3つのディスクリプタを持っています。
+            </p>
+            <p data-dl-uid="69" data-dl-original="true" data-dl-translated="true">
+              なるほど......では、「ディスクリプタ」とは何でしょうか？GDTでは、"Descriptor
+              "は8バイトのQWORD値で、そのディスクリプタのプロパティを記述しています。その形式は
+            </p>
+            <p data-dl-uid="70" data-dl-original="true" data-dl-translated="true"></p>
+
+            <ul>
+              <li><b>Bits 56-63:</b> Bits 24-32 of the base address</li>
+              <li><b>Bit 55:</b> Granularity</li>
+
+              <ul>
+                <li><b>0:</b> None</li>
+                <li><b>1:</b> Limit gets multiplied by 4K</li>
+              </ul>
+              <li><b>Bit 54:</b> Segment type</li>
+
+              <ul>
+                <li><b>0:</b> 16 bit</li>
+                <li><b>1:</b> 32 bit</li>
+              </ul>
+              <li><b>Bit 53:</b> Reserved-Should be zero</li>
+
+              <li><b>Bits 52:</b> Reserved for OS use</li>
+              <li><b>Bits 48-51:</b> Bits 16-19 of the segment limit</li>
+              <li><b>Bit 47</b> Segment is in memory (Used with Virtual Memory)</li>
+              <li><b>Bits 45-46:</b> Descriptor Privilege Level</li>
+
+              <ul>
+                <li><b>0:</b> (Ring 0) Highest</li>
+                <li><b>3:</b> (Ring 3) Lowest</li>
+              </ul>
+              <li><b>Bit 44:</b> Descriptor Bit</li>
+
+              <ul>
+                <li><b>0:</b> System Descriptor</li>
+                <li><b>1:</b> Code or Data Descriptor</li>
+              </ul>
+              <li><b>Bits 41-43:</b> Descriptor Type</li>
+
+              <ul>
+                <li><b>Bit 43:</b> Executable segment</li>
+                <ul>
+                  <li><b>0:</b> Data Segment</li>
+                  <li><b>1:</b> Code Segment</li>
+                </ul>
+                <li><b>Bit 42:</b> Expansion direction (Data segments), conforming (Code Segments)</li>
+                <li><b>Bit 41:</b> Readable and Writable</li>
+                <ul>
+                  <li><b>0:</b> Read only (Data Segments); Execute only (Code Segments)</li>
+
+                  <li><b>1:</b> Read and write (Data Segments); Read and Execute (Code Segments)</li>
+                </ul>
+              </ul>
+              <li><b>Bit 40:</b> Access bit (Used with Virtual Memory)</li>
+              <li><b>Bits 16-39:</b> Bits 0-23 of the Base Address</li>
+
+              <li><b>Bits 0-15:</b> Bits 0-15 of the Segment Limit</li>
+            </ul>
+
+            ...かなり不細工でしょう？基本的に、ビットパターンを構築することで、8バイトのビットパターンがディスクリプタの様々なプロパティを記述することになります。各ディスクリプタは、そのメモリセグメントに対するプロパティを定義する。
+            <p data-dl-uid="135" data-dl-original="true" data-dl-translated="true">
+              簡単に説明するために、メモリの最初のバイトからバイト0xFFFFFFまで、読み取りと書き込みの権限を持つコードとデータディスクリプタを定義するテーブルを構築してみます。これはちょうど、メモリ内の任意の場所を読み書きできることを意味します。
+            </p>
+            <p data-dl-uid="136" data-dl-original="true" data-dl-translated="true">
+              まず、GDTについて見ていきます。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">  ; This is the beginning of the GDT. Because of this, its offset is 0.
+ 
+; null descriptor 
+	dd 0 				; null descriptor--just fill 8 bytes with zero
+	dd 0 
+ 
+; Notice that each descriptor is exactally 8 bytes in size. THIS IS IMPORTANT.
+; Because of this, the code descriptor has offset 0x8.
+ 
+; code descriptor:			; code descriptor. Right after null descriptor
+	dw 0FFFFh 			; limit low
+	dw 0 				; base low
+	db 0 				; base middle
+	db 10011010b 			; access
+	db 11001111b 			; granularity
+	db 0 				; base high
+ 
+; Because each descriptor is 8 bytes in size, the Data descritpor is at offset 0x10 from
+; the beginning of the GDT, or 16 (decimal) bytes from start.
+ 
+; data descriptor:			; data descriptor
+	dw 0FFFFh 			; limit low (Same as code)
+	dw 0 				; base low
+	db 0 				; base middle
+	db 10010010b 			; access
+	db 11001111b 			; granularity
+	db 0				; base high</div></pre>
+            </blockquote>
+
+            以上です。悪名高きGDTです。このGDTには、3つのディスクリプタが含まれています--それぞれ8バイトのサイズです。NULLディスクリプタ、コードディスクリプタ、データディスクリプタです。<b
+              data-dl-uid="140"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >各ディスクリプタの各ビットは、上のビット表（コードの上に表示）に直接対応しています。</b
+            >
+            <p data-dl-uid="141" data-dl-original="true" data-dl-translated="true">
+              それぞれをビットに分解して、何が起こっているのか見てみましょう。NULLディスクリプタはすべて0なので、他の2つに注目します。
+            </p>
+            <p data-dl-uid="142" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="143" data-dl-original="true" data-dl-translated="true">コードセレクタを</b
+              >分解する
+            </p>
+            <p data-dl-uid="144" data-dl-original="true" data-dl-translated="true">
+              もう一度見てみましょう。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">; code descriptor:			; code descriptor. Right after null descriptor
+	dw 0FFFFh 			; limit low
+	dw 0 				; base low
+	db 0 				; base middle
+	db 10011010b 			; access
+	db 11001111b 			; granularity
+	db 0 				; base high</div></pre>
+            </blockquote>
+
+            アセンブリ言語では、宣言されたバイト、word, dword,
+            qword,命令などは、文字通り、互いに直列に並ぶことを覚えておいてください。上の例では、0xffffはもちろん1で埋め尽くされた2バイトです。
+            これを2進数に分解するのは簡単です。なぜなら、そのほとんどがすでに終わっているからです。
+
+            <blockquote>
+              <pre><div class="code">11111111 11111111 00000000 00000000 00000000 10011010 11001111 00000000</div></pre>
+            </blockquote>
+
+            上のビットテーブルから）<b
+              data-dl-uid="151"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >ビット0-15（最初の2バイト</b
+            >）はセグメントの制限を表していることを思い出してください。
+            これは、セグメント内で0xffff（最初の2バイト）より大きいアドレスは使えないということです。
+            そうすると、GPFが発生します。
+            <p data-dl-uid="152" data-dl-original="true" data-dl-translated="true">
+              16-39ビット（次の3バイト）はベースアドレス（セグメントの開始アドレス）の0-23ビットを表します。
+              この場合、0x0です。<b data-dl-uid="153" data-dl-original="true" data-dl-translated="true"
+                >ベースアドレスが0x0、リミットアドレスが0xFFFFなので、コードセレクタは0x0から0xFFFFまでのすべてのバイトにアクセス</b
+              >することができるのです。どうです？
+            </p>
+            <p data-dl-uid="154" data-dl-original="true" data-dl-translated="true">
+              次のバイト（バイト6）は、面白いことが起こるところです。それでは、文字どおり、1ビットずつ分解してみましょう。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">db 10011010b 			; access</div></pre>
+            </blockquote>
+
+            <ul>
+              <li data-dl-uid="159" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="160" data-dl-original="true" data-dl-translated="true"
+                  >ビット0 (GDTのビット40)：</b
+                >アクセスビット(仮想メモリで使用)。仮想メモリは使わないので（まだ）無視します。したがって、0です
+              </li>
+
+              <li data-dl-uid="161" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="162" data-dl-original="true" data-dl-translated="true"
+                  >ビット1（GDTのビット41）：</b
+                >読み取り/書き込み可能なビット
+                です。このビットは（コードセレクタのために）設定されているので、セグメント（0x0から0xFFFFまで）のデータをコードとして読み取り、実行することができます。
+              </li>
+
+              <li data-dl-uid="163" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="164" data-dl-original="true" data-dl-translated="true"
+                  >ビット2（GDTのビット42）：</b
+                >「拡張方向」ビットです。これについては、後で詳しく見ていきます。今のところ、無視してください。
+              </li>
+
+              <li data-dl-uid="165" data-dl-original="true" data-dl-translated="true">
+                ビット<b data-dl-uid="166" data-dl-original="true" data-dl-translated="true">3</b
+                >（GDTのビット43）：プロセッサに、これがコードまたはデータ記述子であることを伝えます。(セットされているので、コードディスクリプタです)
+              </li>
+
+              <li data-dl-uid="167" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="168" data-dl-original="true" data-dl-translated="true"
+                  >ビット4 (GDTのビット44):</b
+                >システム "または "コード/データ
+                "ディスクリプタとして表現します。これはコードセレクタなので、ビットに1がセットされています。
+              </li>
+
+              <li data-dl-uid="169" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="170" data-dl-original="true" data-dl-translated="true"
+                  >ビット5〜6（GDTのビット45〜46）：</b
+                >特権レベル（すなわち、リング0またはリング3）である。リング0にいるので、両ビットは0です。
+              </li>
+              <li data-dl-uid="171" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="172" data-dl-original="true" data-dl-translated="true"
+                  >ビット7（GDTのビット47）。</b
+                >セグメントがメモリ内にあることを示すために使用されます（仮想メモリで使用されます）。まだ仮想メモリを使用していないので、今は0に設定
+              </li>
+
+              <p data-dl-uid="173" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="174" data-dl-original="true" data-dl-translated="true"
+                  >アクセスバイトは非常に重要です!</b
+                >Ring
+                3アプリケーションやソフトウェアを実行するために、異なる記述子を定義する必要があります。
+              </p>
+              <p data-dl-uid="175" data-dl-original="true" data-dl-translated="true">
+                これをまとめると、このバイトは
+              </p>
+              次のようになります。
+
+              <p data-dl-uid="175" data-dl-translated="true">
+                <b data-dl-uid="176" data-dl-translated="true"
+                  >このバイトは、読み取りと書き込みが可能なセグメントであり、我々はRing
+                  0のコードディスクリプタであることを示します。</b
+                >
+              </p>
+              <p data-dl-uid="177" data-dl-original="true" data-dl-translated="true">
+                次のバイトを見てみましょう。
+              </p>
+
+              <blockquote>
+                <pre><div class="code">db 11001111b 			; granularity
+	db 0 			; base high</div></pre>
+              </blockquote>
+
+              <li data-dl-uid="181" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="182" data-dl-original="true" data-dl-translated="true"
+                  >ビット0～3（GDTでは48～51ビット）</b
+                >
+
+                セグメントリミットの16-19ビットに相当します。つまり...1111bは0xfに等しい。
+                このディスクリプタの最初の2バイトでは、最初の15バイトとして0xffffを設定したことを思い出してください。ロービットとハイビットをグループ化すると、<b
+                  data-dl-uid="183"
+                  data-dl-translated="true"
+                  >0xFFFFFまでアクセス</b
+                >できることになります。どうです？もっといいことが...20番目のアドレス行を有効にすると、このディスクリプタを使って<b
+                  data-dl-uid="184"
+                  data-dl-translated="true"
+                  >最大4GBのメモリに</b
+                >アクセスできます。この点については、後で詳しく説明します。
+              </li>
+
+              <li data-dl-uid="185" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="186" data-dl-original="true" data-dl-translated="true"
+                  >ビット4（GDTではビット52） ：</b
+                >OSが使用するために予約されています。0にセットされている。
+              </li>
+
+              <li data-dl-uid="187" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="188" data-dl-original="true" data-dl-translated="true"
+                  >ビット5 (GDTではビット53) ：</b
+                >何かのために予約されています。将来のオプションでしょうか？どうでしょう。0にセットされる。
+              </li>
+
+              <li data-dl-uid="189" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="190" data-dl-original="true" data-dl-translated="true">ビット6（</b
+                >GDTのビット54）：セグメントタイプ（16ビットまたは32ビット）です。32ビットOSを作るのだから、32ビットにしたいですよね。というわけで、1
+                にセットします。
+              </li>
+
+              <li data-dl-uid="191" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="192" data-dl-original="true" data-dl-translated="true"
+                  >ビット7（GDTではビット55）。</b
+                >粒度（Granularity）。1にすると、各セグメントは4KBで区切られます。
+                <p data-dl-uid="193" data-dl-original="true" data-dl-translated="true">
+                  最後のバイトはベース（スタート）アドレスの24～32ビットで、もちろん0です。
+                </p>
+
+                <p data-dl-uid="195" data-dl-original="true" data-dl-translated="true">
+                  <b data-dl-uid="196" data-dl-original="true" data-dl-translated="true">データ記述子</b>
+                </p>
+                <p data-dl-uid="197" data-dl-original="true" data-dl-translated="true">
+                  それでは、先ほど作ったGDTに戻って、コードとデータのセレクタを比較してみてください。
+                  <b data-dl-uid="198" data-dl-translated="true"
+                    >1つのビットを除いて、両者はまったく同じです。43ビットです。上記を振り返ってみると、その理由がわかると思います。コードセレクタの場合はセットされ、データセレクタの場合はセットされないのです。</b
+                  >
+                </p>
+
+                <p data-dl-uid="199" data-dl-original="true" data-dl-translated="true">
+                  <b data-dl-uid="200" data-dl-original="true" data-dl-translated="true">結論</b>
+                </p>
+
+                <p data-dl-uid="201" data-dl-original="true" data-dl-translated="true">
+                  これは私が今まで見た（書いた）中で最も包括的なGDTの説明です。
+                </p>
+                <p data-dl-uid="202" data-dl-original="true" data-dl-translated="true"></p>
+                <p data-dl-uid="201" data-dl-translated="true"></p>
+
+                <p data-dl-uid="202" data-dl-translated="true">
+                  しかし、それをロードして使用するのは非常に簡単です。実は、ポインタのアドレスを読み込むだけなんです。
+                </p>
+
+                <p data-dl-uid="203" data-dl-original="true" data-dl-translated="true">
+                  このGDTポインタには、GDTのサイズ（<b
+                    data-dl-uid="204"
+                    data-dl-original="true"
+                    data-dl-translated="true"
+                    >マイナス1！</b
+                  >）とGDTの開始アドレスが格納されています。 例えば
+                </p>
+
+                <blockquote>
+                  <pre><div class="code">toc: 
+	dw end_of_gdt - gdt_data - 1 	; limit (Size of GDT)
+	dd gdt_data 			; base of GDT</div></pre>
+                </blockquote>
+
+                gdt_dataはGDTの先頭、end_of_gdtはもちろんGDTの末尾のラベルです。
+                このポインタのサイズと、その形式に注意してください。<b
+                  data-dl-uid="210"
+                  data-dl-original="true"
+                  data-dl-translated="true"
+                  >GDTポインターはこのフォーマットに従わなければなりません。</b
+                >
+                そうしないと、予測できない結果、つまりトリプルフォールトが発生します。
+                <p data-dl-uid="211" data-dl-original="true" data-dl-translated="true">
+                  プロセッサは特別なレジスタ、GDTRを使用して、ベースGDTポインタ内のデータを格納します。
+                  GDTRレジスタにGDTをロードするには、特別な命令が必要になります。
+                </p>
+                <p data-dl-uid="211" data-dl-translated="true">
+                  <b data-dl-uid="213" data-dl-translated="true">LGDT</b>(Load GDT)
+                  を使うのはとても簡単です：
+                </p>
+                <blockquote>
+                  <pre><div class="code">lgdt	[toc]		; load GDT into GDTR</div></pre>
+                </blockquote>
+
+                これは冗談ではなく、本当に簡単なことです。OS
+                Devでは、このような素敵なブレイクを得ることはあまりありません。今のうちに覚えておきましょう。
+
+                <h3 data-dl-uid="217" data-dl-original="true" data-dl-translated="true">
+                  Local Descriptor Table
+                </h3>
+                <p data-dl-uid="218" data-dl-original="true" data-dl-translated="true">
+                  Local Descriptor Table (LDT) は特殊な用途のために定義されたGDTの小さな形式です。
+                  システムのメモリマップ全体ではなく、最大8191のメモリセグメントだけを定義します。
+                  プロテクテッドモードとは関係ないので、これについては後で詳しく説明します
+                </p>
+
+                <h3 data-dl-uid="219" data-dl-original="true" data-dl-translated="true">
+                  Interrupt Descriptor Table
+                </h3>
+
+                <p data-dl-uid="220" data-dl-translated="true">
+                  Interrupt Descriptor Table (IDT) はInterrupt Vector Table (IVT)
+                  を定義しています。最初の32個のベクターは、プロセッサが生成するハードウェア例外用に予約されています。例えば、<b
+                    data-dl-uid="221"
+                    data-dl-translated="true"
+                    >一般保護フォールトや</b
+                  >ダブルフォールト例外などです。 他の割り込みベクタは、マザーボード上の<b
+                    data-dl-uid="224"
+                    data-dl-original="true"
+                    data-dl-translated="true"
+                    >プログラマブル割り込みコントローラ</b
+                  >チップを介してマッピングされます。
+                  プロテクトモードの間、このチップを直接プログラムする必要があります。
+                </p>
+
+                <h1 data-dl-uid="225" data-dl-original="true" data-dl-translated="true">
+                  PMode Memory Addressing
+                </h1>
+
+                <p data-dl-uid="223" data-dl-translated="true">
+                  <b data-dl-uid="226" data-dl-original="true" data-dl-translated="true">PMode</b
+                  >(Protected Mode)はリアルモードとは異なるアドレス体系を使用することを忘れないでください
+                  リアルモードでは<b data-dl-uid="227" data-dl-original="true" data-dl-translated="true"
+                    >セグメント：オフセットという</b
+                  >メモリモデルを使いますが、PModeでは<b
+                    data-dl-uid="228"
+                    data-dl-original="true"
+                    data-dl-translated="true"
+                    >ディスクリプタ：オフセットという</b
+                  >モデルを使います。
+                  つまり、PModeでメモリにアクセスするには、GDT内の正しいディスクリプタを経由しなければなりません。
+                  ディスクリプタはCSに保存 されています。例えば、
+                  あるメモリ位置から読み出す場合、どのディスクリプタを使用するかを記述する必要はなく、現在CSにあるディスクリプタを使用
+                  します。
+                </p>
+
+                <blockquote>
+                  <pre><div class="code">mov bx, byte [0x1000]</div></pre>
+                </blockquote>
+
+                <p data-dl-uid="230" data-dl-translated="true">
+                  これは
+                  素晴らしいことですが、特定のディスクリプタを参照する必要がある場合もあります。例えば、リアルモードはGDTを使用しませんが、PModeはGDTを必要とします。このため、プロテクトモードに入るとき、プロテクトモードで実行を継続するために、<b
+                    data-dl-uid="234"
+                    data-dl-original="true"
+                    data-dl-translated="true"
+                    >どのディスクリプタを使用するかを選択する必要が</b
+                  >あります。結局、Real
+                  ModeはGDTが何であるかを知らないので、CSに正しいディスクリプタが含まれる保証はなく、設定する必要があります。
+                  これを行うには、 ディスクリプタを直接設定する必要があります：
+                </p>
+
+                <blockquote>
+                  <pre><div class="code">jmp	0x8:Stage2</div></pre>
+                </blockquote>
+
+                <p data-dl-uid="240" data-dl-original="true" data-dl-translated="true">
+                  このコードは再び見ることになります。最初の数字が<b
+                    data-dl-uid="239"
+                    data-dl-original="true"
+                    data-dl-translated="true"
+                    >ディスクリプタ</b
+                  >であることを思い出してください（PModeはディスクリプタ：アドレスのメモリモデルを使っていることを思い出してください）
+                  。上のGDTを振り返ってみてください。<b
+                    data-dl-uid="241"
+                    data-dl-original="true"
+                    data-dl-translated="true"
+                    >各ディスクリプタは8バイトのサイズ</b
+                  >であることを思い出してください。<b
+                    data-dl-uid="242"
+                    data-dl-original="true"
+                    data-dl-translated="true"
+                    >この</b
+                  >
+                  <b data-dl-uid="244" data-dl-original="true" data-dl-translated="true"
+                    >メモリモデルを理解することは、プロテクトモードの仕組みを理解</b
+                  >
+                  する上で非常に重要です。
+                </p>
+
+                <h1 data-dl-uid="245" data-dl-original="true" data-dl-translated="true">
+                  プロテクトモードへの移行
+                </h1>
+
+                <p data-dl-uid="246" data-dl-translated="true">
+                  プロテクトモードへの移行は非常に簡単です。プロテクトモードに入るには、メモリにアクセスする際の許可レベルを記述した新しい
+                  GDT
+                  をロードする必要があります。そして、実際にプロセッサをプロテクトモードに切り替えて、32ビットの世界に飛び込む必要があります。簡単そうだと思いませんか？
+                  問題はその詳細です。
+                  <b data-dl-uid="247" data-dl-translated="true"
+                    >ちょっとしたミスがCPUをトリプルフォールトに</b
+                  >する可能性があります。
+                </p>
+
+                <h2 data-dl-uid="249" data-dl-original="true" data-dl-translated="true">
+                  ステップ1：Global Descriptor Tableをロード
+                </h2>
+                <p data-dl-uid="251" data-dl-translated="true">
+                  GDTはメモリへのアクセス方法を記述していることを思い出してください。
+                  GDTを設定しないと、デフォルトのGDTが使用されます（これはBIOSによって設定されます - ROM
+                  BIOSではありません）。ご想像の通り、これは決してBIOSの標準的なものではありません。また、<b
+                    data-dl-uid="250"
+                    data-dl-translated="true"
+                    >GDTの制限に注意しないと（つまり、コードセレクタをデータとしてアクセスすると）、プロセッサはGeneral
+                    Protection Fault（GPF）を生成します。
+                    割り込みハンドラが設定されていないため、プロセッサは2番目の障害例外も生成し、トリプルフォルトに</b
+                  >つながります。 とにかく...基本的に必要なのはテーブルを作成することです。例：
+                </p>
+
+                <blockquote>
+                  <pre><div class="code">; Offset 0 in GDT: Descriptor code=0
+ 
+gdt_data: 
+	dd 0 				; null descriptor
+	dd 0 
+ 
+; Offset 0x8 bytes from start of GDT: Descriptor code therfore is 8
+ 
+; gdt code:				; code descriptor
+	dw 0FFFFh 			; limit low
+	dw 0 				; base low
+	db 0 				; base middle
+	db 10011010b 			; access
+	db 11001111b 			; granularity
+	db 0 				; base high
+ 
+; Offset 16 bytes (0x10) from start of GDT. Descriptor code therfore is 0x10.
+ 
+; gdt data:				; data descriptor
+	dw 0FFFFh 			; limit low (Same as code)
+	dw 0 				; base low
+	db 0 				; base middle
+	db 10010010b 			; access
+	db 11001111b 			; granularity
+	db 0				; base high
+ 
+;...Other descriptors begin at offset 0x18. Remember that each descriptor is 8 bytes in size?
+; Add other descriptors for Ring 3 applications, stack, whatever here...
+ 
+end_of_gdt:
+toc: 
+	dw end_of_gdt - gdt_data - 1 	; limit (Size of GDT)
+	dd gdt_data 			; base of GDT</div></pre>
+                </blockquote>
+
+                とりあえず、これでOKです。<b data-dl-uid="255" data-dl-translated="true">tocに</b
+                >注目。これはテーブルへのポインタです。ポインタの最初の単語はGDTのサイズ-1です。2番目の単語はGDTの実際のアドレスです。<b
+                  data-dl-uid="256"
+                  data-dl-translated="true"
+                  >このポインタは、この形式でなければなりません。 1を引くことを忘れないでください!</b
+                >
+                <p data-dl-uid="257" data-dl-translated="true">
+                  GDT（このポインタに基づく）を<b data-dl-uid="259" data-dl-translated="true">GDTR</b
+                  >レジスタにロードするには、特別なリング0専用命令である<b
+                    data-dl-uid="258"
+                    data-dl-translated="true"
+                    >LGDTを</b
+                  >使用します。
+                </p>
+
+                <blockquote>
+                  <pre><div class="code">cli			; make sure to clear interrupts first!
+lgdt	[toc]		; load GDT into GDTR
+sti</div></pre>
+                </blockquote>
+
+                <p data-dl-uid="257" data-dl-translated="true">
+                  シンプル 簡単でしょう？さて...プロテクトモードへ!<b
+                    data-dl-uid="263"
+                    data-dl-translated="true"
+                    >Gdt</b
+                  >
+                </p>
+
+                <blockquote>
+                  <pre><div class="code">;*************************************************
+;	Gdt.inc
+;		-GDT Routines
+;
+;	OS Development Series
+;*************************************************
+ 
+%ifndef __GDT_INC_67343546FDCC56AAB872_INCLUDED__
+%define __GDT_INC_67343546FDCC56AAB872_INCLUDED__
+ 
+bits	16
+ 
+;*******************************************
+; InstallGDT()
+;	- Install our GDT
+;*******************************************
+ 
+InstallGDT:
+ 
+	cli				; clear interrupts
+	pusha				; save registers
+	lgdt 	[toc]			; load GDT into GDTR
+	sti				; enable interrupts
+	popa				; restore registers
+	ret				; All done!
+ 
+;*******************************************
+; Global Descriptor Table (GDT)
+;*******************************************
+ 
+gdt_data: 
+	dd 0 				; null descriptor
+	dd 0 
+ 
+; gdt code:				; code descriptor
+	dw 0FFFFh 			; limit low
+	dw 0 				; base low
+	db 0 				; base middle
+	db 10011010b 			; access
+	db 11001111b 			; granularity
+	db 0 				; base high
+ 
+; gdt data:				; data descriptor
+	dw 0FFFFh 			; limit low (Same as code)
+	dw 0 				; base low
+	db 0 				; base middle
+	db 10010010b 			; access
+	db 11001111b 			; granularity
+	db 0				; base high
+ 
+end_of_gdt:
+toc: 
+	dw end_of_gdt - gdt_data - 1 	; limit (Size of GDT)
+	dd gdt_data 			; base of GDT
+ 
+ 
+%endif ;__GDT_INC_67343546FDCC56AAB872_INCLUDED__</div></pre>
+                </blockquote>
+
+                <h2 data-dl-uid="267" data-dl-translated="true">Step 2: Entering Protected Mode</h2>
+                <p data-dl-uid="268" data-dl-translated="true">
+                  CR0レジスタのビットテーブル覚えて ますか? そう ・・・
+                </p>
+                <ul data-dl-uid="269" data-dl-translated="true">
+                  <li data-dl-uid="270" data-dl-translated="true">
+                    <b data-dl-uid="271" data-dl-translated="true"
+                      >ビット 0 (PE) :システムをプロテクト・ モードに移行する</b
+                    >
+                  </li>
+
+                  <li data-dl-uid="272" data-dl-translated="true">
+                    <b data-dl-uid="273" data-dl-translated="true"
+                      >ビット 1 (MP) :Monitor Coprocessor Flag</b
+                    >
+                    <b data-dl-uid="274" data-dl-translated="true">WAIT</b>命令の動作を制御します。
+                  </li>
+                  <li data-dl-uid="275" data-dl-translated="true">
+                    <b data-dl-uid="276" data-dl-translated="true">ビット 2 (EM) : エミュレートフラグ</b
+                    >。設定されると、<b data-dl-uid="277" data-dl-translated="true"
+                      >コプロセッサー命令は例外を生成</b
+                    >
+                    する
+                  </li>
+                  <li data-dl-uid="278" data-dl-translated="true">
+                    <b data-dl-uid="279" data-dl-translated="true">ビット 3 (TS) :Task Switched Flag</b
+                    >プロセッサが他の<b data-dl-uid="280" data-dl-translated="true">タスクに</b
+                    >切り替わったときにセットされます。
+                  </li>
+
+                  <li data-dl-uid="281" data-dl-translated="true">
+                    <b data-dl-uid="282" data-dl-translated="true"
+                      >ビット
+                      4（ET）:ExtensionTypeフラグ。これはどのようなタイプのコプロセッサが搭載されているかを教えてくれます。</b
+                    >
+                  </li>
+                  <ul data-dl-uid="283" data-dl-translated="true">
+                    <li data-dl-uid="284" data-dl-translated="true">0 - 80287が搭載</li>
+                    <li data-dl-uid="285" data-dl-translated="true">1 - 80387が搭載</li>
+                  </ul>
+
+                  <li data-dl-uid="286" data-dl-translated="true">
+                    <b data-dl-uid="287" data-dl-translated="true">ビット 5 : </b>未使用です。
+                  </li>
+
+                  <li data-dl-uid="288" data-dl-translated="true">
+                    <b data-dl-uid="289" data-dl-translated="true"
+                      >ビット 6（PG）:メモリページングを有効にします。</b
+                    >
+                  </li>
+                </ul>
+
+                <p data-dl-uid="290" data-dl-translated="true">
+                  重要なビットはビット0です。<b data-dl-uid="291" data-dl-translated="true"
+                    >ビット0を設定することにより、プロセッサは32ビット状態で実行を継続します。</b
+                  >
+                  つまり、ビット<b data-dl-uid="292" data-dl-translated="true"
+                    >0を設定することで、プロテクトモードが有効に</b
+                  >なります。
+                </p>
+
+                <p data-dl-uid="293" data-dl-translated="true">例えば</p>
+
+                <blockquote>
+                  <pre><div class="code"> 		mov		eax, cr0			; set bit 0 in CR0-go to pmode
+		or		eax, 1
+		mov		cr0, eax</div></pre>
+                </blockquote>
+
+                <p>
+                  ビット0がセットされていれば、プロテクトモード(PMode)であることを認識します。
+                  覚えておいてください。
+                </p>
+                <p>
+                  ビット32を指定するまで、コードは16ビットのままです。コードが16ビットである限り、セグメント：オフセット・メモリ・モデルを使用することができます。
+                </p>
+                <p>
+                  <b>
+                    警告!32ビットコードに入る前に、割り込みが無効であることを確認してください!もし、割り込みが有効になっていると、プロセッサはトリプルフォルトを起こします。(pmodeからIVTにアクセスできないことを思い出してください)
+                  </b>
+                </p>
+                <p>
+                  プロテクトモードに入った後、すぐに問題にぶつかります。リアルモードでは、セグメント：オフセットメモリモデルを使用したのを覚えていますか？しかし、Protected
+                  Modeでは、Descriptor:Addressのメモリモデルに依存します。
+                </p>
+                <p>
+                  また、Real
+                  ModeではGDTが何であるかを知りませんが、PModeではアドレッシングモードのため、GDTの使用は必須であることを思い出してください。
+                </p>
+
+                このため、リアルモードでは、CSには、使用するディスクリプタではなく、最後に使用したセグメントアドレスが格納されます。
+                PModeはCSを使用して現在のコードディスクリプタを保存していることを思い出してください。従って、CSを修正する（コードディスクリプタに設定する）には、コードディスクリプタを使用して、ファージャンプする必要があります。
+
+                <p>
+                  コードディスクリプタは0x8（GDTの先頭から8バイトのオフセット）なので、以下のようにジャンプします。
+                </p>
+
+                <blockquote>
+                  <pre><div class="code">  	jmp	08h:Stage3		; far jump to fix CS. Remember that the code selector is 0x8!</div></pre>
+                </blockquote>
+
+                <p>
+                  また、PModeに入ると、すべてのセグメントを（不正確なため）正しいディスクリプタ番号にリセットしなければなりません。
+                </p>
+                <blockquote>
+                  <pre><div class="code">	mov		ax, 0x10		; set data segments to data selector (0x10)
+	mov		ds, ax
+	mov		ss, ax
+	mov		es, ax</div></pre>
+                </blockquote>
+
+                <p data-dl-uid="318" data-dl-translated="true">
+                  データディスクリプタがGDTの先頭から16 (0x10) バイトだったことを思い出してください。
+                  なぜGDT内部の参照（ディスクリプタの選択）がすべてオフセットなのか不思議かもしれません。
+                  何のオフセット なのか？
+                  <b data-dl-uid="320" data-dl-translated="true">LGDT</b
+                  >命令でロードしたGDTポインターを覚えていますか？プロセッサは、GDTポインタを指すように設定したベースアドレスから、すべてのオフセットアドレスを基に
+                  します。
+                </p>
+                以下は、ステージ2ブートローダの全体です：
+
+                <blockquote>
+                  <pre><div class="code">bits	16
+ 
+; Remember the memory map-- 0x500 through 0x7bff is unused above the BIOS data area.
+; We are loaded at 0x500 (0x50:0)
+ 
+org 0x500
+ 
+jmp	main				; go to start
+ 
+;*******************************************************
+;	Preprocessor directives
+;*******************************************************
+ 
+%include "stdio.inc"			; basic i/o routines
+%include "Gdt.inc"			; Gdt routines
+ 
+;*******************************************************
+;	Data Section
+;*******************************************************
+ 
+LoadingMsg db "Preparing to load operating system...", 0x0D, 0x0A, 0x00
+ 
+;*******************************************************
+;	STAGE 2 ENTRY POINT
+;
+;		-Store BIOS information
+;		-Load Kernel
+;		-Install GDT; go into protected mode (pmode)
+;		-Jump to Stage 3
+;*******************************************************
+ 
+main:
+ 
+	;-------------------------------;
+	;   Setup segments and stack	;
+	;-------------------------------;
+ 
+	cli				; clear interrupts
+	xor	ax, ax			; null segments
+	mov	ds, ax
+	mov	es, ax
+	mov	ax, 0x9000		; stack begins at 0x9000-0xffff
+	mov	ss, ax
+	mov	sp, 0xFFFF
+	sti				; enable interrupts
+ 
+	;-------------------------------;
+	;   Print loading message	;
+	;-------------------------------;
+ 
+	mov	si, LoadingMsg
+	call	Puts16
+ 
+	;-------------------------------;
+	;   Install our GDT		;
+	;-------------------------------;
+ 
+	call	InstallGDT		; install our GDT
+ 
+	;-------------------------------;
+	;   Go into pmode		;
+	;-------------------------------;
+ 
+	cli				; clear interrupts
+	mov	eax, cr0		; set bit 0 in cr0--enter pmode
+	or	eax, 1
+	mov	cr0, eax
+ 
+	jmp	08h:Stage3		; far jump to fix CS. Remember that the code selector is 0x8!
+ 
+	; Note: Do NOT re-enable interrupts! Doing so will triple fault!
+	; We will fix this in Stage 3.
+ 
+;******************************************************
+;	ENTRY POINT FOR STAGE 3
+;******************************************************
+ 
+bits 32					; Welcome to the 32 bit world!
+ 
+Stage3:
+ 
+	;-------------------------------;
+	;   Set registers		;
+	;-------------------------------;
+ 
+	mov		ax, 0x10		; set data segments to data selector (0x10)
+	mov		ds, ax
+	mov		ss, ax
+	mov		es, ax
+	mov		esp, 90000h		; stack begins from 90000h
+ 
+;*******************************************************
+;	Stop execution
+;*******************************************************
+ 
+STOP:
+ 
+	cli
+	hlt</div></pre>
+                </blockquote>
+
+                <h1 data-dl-uid="325" data-dl-translated="true">まとめ</h1>
+
+                私は興奮していますがあなたはそうでしょうか？このチュートリアルでは、多くのことを学びました。GDT、ディスクリプタ・テーブル、そしてプロテクト・モードへの移行。
+                <p data-dl-uid="326" data-dl-translated="true">
+                  <b data-dl-uid="327" data-dl-translated="true">32ビットの世界へようこそ</b>
+                </p>
+
+                <p data-dl-uid="328" data-dl-translated="true">
+                  これは私たちにとって素晴らしいことです。ほとんどのコンパイラは32ビットコードしか生成しないので、プロテクトモードが必要です。
+                  これで、Cやアセンブリなど、ほとんどすべての言語で書かれた32ビットプログラムを実行できるようになります。
+                  しかし、まだ16ビットの 世界が終わったわけではありません。
+                  次のチュートリアルでは、BIOSの情報を取得し、FAT12を介してカーネルをロードします。
+                  これはもちろん、 小さな小さなスタブカーネルを作成することも意味します。
+                </p>
+              </li>
+            </ul>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </body>
+</html>
