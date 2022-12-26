@@ -85,6 +85,9 @@ UL {
   color: #000000;
   font-family: Verdana;
 }
+LI {
+  padding: 4px;
+}
 DD {
   font-size: 13px;
   color: #000000;

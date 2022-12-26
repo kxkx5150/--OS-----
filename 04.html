@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Cache-Control" content="no-cache" />
+    <title></title>
+    <link href="css/reference.css" rel="stylesheet" />
+  </head>
+  <body
+    text="#000000"
+    vlink="#666699"
+    alink="#000000"
+    link="#666699"
+    bgcolor="#ffffff"
+    leftmargin="0"
+    background="./en01_files/watermark.gif"
+    topmargin="0"
+    marginheight="0"
+    marginwidth="0"
+  >
+    <table cellspacing="0" cellpadding="3" width="80%" border="0">
+      <tbody>
+        <tr>
+          <td class="tblhdr">Operating Systems Development Series</td>
+        </tr>
+        <tr>
+          <td align="middle" colspan="2"></td>
+        </tr>
+      </tbody>
+    </table>
+    <table cellspacing="0" cellpadding="5" width="100%" border="0">
+      <tbody>
+        <tr>
+          <td>
+            <!-- Title -->
+            <div>
+              <span class="title">Bootloaders 4</span>
+
+              <br />
+              <span class="author">by Mike, 2008, 2009</span>
+            </div>
+            <h1 data-dl-uid="7" data-dl-original="true" data-dl-translated="true">はじめに</h1>
+
+            ようこそ!前回のチュートリアルでは、セクタをロードして実行する方法について説明しました。また、アセンブリ言語のRingsとBIOS
+            Parameter Block (BPB)を詳しく見てきました。
+            <p data-dl-uid="8" data-dl-original="true" data-dl-translated="true">
+              このチュートリアルでは、FAT12
+              ファイルシステムを解析し、セカンドステージローダを名前でロードするために学んだことをすべて使用するつもりです。
+            </p>
+            <p data-dl-uid="9" data-dl-original="true" data-dl-translated="true">
+              このチュートリアルには多くのコードが含まれています。また、このチュートリアルには数学も含まれています。
+            </p>
+            <p data-dl-uid="10" data-dl-original="true" data-dl-translated="true">
+              <i data-dl-uid="11" data-dl-original="true" data-dl-translated="true"
+                >準備はいいですか？</i
+              >
+            </p>
+            <h1 data-dl-uid="12" data-dl-original="true" data-dl-translated="true">cli と hlt</h1>
+            なぜ私がデモプログラムの最後に "cli "と "hlt
+            "という命令を使うのか、不思議に思うかもしれません。それは、とても簡単なことです。もし、何らかの方法でプログラムを停止させる方法がなければ、CPUはあなたのプログラムを超えてランダムな命令を実行するだけです。最終的にはTriple
+            Faultになります。
+            <p data-dl-uid="13" data-dl-original="true" data-dl-translated="true">
+              割り込みをクリアする（cli）理由は、割り込みが実行されるからです（したがって、システムはハルトされません）。これでは問題が発生する可能性があります。つまり、<b
+                data-dl-uid="14"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >hlt</b
+              >命令があるだけで（<b data-dl-uid="15" data-dl-original="true" data-dl-translated="true"
+                >cli</b
+              >なしで）CPUがTriple Faultになる可能性があるのです。
+            </p>
+            <p data-dl-uid="16" data-dl-original="true" data-dl-translated="true">
+              このため、私はいつもすべてのデモを<b
+                data-dl-uid="17"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >cliとhltで</b
+              >終わらせています。
+            </p>
+            <h1 data-dl-uid="18" data-dl-original="true" data-dl-translated="true">
+              ファイルシステム - 理論
+            </h1>
+            そろそろファイルシステムの話をしようかな :)
+            <p data-dl-uid="19" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="20" data-dl-original="true" data-dl-translated="true"
+                >ファイルシステムとは</b
+              >、仕様書以外の何物でもありません。ディスク上に「ファイル」という概念を作り出す手助けをします。
+            </p>
+            <p data-dl-uid="21" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="22" data-dl-original="true" data-dl-translated="true">ファイルとは</b
+              >、何かを表現するデータの集まりです。このデータは、私たちが望むものであれば何でも構いません。
+              それはすべて、データをどのように解釈するかによります。
+            </p>
+            <p data-dl-uid="23" data-dl-original="true" data-dl-translated="true">
+              ご存知のように、1セクタは512バイトの大きさです。<b
+                data-dl-uid="24"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ファイルが</b
+              >512バイトを超えると、セクタを増やさなければなりません。すべてのファイルが均等に512バイトであるわけではないので、残りのバイト（ファイルが使用しないバイト）を埋める必要があります。
+              ブートローダにしたことと同じようなものです。
+            </p>
+            <p data-dl-uid="25" data-dl-original="true" data-dl-translated="true">
+              ファイルが複数のセクタにまたがっている場合、FATファイルシステムではこれらのセクタを<b
+                data-dl-uid="26"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >クラスタと</b
+              >呼びます。
+              たとえば、カーネルは多くのセクタにまたがる可能性があります。カーネルをロードするには、それがある<b
+                data-dl-uid="27"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >クラスタ</b
+              >（セクタ）をロードする必要があります。
+            </p>
+            <p data-dl-uid="28" data-dl-original="true" data-dl-translated="true">
+              ファイルが異なるクラスタの異なるセクタにまたがっている場合
+              (隣接していない場合)、そのファイルは<b
+                data-dl-uid="29"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >断片化されて</b
+              >いると言われます。ファイルの異なる部分を収集する必要があります。
+            </p>
+            <p data-dl-uid="30" data-dl-original="true" data-dl-translated="true">
+              ファイルシステムには多くの種類があります。FAT12、FAT16、FAT32、NTFS、ext（Linux）、HFS（古いMACで使用）など広く使われているものもあれば、特定の企業だけが社内用に使用しているファイルシステム（GFS
+              - Google File Systemのようなもの）もあります。
+            </p>
+            <p data-dl-uid="31" data-dl-original="true" data-dl-translated="true">
+              OSの開発者の多くは、FATファイルシステム（あるいは全く新しいもの）のバージョンを作っています。
+              しかし、これらは通常、最も一般的なファイルシステム（FATやNTFSなど）ほど良くはありません。
+            </p>
+            <p data-dl-uid="32" data-dl-original="true" data-dl-translated="true">
+              さて、これでファイルシステムについては少しわかったと思います。私たちはそのシンプルさのためにFAT12を使うつもりです。
+              もし私たちが決めたら、いつでも別のものを使うことができます :)
+            </p>
+            <h1 data-dl-uid="33" data-dl-original="true" data-dl-translated="true">
+              FAT12 ファイルシステム - 理論
+            </h1>
+            FAT12は1977年にリリースされた最初のFAT（File Allocation Table）ファイルシステムで、Microsoft
+            Disk BASICで使用されています。
+            FAT12は一般にフロッピーディスク用にリリースされた古いファイルシステムなので、いくつかの制限事項がありました。
+            <ul data-dl-uid="34" data-dl-original="true" data-dl-translated="true">
+              <li data-dl-uid="35" data-dl-original="true" data-dl-translated="true">
+                FAT12は階層的なディレクトリをサポートしていません。つまり、ディレクトリは1つだけです-Thr<b
+                  data-dl-uid="36"
+                  data-dl-original="true"
+                  data-dl-translated="true"
+                  >Root Directory</b
+                >。
+              </li>
+              <li data-dl-uid="37" data-dl-original="true" data-dl-translated="true">
+                クラスタアドレスは12ビットしかなく、クラスタの最大数は4096に制限されています。
+              </li>
+              <li data-dl-uid="38" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="39" data-dl-original="true" data-dl-translated="true"
+                  >ファイル名は12ビットの識別子としてFATに格納されます。クラスタアドレスは、ファイルの開始クラスタを表します。</b
+                >
+              </li>
+              <li data-dl-uid="40" data-dl-original="true" data-dl-translated="true">
+                クラスタサイズに制限があるため、<b
+                  data-dl-uid="41"
+                  data-dl-original="true"
+                  data-dl-translated="true"
+                  >可能な最大ファイル数は4,077</b
+                >です。
+              </li>
+              <li data-dl-uid="42" data-dl-original="true" data-dl-translated="true">
+                ディスクサイズは、16ビットのセクター数としてのみ格納され、サイズは32MiBに制限されます。
+              </li>
+              <li data-dl-uid="43" data-dl-original="true" data-dl-translated="true">
+                FAT12では、パーティションの識別に "0x01 "という値を使用する
+              </li>
+            </ul>
+            これらは大きな制限です。では、なぜFAT12が必要なのでしょうか？
+            <p data-dl-uid="44" data-dl-original="true" data-dl-translated="true">
+              FAT16は、FAT12と異なり、16ビットのクラスタ(ファイル)アドレスを使用するため、ディレクトリや64,000以上のファイルをサポートする。しかし、<b
+                data-dl-uid="45"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >FAT16とFAT12は非常に</b
+              >よく似ています。
+            </p>
+            <p data-dl-uid="46" data-dl-original="true" data-dl-translated="true">
+              ここでは、FAT12を使用することにします。後でFAT16を使うかもしれませんし、FAT32を使うかもしれません:)。(FAT32はFAT12/16とかなり違うので、後でFAT16を使うことになるかもしれません)
+            </p>
+
+            <h1>FAT12 FileSystem - Disk Storage</h1>
+            FAT12とその仕組みについてもっと理解するためには、典型的なフォーマット済みディスクの構造を見てみるのがよいでしょう。
+
+            <table border="2">
+              <tbody>
+                <tr bgcolor="#CCCCCC">
+                  <td>Boot Sector</td>
+                  <td>Extra Reserved Sectors</td>
+                  <td>File Allocation Table 1</td>
+                  <td>File Allocation Table 2</td>
+                  <td>Root Directory (FAT12/FAT16 Only)</td>
+                  <td>Data Region containng files and directories.</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <p data-dl-uid="58" data-dl-original="true" data-dl-translated="true">
+              これは典型的なFAT12ディスクのフォーマットで、ブートセクタからディスクの一番最後のセクタまでです。
+            </p>
+            <p data-dl-uid="59" data-dl-original="true" data-dl-translated="true">
+              この構造を理解することは、ファイルを読み込んだり検索したりする際に重要です。
+            </p>
+            <p data-dl-uid="60" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="61" data-dl-original="true" data-dl-translated="true"
+                >ディスクには2つのFATがあることに注意してください。</b
+              >FAT<b data-dl-uid="61" data-dl-translated="true"
+                >は予約セクタ(ない場合はブートローダ)のすぐ後に位置して</b
+              >います。
+            </p>
+            <p data-dl-uid="62" data-dl-original="true" data-dl-translated="true">
+              また、<b data-dl-uid="63" data-dl-original="true" data-dl-translated="true"
+                >Root DirectoryはすべてのFAT</b
+              >の直後にあることにも注意してください。これはつまり...
+            </p>
+            <p data-dl-uid="64" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="65" data-dl-original="true" data-dl-translated="true"
+                >FATごとのセクタ数と予約セクタを合計すれば、最初のセクタをRootディレクトリに確保することができるのです。</b
+              >Root
+              Directoryで単純な文字列(ファイル名)を検索すれば、ディスク上のファイルの正確なセクタを効率的に見つけることができます
+              :)
+            </p>
+            <p data-dl-uid="66" data-dl-original="true" data-dl-translated="true">
+              もっと詳しく見てみましょう...
+            </p>
+
+            <h3>Boot Sector</h3>
+            このセクションには、BIOSパラメータブロックとブートローダが含まれています。そう--私たちの。BIOSパラメーターブロックには、ディスクを説明するのに役立つ情報が含まれています。
+
+            <h3>Extra Reserved Sectors</h3>
+            BPBのbpbReservedSectorsメンバーを覚えていますか？余分な予約セクタは、ブートセクタのすぐ後にここに格納されます。
+
+            <h3>File Allocation Tables (FATs)</h3>
+            クラスタはディスク上の連続したセクタを表し、各クラスタのサイズは通常 2 KB から 32 KiB
+            であることを覚えておいてください。ファイル ピースは、リンク<b
+              data-dl-uid="70"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >リストの</b
+            >ような一般的なデータ構造を使って (1 つのクラスターから別のクラスターに) リンクされます。
+            <p data-dl-uid="71" data-dl-original="true" data-dl-translated="true">
+              FATは2つあります。ただし、1つはデータ復旧のために最初の1つをコピーしたもので、通常は使用されません。
+            </p>
+            <p data-dl-uid="72" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="73" data-dl-original="true" data-dl-translated="true"
+                >ファイルアロケーションテーブル（FAT）は、これらのクラスタにマッピングするエントリのリストです。
+                これらのクラスタにデータを格納するのに役立つ重要な情報を識別するのに役立ちます。</b
+              >
+            </p>
+            <p data-dl-uid="74" data-dl-original="true" data-dl-translated="true">
+              各エントリーは、クラスタを表す12ビットの値である。<b
+                data-dl-uid="75"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >FATは、どのクラスタが使用されているかを識別するために、これらのエントリを持つリンクリストのような構造になって</b
+              >います。
+            </p>
+            <p data-dl-uid="76" data-dl-original="true" data-dl-translated="true">
+              このことをより良く理解するために、可能な値を見てみましょう。
+            </p>
+            <ul data-dl-uid="77" data-dl-original="true" data-dl-translated="true">
+              <li data-dl-uid="78" data-dl-original="true" data-dl-translated="true">
+                値<b data-dl-uid="79" data-dl-original="true" data-dl-translated="true"
+                  >域マーク フリークラスタ：</b
+                >0x00
+              </li>
+              <li data-dl-uid="80" data-dl-original="true" data-dl-translated="true">
+                値<b data-dl-uid="81" data-dl-original="true" data-dl-translated="true">マーク 予約</b
+                >クラスタ：0x01
+              </li>
+              <li data-dl-uid="82" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="83" data-dl-original="true" data-dl-translated="true"
+                  >このクラスタは使用中であり、値は次のクラスタを表す：</b
+                >0x002～0xFEF
+              </li>
+              <li data-dl-uid="84" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="85" data-dl-original="true" data-dl-translated="true">予約値：</b
+                >0xFF0～0xFF6
+              </li>
+              <li data-dl-uid="86" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="87" data-dl-original="true" data-dl-translated="true">不良</b
+                >クラスタに対応する値：0xFF7
+              </li>
+              <li data-dl-uid="88" data-dl-original="true" data-dl-translated="true">
+                このクラスタが<b data-dl-uid="89" data-dl-original="true" data-dl-translated="true"
+                  >ファイルの最後</b
+                >であることを示す値：0xFF8～0xFFF
+              </li>
+            </ul>
+            FATはこれらの値の配列に過ぎません。ルートディレクトリの開始セクタを見つけたら、FATを調べてどのクラスタを読み込むかを決めます。どうやって？単純に値を調べればいいんです。値が0x02から0xfefの間であれば、この値はファイルに対して次にロードすべきクラスタを表しています。
+            <p data-dl-uid="90" data-dl-original="true" data-dl-translated="true">
+              もう少し詳しく見てみましょう。<b
+                data-dl-uid="91"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >クラスタは</b
+              >、ご存知のように、一連のセクタを表します。 クラスタが表すセクタの量は、BIOS
+              パラメータ・ブロックから定義されます。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">bpbBytesPerSector:  	DW 512
+bpbSectorsPerCluster: 	DB 1</div></pre>
+            </blockquote>
+
+            この場合、各クラスタは1セクタです。ステージ2の最初のセクタを取得したら（ルート・ディレクトリから取得します）、このセクタをFATの開始クラスタ番号として使用します。開始クラスタが見つかったら、FATを参照してクラスタを決定します（FATは単なる32ビット番号の配列です。この番号と上記のリストを比較して、何をすべきかを決めるだけです)。
+            さて、<b data-dl-uid="96" data-dl-original="true" data-dl-translated="true">ここが</b
+            >私たちにとって重要なところです :)
+            <p data-dl-uid="97" data-dl-original="true" data-dl-translated="true">
+              ルートディレクトリは、ファイルやディレクトリに関する情報を32バイトの値で表したテーブルです。
+              この32バイトの値は、次のようなフォーマットで使用します。
+            </p>
+
+            <ul>
+              <li><b>Bytes 0-7 : DOS File name (Padded with spaces)</b></li>
+              <li><b>Bytes 8-10 : DOS File extension (Padded with spaces)</b></li>
+              <li><b>Bytes 11 :</b> File attributes. This is a bit pattern:</li>
+              <ul>
+                <li><b>Bit 0 :</b> Read Only</li>
+                <li><b>Bit 1 :</b> Hidden</li>
+                <li><b>Bit 2 :</b> System</li>
+                <li><b>Bit 3 :</b> Volume Label</li>
+                <li><b>Bit 4 :</b> This is a subdirectory</li>
+                <li><b>Bit 5 :</b> Archive</li>
+                <li><b>Bit 6 :</b> Device (Internal use)</li>
+                <li><b>Bit 6 :</b> Unused</li>
+              </ul>
+              <li><b>Bytes 12 :</b> Unused</li>
+              <li><b>Bytes 13 :</b> Create time in ms</li>
+              <li><b>Bytes 14-15 :</b> Created time, using the following format:</li>
+              <ul>
+                <li><b>Bit 0-4 :</b> Seconds (0-29)</li>
+                <li><b>Bit 5-10 :</b> Minutes (0-59)</li>
+                <li><b>Bit 11-15 :</b> Hours (0-23)</li>
+              </ul>
+              <li><b>Bytes 16-17 :</b> Created year in the following format:</li>
+              <ul>
+                <li><b>Bit 0-4 :</b> Year (0=1980; 127=2107</li>
+                <li><b>Bit 5-8 :</b> Month (1=January; 12=December)</li>
+                <li><b>Bit 9-15 :</b> Hours (0-23)</li>
+              </ul>
+              <li><b>Bytes 18-19 :</b> Last access date (Uses same format as above)</li>
+              <li><b>Bytes 20-21 :</b> EA Index (Used in OS/2 and NT, dont worry about it)</li>
+              <li><b>Bytes 22-23 :</b> Last Modified time (See byte 14-15 for format)</li>
+              <li><b>Bytes 24-25 :</b> Last modified date (See bytes 16-17 for format)</li>
+              <li><b>Bytes 26-27 :</b> <b>First Cluster</b></li>
+              <li><b>Bytes 28-32 :</b> <b>File Size</b></li>
+            </ul>
+
+            重要な部分は太字にしました。他はマイクロソフトが追加したジャンクで、FAT12ドライバを作るときに、もっと後で追加すればいいんです。
+            <p data-dl-uid="158" data-dl-original="true" data-dl-translated="true">
+              ちょっと待ってください!DOSのファイル名は11バイトに制限されているのを覚えていますか？これが理由です。
+            </p>
+
+            <ul>
+              <li><b>Bytes 0-7 : DOS File name (Padded with spaces)</b></li>
+              <li><b>Bytes 8-10 : DOS File extension (Padded with spaces)</b></li>
+            </ul>
+
+            0から10までは、うーん...11バイトですね。11バイト未満のファイル名をつけると、データ入力がうまくいかなくなります(上に表示されている32バイトの入力テーブル)。もちろん、これは悪いことです
+            :)このため、ファイル名を文字で埋め、11バイトであることを保証する必要があるのです。
+            <p data-dl-uid="164" data-dl-original="true" data-dl-translated="true">
+              前回のチュートリアルで、ファイル名には<b
+                data-dl-uid="165"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >内部</b
+              >ファイル名と<b data-dl-uid="166" data-dl-original="true" data-dl-translated="true">外部</b
+              >ファイル名があることを説明しましたが、今回説明したファイル名の構造は内部ファイル名です。11バイトに制限されているので、<b
+                data-dl-uid="167"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >"Stage2.sys "</b
+              >というファイル名は次のようになります。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">"STAGE2  SYS" (Note the padding!)</div></pre>
+            </blockquote>
+
+            <h1 data-dl-uid="171" data-dl-original="true" data-dl-translated="true">
+              FAT12の検索と読み込み - 理論編
+            </h1>
+            さて、上記をすべて読み終えたら、私が「FAT12」と言うのに飽きたことでしょう :)
+            <p data-dl-uid="172" data-dl-original="true" data-dl-translated="true">
+              さてさて。この情報はどのように役立つのでしょうか？
+            </p>
+            <p data-dl-uid="173" data-dl-original="true" data-dl-translated="true">
+              BIOS Parameter Block
+              (BPB)をたくさん参照するつもりです。以下は、以前のチュートリアルで作成したBPBを参照するためのものです。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">bpbBytesPerSector:  	DW 512
+bpbSectorsPerCluster: 	DB 1
+bpbReservedSectors: 	DW 1
+bpbNumberOfFATs: 	DB 2
+bpbRootEntries: 	DW 224
+bpbTotalSectors: 	DW 2880
+bpbMedia: 		DB 0xF0
+bpbSectorsPerFAT: 	DW 9
+bpbSectorsPerTrack: 	DW 18
+bpbHeadsPerCylinder: 	DW 2
+bpbHiddenSectors: 	DD 0
+bpbTotalSectorsBig:     DD 0
+bsDriveNumber: 	        DB 0
+bsUnused: 		DB 0
+bsExtBootSignature: 	DB 0x29
+bsSerialNumber:	        DD 0xa0a1a2a3
+bsVolumeLabel: 	        DB "MOS FLOPPY "
+bsFileSystem: 	        DB "FAT12   "</div></pre>
+            </blockquote>
+
+            各メンバーの詳細な説明については、前回のチュートリアルを参照してください。
+            <p data-dl-uid="177" data-dl-original="true" data-dl-translated="true">
+              私たちがやろうとしていることは、セカンドステージのローダーをロードすることです。具体的にどのようなことをするのか見てみましょう。
+            </p>
+
+            <h2 data-dl-uid="178" data-dl-original="true" data-dl-translated="true">
+              ファイル名で始める
+            </h2>
+            まず最初にすべきことは、良いファイル名を作ることです。覚えておいてください。<b
+              data-dl-uid="179"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >ルートディレクトリを破壊しないように、ファイル名は正確に11バイトでなければなりません。</b
+            >
+            <p data-dl-uid="180" data-dl-original="true" data-dl-translated="true">
+              私はセカンドステージに "STAGE2.SYS
+              "を使っています。その内部ファイル名の例は、上のセクションで見ることができます。
+            </p>
+
+            <h2 data-dl-uid="181" data-dl-original="true" data-dl-translated="true">
+              第2ステージの作成
+            </h2>
+
+            さて、Stage2
+            はブートローダとは別個のプログラムです。Stage2はDOSのCOMプログラムに非常によく似たものになります。
+            <p data-dl-uid="182" data-dl-original="true" data-dl-translated="true">
+              Stage2が今やっていることは、メッセージを表示して停止することだけです。ブートローダで既に見たことがあるものばかりです。
+            </p>
+
+            <blockquote>
+              <pre><div class="code"> 
+; Note: Here, we are executed like a normal
+; COM program, but we are still in Ring 0.
+; We will use this loader to set up 32 bit
+; mode and basic exception handling
+ 
+; This loaded program will be our 32 bit Kernel.
+ 
+; We do not have the limitation of 512 bytes here,
+; so we can add anything we want here!
+ 
+org 0x0		; offset to 0, we will set segments later
+ 
+bits 16		; we are still in real mode
+ 
+; we are loaded at linear address 0x10000
+ 
+jmp main	; jump to main
+ 
+;*************************************************;
+;	Prints a string
+;	DS=&gt;SI: 0 terminated string
+;************************************************;
+ 
+Print:
+			lodsb		; load next byte from string from SI to AL
+			or	al, al	; Does AL=0?
+			jz	PrintDone	; Yep, null terminator found-bail out
+			mov	ah,	0eh	; Nope-Print the character
+			int	10h
+			jmp	Print	; Repeat until null terminator found
+PrintDone:
+			ret		; we are done, so return
+ 
+;*************************************************;
+;	Second Stage Loader Entry Point
+;************************************************;
+ 
+main:
+			cli		; clear interrupts
+			push	cs	; Insure DS=CS
+			pop	ds
+ 
+			mov	si, Msg
+			call	Print
+ 
+			cli		; clear interrupts to prevent triple faults
+			hlt		; hault the system
+ 
+;*************************************************;
+;	Data Section
+;************************************************;
+ 
+Msg	db	"Preparing to load operating system...",13,10,0</div></pre>
+            </blockquote>
+
+            NASMでアセンブルするには、バイナリプログラムとしてアセンブルし（COMプログラムはバイナリです）、フロッピーディスクイメージにコピーすればよいのです。例えば
+
+            <blockquote>
+              <pre><div class="code">nasm -f bin Stage2.asm -o STAGE2.SYS
+ 
+copy STAGE2.SYS  A:\STAGE2.SYS</div></pre>
+            </blockquote>
+            PARTCOPYは必要ありません :)
+
+            <h2 data-dl-uid="189" data-dl-original="true" data-dl-translated="true">
+              ステップ1：ルート・ディレクトリ・テーブルの読み込み
+            </h2>
+
+            さて、いよいよStage2.sysのロードです。ここでは、ディスク情報のためのBIOSパラメータブロックとともに、Rootディレクトリテーブルを参照することになります。
+
+            <h3 data-dl-uid="190" data-dl-original="true" data-dl-translated="true">
+              ステップ1：ルートディレクトリのサイズを取得する
+            </h3>
+            さて、まず最初にルートディレクトリのサイズを取得する必要があります。
+            <p data-dl-uid="191" data-dl-original="true" data-dl-translated="true">
+              ルートディレクトリのサイズを取得するには、ルートディレクトリのエントリ数を掛け合わせます。簡単そうですね......。）
+            </p>
+            <p data-dl-uid="192" data-dl-original="true" data-dl-translated="true">
+              Windowsでは、FAT12でフォーマットされたディスクにファイルやディレクトリを追加すると、Windowsが自動的にそのファイル情報をルートディレクトリに追加するので、それを気にする必要はありません。これによって、物事はずっとシンプルになります。
+            </p>
+            <p data-dl-uid="193" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="194" data-dl-original="true" data-dl-translated="true"
+                >ルート・エントリーの数をセクタあたりのバイト数で割ると、ルート・エントリーが何セクタを使用しているかがわかります。</b
+              >
+            </p>
+            <p data-dl-uid="195" data-dl-original="true" data-dl-translated="true">以下はその例です。</p>
+
+            <blockquote>
+              <pre><div class="code">          mov     ax, 0x0020        ; 32 byte directory entry
+          mul     WORD [bpbRootEntries]  ; number of root entrys
+          div     WORD [bpbBytesPerSector] ; get sectors used by root directory</div></pre>
+            </blockquote>
+
+            ルート・ディレクトリ・テーブルは、ファイル情報を表す<b
+              data-dl-uid="199"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >32バイトの値（エントリ</b
+            >）のテーブルであることを思い出してください。
+            <p data-dl-uid="200" data-dl-original="true" data-dl-translated="true">
+              よっしゃー、ルートディレクトリにロードするセクタの数がわかったぞ。では、ロードする開始セクタを探しましょう
+              :)
+            </p>
+
+            <h3 data-dl-uid="201" data-dl-original="true" data-dl-translated="true">
+              ステップ2：ルートディレクトリの開始を取得
+            </h3>
+            これも簡単です。まず、FAT12でフォーマットされたディスクをもう一度見てみましょう。
+            <table border="2">
+              <tbody>
+                <tr bgcolor="#CCCCCC">
+                  <td>Boot Sector</td>
+                  <td>Extra Reserved Sectors</td>
+                  <td>File Allocation Table 1</td>
+                  <td>File Allocation Table 2</td>
+                  <td bgcolor="#aaaaaa">Root Directory (FAT12/FAT16 Only)</td>
+                  <td>Data Region containng files and directories.</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <p data-dl-uid="212" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="213" data-dl-original="true" data-dl-translated="true"
+                >ルートディレクトリは、FATと予約セクタの</b
+              >直後にあることに注意してください。
+              つまり、FATと予約セクタを足せば、ルートディレクトリが見つかるということです。
+            </p>
+            <p data-dl-uid="214" data-dl-original="true" data-dl-translated="true">例えば...</p>
+
+            <blockquote>
+              <pre><div class="code">          mov     al, [bpbNumberOfFATs]  ; Get number of FATs (Useually 2)
+          mul     [bpbSectorsPerFAT]  ; number of FATs * sectors per FAT; get number of sectors
+          add     ax, [bpbReservedSectors] ; add reserved sectors
+ 
+	; Now, AX = starting sector of root directory</div></pre>
+            </blockquote>
+
+            かなり簡単でしょう？さて、セクタをメモリ上のある場所に読み込むだけです。
+            <blockquote>
+              <pre><div class="code">          mov     bx, 0x0200  ; load root directory to 7c00:0x0200
+          call    ReadSectors</div></pre>
+            </blockquote>
+
+            <h3 data-dl-uid="221" data-dl-original="true" data-dl-translated="true">
+              ルートディレクトリ - 完全な例
+            </h3>
+            このサンプルコードはチュートリアルの最後にあるブートローダから直接取ったものです。
+            これはルートディレクトリをロードします。
+            <blockquote>
+              <pre><div class="code"> 
+    LOAD_ROOT:
+     
+     ; compute size of root directory and store in "cx"
+     
+          xor     cx, cx
+          xor     dx, dx
+          mov     ax, 0x0020                      ; 32 byte directory entry
+          mul     WORD [bpbRootEntries]           ; total size of directory
+          div     WORD [bpbBytesPerSector]        ; sectors used by directory
+          xchg    ax, cx
+          
+     ; compute location of root directory and store in "ax"
+     
+          mov     al, BYTE [bpbNumberOfFATs]       ; number of FATs
+          mul     WORD [bpbSectorsPerFAT]          ; sectors used by FATs
+          add     ax, WORD [bpbReservedSectors]    ; adjust for bootsector
+          mov     WORD [datasector], ax            ; base of root directory
+          add     WORD [datasector], cx
+          
+     ; read root directory into memory (7C00:0200)
+     
+          mov     bx, 0x0200                        ; copy root dir above bootcode
+          call    ReadSectors</div></pre>
+            </blockquote>
+
+            <h2>ステップ 2: Find Stage 2</h2>
+
+            さて、ルートディレクトリのテーブルがロードされました。上のコードを見ると、<b
+              data-dl-uid="226"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >0x200 にロードして</b
+            >います。 さて、ファイルを探します。
+            <p data-dl-uid="227" data-dl-original="true" data-dl-translated="true">
+              32バイトのルートディレクトリのテーブルをもう一度見てみましょう（Section<b
+                data-dl-uid="228"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >Root Directory</b
+              >
+              Table.<b data-dl-uid="229" data-dl-original="true" data-dl-translated="true"
+                >最初の11バイトはファイル</b
+              >名を表していることを思い出してください。また、<b
+                data-dl-uid="230"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >各ルートディレクトリのエントリは32バイトであるため、32バイトごとに次のエントリの先頭になり、次のエントリの最初の11バイトを指し示す</b
+              >ことも覚えておいてください。
+            </p>
+            <p data-dl-uid="231" data-dl-original="true" data-dl-translated="true">
+              したがって、ファイル名を比較し、次のエントリ (32 バイト)
+              にジャンプし、セクタの最後に達するまで再度テストする必要があります。 たとえば...
+            </p>
+
+            <blockquote>
+              <pre><div class="code"> 
+     ; browse root directory for binary image
+          mov     cx, [bpbRootEntries]        ; the number of entrys. If we reach 0, file doesnt exist
+          mov     di, 0x0200        ; Root directory was loaded here
+     .LOOP:
+          push    cx
+          mov     cx, 11            ; eleven character name
+          mov     si, ImageName     ; compare the 11 bytes with the name of our file
+          push    di
+     rep  cmpsb                     ; test for entry match
+          pop     di
+          je      LOAD_FAT          ; they match, so begin loading FAT
+          pop     cx
+          add     di, 32            ; they dont match, so go to next entry (32 bytes)
+          loop    .LOOP
+          jmp     FAILURE           ; no more entrys left, file doesnt exist :(</div></pre>
+            </blockquote>
+
+            次のステップに進みましょう...
+            <h2 data-dl-uid="235" data-dl-original="true" data-dl-translated="true">
+              ステップ3: FATのロード
+            </h2>
+
+            <h3 data-dl-uid="236" data-dl-original="true" data-dl-translated="true">
+              ステップ1: スタートクラスタの取得
+            </h3>
+            ルート・ディレクトリがロードされ、ファイルのエントリが見つかりました。その開始クラスタを得るにはどうしたらよいでしょうか？
+            <ul data-dl-uid="237" data-dl-original="true" data-dl-translated="true">
+              <li data-dl-uid="238" data-dl-original="true" data-dl-translated="true">
+                26〜27バイト目 :最初のクラスタ
+              </li>
+              <li data-dl-uid="239" data-dl-original="true" data-dl-translated="true">
+                28〜32バイト目 : ファイルサイズ
+              </li>
+            </ul>
+            これは見覚えがあるはずです
+            :)開始クラスタを取得するには、ファイルエントリのバイト26を参照してください。
+
+            <blockquote>
+              <pre><div class="code">mov     dx, [di + 0x001A]   ; di contains starting address of entry. Just refrence byte 26 (0x1A) of entry
+ 
+; Yippe--dx now stores the starting cluster number</div></pre>
+            </blockquote>
+
+            この開始クラスタは、ファイルをロードする際に重要です。
+
+            <h3 data-dl-uid="243" data-dl-original="true" data-dl-translated="true">
+              ステップ2：FATのサイズを取得する
+            </h3>
+
+            もう一度、BIOSパラメータブロックを見てみましょう。具体的には...
+
+            <blockquote>
+              <pre><div class="code">bpbNumberOfFATs: 	DB 2
+bpbSectorsPerFAT: 	DW 9</div></pre>
+            </blockquote>
+
+            では、両方のFATに存在するセクタ数を調べるにはどうすればいいのでしょうか？FATごとのセクタ数を掛ければいいんです
+            :)簡単そうに見えますが ...。
+
+            <blockquote>
+              <pre><div class="code">          xor     ax, ax
+          mov     al, [bpbNumberOfFATs]                ; number of FATs
+          mul     WORD [bpbSectorsPerFAT]              ; multiply by number of sectors per FAT
+ 
+	; ax = number of sectors the FATs use!</div></pre>
+            </blockquote>
+            いや、気にしないでください、簡単です^^。
+
+            <h3 data-dl-uid="250" data-dl-original="true" data-dl-translated="true">
+              ステップ3：FATをロードする
+            </h3>
+            さて、読み込むべきセクタ数がわかったところで。ただ、えーと...読むだけです :)
+
+            <blockquote>
+              <pre><div class="code">          mov     bx, 0x0200                          ; address to load to
+          call    ReadSectors                         ; load the FAT table</div></pre>
+            </blockquote>
+
+            よっしゃーーーさて、FATの話は終わりましたが（完全ではありません！）、ステージ2にロードしてみましょう
+
+            <h3 data-dl-uid="254" data-dl-original="true" data-dl-translated="true">FAT - 完全な例</h3>
+            以下は、ブートローダから直接取得した完全なコードです。
+            <blockquote>
+              <pre><div class="code">    LOAD_FAT:
+     
+     ; save starting cluster of boot image
+     
+          mov     si, msgCRLF
+          call    Print
+          mov     dx, WORD [di + 0x001A]
+          mov     WORD [cluster], dx                  ; file's first cluster
+          
+     ; compute size of FAT and store in "cx"
+     
+          xor     ax, ax
+          mov     al, BYTE [bpbNumberOfFATs]                ; number of FATs
+          mul     WORD [bpbSectorsPerFAT]                ; sectors used by FATs
+          mov     cx, ax
+ 
+     ; compute location of FAT and store in "ax"
+ 
+          mov     ax, WORD [bpbReservedSectors]          ; adjust for bootsector
+          
+     ; read FAT into memory (7C00:0200)
+ 
+          mov     bx, 0x0200                          ; copy FAT above bootcode
+          call    ReadSectors</div></pre>
+            </blockquote>
+
+            <h2 data-dl-uid="258" data-dl-original="true" data-dl-translated="true">LBAとCHS</h2>
+
+            イメージをロードする際に必要なのは、FATを参照しながら各クラスタをロードすることです。
+            <p data-dl-uid="259" data-dl-original="true" data-dl-translated="true">
+              しかし、まだ議論していない小さな問題が1つあります。さて、FATからクラスタ番号を取得しました。しかし、<b
+                data-dl-uid="260"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >それをどのように使う</b
+              >のでしょうか？
+            </p>
+            <p data-dl-uid="261" data-dl-original="true" data-dl-translated="true">
+              問題は、このクラスタがリニアアドレスを表しているのに対し、セクタをロードするためには、セグメント/トラック/ヘッドアドレスが必要だということです。(インタラプト0x13)
+            </p>
+            <p data-dl-uid="262" data-dl-original="true" data-dl-translated="true">
+              ディスクにアクセスする方法は<b
+                data-dl-uid="263"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >2</b
+              >つあります。<b data-dl-uid="264" data-dl-original="true" data-dl-translated="true"
+                >シリンダー／ヘッド／セクター（CHS）アドレスによる</b
+              >方法と、<b data-dl-uid="265" data-dl-original="true" data-dl-translated="true"
+                >論理ブロック・アドレッシング（LBA）</b
+              >による方法です。
+            </p>
+            <p data-dl-uid="266" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="267" data-dl-original="true" data-dl-translated="true">LBAは</b
+              >、ディスク上のインデックス付きの位置を表します。LBAは、セクタがLBA
+              0から順番に番号付けされていることを表しています。
+            </p>
+            <p data-dl-uid="268" data-dl-original="true" data-dl-translated="true">
+              LBAとCHSの間の変換方法を知っておく必要があります。
+            </p>
+
+            <h3>Converting CHS to LBA</h3>
+
+            <p>CHSからLBAへの変換式は次のとおりです</p>
+
+            <blockquote>
+              <pre><div class="code">LBA	=	(cluster - 2 ) * sectors per cluster</div></pre>
+            </blockquote>
+            これはとても簡単なことです。
+
+            <blockquote>
+              <pre><div class="code">          sub     ax, 0x0002                          ; subtract 2 from cluster number
+          xor     cx, cx
+          mov     cl, BYTE [bpbSectorsPerCluster]     ; get sectors per cluster
+          mul     cx                                  ; multply</div></pre>
+            </blockquote>
+
+            <h3 data-dl-uid="278" data-dl-original="true" data-dl-translated="true">
+              LBAからCHSへの変換
+            </h3>
+
+            これは少し複雑ですが、それでも非常に簡単です。
+
+            <blockquote>
+              <pre><div class="code">      absolute sector 	= 	(LBA % sectors per track) + 1
+      absolute head   	= 	(LBA / sectors per track) % number of heads
+      absolute track 	= 	 LBA / (sectors per track * number of heads)</div></pre>
+            </blockquote>
+
+            これがその例です。
+            <blockquote>
+              <pre><div class="code">LBACHS:
+          xor     dx, dx                              ; prepare dx:ax for operation
+          div     WORD [bpbSectorsPerTrack]           ; divide by sectors per track
+          inc     dl                                  ; add 1 (obsolute sector formula)
+          mov     BYTE [absoluteSector], dl
+ 
+; these forumlas are very simular...
+ 
+          xor     dx, dx                              ; prepare dx:ax for operation
+          div     WORD [bpbHeadsPerCylinder]          ; mod by number of heads (Absolue head formula)
+          mov     BYTE [absoluteHead], dl             ; everything else was already done from the first formula
+ 
+          mov     BYTE [absoluteTrack], al            ; not much else to do :)
+          ret</div></pre>
+            </blockquote>
+            それほど難しくはないと思います :)
+
+            <h2 data-dl-uid="285" data-dl-original="true" data-dl-translated="true">
+              クラスタをロードする
+            </h2>
+            さて、Stage
+            2のロードでは、まずFATからクラスタを参照する必要があります。そして、クラスタ番号をLBAに変換して、読み込むことができます。
+
+            <blockquote>
+              <pre><div class="code">          mov     ax, [cluster]                     ; cluster to read
+          pop     bx                                ; buffer to read into
+          call    ClusterLBA                        ; convert cluster to LBA
+          xor     cx, cx
+          mov     cl, [bpbSectorsPerCluster]        ; sectors to read
+          call    ReadSectors                       ; read in cluster
+          push    bx</div></pre>
+            </blockquote>
+
+            <h2 data-dl-uid="289" data-dl-original="true" data-dl-translated="true">
+              次のクラスタを取得
+            </h2>
+
+            これが厄介なんです。
+            <p data-dl-uid="290" data-dl-original="true" data-dl-translated="true">
+              さて、<b data-dl-uid="291" data-dl-original="true" data-dl-translated="true"
+                >FATのエントリにある各クラスタ番号は12ビットで</b
+              >あることを思い出してください。これは問題で、<b
+                data-dl-uid="292"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >1バイトで読み込むとクラスタ番号の一部しかコピーしていないことになります！</b
+              >このため、クラスタ番号の一部を読み込む必要があります。
+            </p>
+            <p data-dl-uid="293" data-dl-original="true" data-dl-translated="true">
+              このため、WORD（2バイト）の値を読み込まなければならない。
+            </p>
+            <p data-dl-uid="294" data-dl-original="true" data-dl-translated="true">
+              それでも、また、問題にぶつかる。12ビットの値から）2バイトコピーするということは、<b
+                data-dl-uid="295"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >次のクラスタエントリの</b
+              >一部をコピーすることになります。 例えば、これがあなたのFATだと想像してください。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">               Note: Binary numbers seperated in bytes.
+	       Each 12 bit FAT cluster entry is displayed.
+ 
+                                   |                           |
+   01011101       0111010   01110101  00111101  0011101  0111010  0011110 0011110
+   |                |              |              |            |               |
+   |                |1st cluster   |              |3rd cluster-|               |
+   |-0 cluster  ----|              |2nd cluster---|            |4th cluster----|</div></pre>
+            </blockquote>
+
+            <p data-dl-uid="299" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="300" data-dl-original="true" data-dl-translated="true"
+                >すべての偶数クラスタが最初のバイトのすべてをコピーし、2番目のバイトの一部をコピーしていることに注意してください。また、すべての奇数クラスターは最初のバイトの一部をコピーしますが、2番目のバイトのすべてをコピーすることに注意してください！偶数クラスターは最初のバイトのすべてをコピーしますが、2番目のバイトのすべてをコピーします。</b
+              >
+            </p>
+            <p data-dl-uid="301" data-dl-original="true" data-dl-translated="true">
+              さて、それではFATから2バイト（ワード）の値を読みましょう（これが我々のクラスタです）。
+            </p>
+            <p data-dl-uid="302" data-dl-original="true" data-dl-translated="true">
+              もしクラスタが偶数なら、<b
+                data-dl-uid="303"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >次のクラスタに属するので上位4ビットをマスクして</b
+              >ください。
+            </p>
+            <p data-dl-uid="304" data-dl-original="true" data-dl-translated="true">
+              奇数なら<b data-dl-uid="305" data-dl-original="true" data-dl-translated="true"
+                >4ビット下にシフトする（最初のクラスタが使っていたビットを捨てる）</b
+              >例えば...
+            </p>
+
+            <blockquote>
+              <pre><div class="code">     ; compute next cluster
+     
+          mov     ax, WORD [cluster]  ; identify current cluster from FAT
+ 
+	 ; is the cluster odd or even? Just divide it by 2 and test!
+ 
+          mov     cx, ax              ; copy current cluster
+          mov     dx, ax              ; copy current cluster
+          shr     dx, 0x0001          ; divide by two
+          add     cx, dx              ; sum for (3/2)
+ 
+          mov     bx, 0x0200          ; location of FAT in memory
+          add     bx, cx              ; index into FAT
+          mov     dx, WORD [bx]       ; read two bytes from FAT
+ 
+          test    ax, 0x0001
+          jnz     .ODD_CLUSTER
+          
+; Remember that each entry in the FAT is a 12 but value. If it represents
+; a cluster (0x002 through 0xFEF) then we only want to get those 12 bits
+; that represent the next cluster
+ 
+     .EVEN_CLUSTER:
+     
+          and     dx, 0000111111111111b      ; take low twelve bits
+         jmp     .DONE
+         
+     .ODD_CLUSTER:
+     
+          shr     dx, 0x0004                 ; take high twelve bits
+          
+     .DONE:
+     
+          mov     WORD [cluster], dx         ; store new cluster
+          cmp     dx, 0x0FF0                 ; test for end of file
+          jb      LOAD_IMAGE    ; we are not done yet--go to next cluster</div></pre>
+            </blockquote>
+
+            <h1 data-dl-uid="318" data-dl-original="true" data-dl-translated="true">まとめ</h1>
+            うわー、このチュートリアルは書くのが大変でした。というのも、このような複雑なトピックを細部まで説明するのは難しいのですが、それでも非常に分かりやすいものにしようとしたからです。うまく書けたでしょうか？）
+            <p data-dl-uid="319" data-dl-original="true" data-dl-translated="true">
+              もし、このチュートリアルをより良くするための提案があれば、ぜひ教えてください :)
+            </p>
+            <p data-dl-uid="320" data-dl-original="true" data-dl-translated="true">
+              さて...これで終わりです。<b
+                data-dl-uid="321"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >さようなら、ブートローダ!</b
+              >
+            </p>
+            <p data-dl-uid="322" data-dl-original="true" data-dl-translated="true">
+              次のチュートリアルでは、Stage 2 の構築を開始します。A20について話し、<b
+                data-dl-uid="323"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >プロテクトモードについて</b
+              >もっと詳しく見ていきます。
+            </p>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </body>
+</html>
