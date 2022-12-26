@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Cache-Control" content="no-cache" />
+    <title></title>
+    <link href="css/reference.css" rel="stylesheet" />
+  </head>
+  <body>
+    <table cellspacing="0" cellpadding="3" width="80%" border="0">
+      <tbody>
+        <tr>
+          <td class="tblhdr">Operating Systems Development Series</td>
+        </tr>
+        <tr>
+          <td align="middle" colspan="2"></td>
+        </tr>
+      </tbody>
+    </table>
+    <table cellspacing="0" cellpadding="5" width="100%" border="0">
+      <tbody>
+        <tr>
+          <td>
+            <!-- Title -->
+
+            <div>
+              <span class="title">Basic CRT and Code Design</span>
+
+              <br />
+              <span class="author">by Mike, 2008, 2009</span>
+            </div>
+
+            <h1 data-dl-uid="7" data-dl-original="true" data-dl-translated="true">はじめに</h1>
+            ついにカーネルとハードウェア抽象化レイヤ(HAL)の開発を始める時が来ました。
+            <p data-dl-uid="8" data-dl-original="true" data-dl-translated="true">
+              前回のチュートリアルでは、基本的なカーネル概念をまとめ、さまざまな基本カーネル設計レイアウトを見てきました。また、マイクロカーネルとモノリシックカーネル設計から派生したいくつかの概念を使用するため、オペレーティングシステム用にハイブリッドカーネル設計を開発することにしました。これにより、両方の世界からのいくつかのコンセプトを見ることができます。
+            </p>
+            <p data-dl-uid="9" data-dl-original="true" data-dl-translated="true">
+              このチュートリアルでは、カーネルプログラムの構築を開始し、ハードウェア抽象化レイヤーのライブラリの開発を開始します。現在、私たちは、カーネルとハードウェア抽象化レイヤーを、使用するコンパイラによって、CまたはC++といった、より高度なプログラミング言語で開発できるようにシステムをセットアップしています。
+            </p>
+            <p data-dl-uid="10" data-dl-original="true" data-dl-translated="true">
+              Cコンパイラとの互換性を保つために、C++の代わりにCを使う予定です。しかし、個人的にはCよりもC++の方が好きなので、C++版のソースを開発するかもしれません
+              :)
+            </p>
+            <p data-dl-uid="11" data-dl-original="true" data-dl-translated="true">
+              さて、今週のリストは以下の通りです。
+            </p>
+            <ul data-dl-uid="12" data-dl-original="true" data-dl-translated="true">
+              <li data-dl-uid="13" data-dl-original="true" data-dl-translated="true">
+                良いコーディングの実践の促進
+              </li>
+              <li data-dl-uid="14" data-dl-original="true" data-dl-translated="true">
+                コードの設計とレイアウト
+              </li>
+              <li data-dl-uid="15" data-dl-original="true" data-dl-translated="true">
+                データ型と基本的な宣言の抽象化
+              </li>
+              <li data-dl-uid="16" data-dl-original="true" data-dl-translated="true">CRT: _null.h</li>
+
+              <li data-dl-uid="17" data-dl-original="true" data-dl-translated="true">CRT: size_t.h</li>
+              <li data-dl-uid="18" data-dl-original="true" data-dl-translated="true">
+                CRT: ctype.hとcctype
+              </li>
+              <li data-dl-uid="19" data-dl-original="true" data-dl-translated="true">
+                CRT: va_list.hとstdarg.h/csdtarg
+              </li>
+              <li data-dl-uid="20" data-dl-original="true" data-dl-translated="true">
+                デモデバッグ用Printfの書き方 (近日中にアップロード予定)
+              </li>
+            </ul>
+            ...以上!このチュートリアルは HAL とカーネルの基本的なセットアップをカバーするだけです。
+            <p data-dl-uid="21" data-dl-original="true" data-dl-translated="true">
+              <i data-dl-uid="22" data-dl-original="true" data-dl-translated="true"
+                >さあ、はじめましょう</i
+              >
+            </p>
+
+            <h1 data-dl-uid="23" data-dl-original="true" data-dl-translated="true">始める前に...</h1>
+
+            これはブートローダの世界からの最初のステップです。ブートローダの中では、移植性やシステム依存性をあまり気にする必要はありませんでした。結局、ブートローダは、その性質上、非常にシステム依存性が高いのです。
+            <p data-dl-uid="24" data-dl-original="true" data-dl-translated="true">
+              これまでブートローダはCやC++で開発されていましたが、これからはカーネルにジャンプします。また、独自のランタイムライブラリやハードウェア抽象化レイヤ(HAL)の始まりでもあり、盛りだくさんですね。
+            </p>
+            <p data-dl-uid="25" data-dl-original="true" data-dl-translated="true">
+              しかし、これで楽になったわけではありません。オペレーティングシステムは非常に大きなサイズになることがあります。このシステムがどれほどの規模になるか分からないからこそ、最初から良いコーディングの仕方を強調する必要があるのです。多くの開発プロジェクトが失敗しています。しかし、それは複雑すぎるからではありません。どんなプロジェクトでも、正しく設計すれば、複雑さを抑えて作ることができるのです。これが次に見てみたいものです...。
+            </p>
+            <h1 data-dl-uid="26" data-dl-original="true" data-dl-translated="true">パンドラの箱</h1>
+
+            実は、簡単に言えば、コードは邪悪です。
+            コードは非常に無秩序で醜くなることがあります。コードとデザインのカオス的で再帰的な性質が、さらに複雑さを増すのです。誤解しないでください、私たちはまだ多くのコードを書き直す必要があります。これは、正しい設計が存在しないためです。これは、プロジェクト全体、特に大規模なプロジェクトを停止させる傾向があり、システムの残りの部分は、この醜く書かれ、設計が不十分なコードのカオス的性質に依存する必要があるためです。このような現象は、システムのある部分から始まり、ソフトウェアの残りの部分にまで広がっていきます。
+            <p data-dl-uid="27" data-dl-original="true" data-dl-translated="true">
+              どうすれば、このような事態を防ぐことができるのでしょうか。
+            </p>
+            <p data-dl-uid="28" data-dl-original="true" data-dl-translated="true">
+              <i data-dl-uid="29" data-dl-original="true" data-dl-translated="true"
+                >"パンドラの箱 "は邪悪だと言われるが、それは間違いだ。 中身が悪だったんだ
+                箱はただの箱じゃない"- 匿名</i
+              >希望
+            </p>
+            <p data-dl-uid="30" data-dl-original="true" data-dl-translated="true">
+              コードが素敵な小さな箱の中に収まっている限り、コードが内側でどんなに乱雑になろうが、醜くなろうが、それは問題ではない。このコードが誰にも見えない素敵な小さな箱の中に収まっている限りは。箱の内側には、デーモンやクリーチャー、その他のものが入っていても構いません。結局のところ、私たちが見ているのは箱だけなのです。それがどのように機能するかは気にする必要はなく、単に機能するだけです。
+            </p>
+            <p data-dl-uid="31" data-dl-original="true" data-dl-translated="true">
+              これが、分離と封じ込めの基本です。つまり、<b
+                data-dl-uid="32"
+                data-dl-original="true"
+                data-dl-translated="true"
+                ><i data-dl-uid="33" data-dl-original="true" data-dl-translated="true">カプセル化</i></b
+              >であり、ソフトウェア工学のほぼすべての基礎となるものです。
+            </p>
+            <p data-dl-uid="34" data-dl-original="true" data-dl-translated="true">
+              私たちはまず、箱の中が何をするのかを書きます。その後、このモジュールが完成したら、箱を閉じて、システムの残りの部分と接続するのです。しかし、閉じた後の箱は<i
+                data-dl-uid="35"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >絶対に開けては</i
+              >いけない。カプセル化を解除してしまうので、箱の中の悪をすべて出してしまうことになります。一度箱を開けてしまうと、<b
+                data-dl-uid="36"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >コンパイルエラー、リンカエラー、ランタイムエラーなど、できるだけ多くのコードに感染し、プロジェクト全体が大混</b
+              >乱に陥ります。
+            </p>
+            <p data-dl-uid="37" data-dl-original="true" data-dl-translated="true">
+              しっかりとした、よく設計されたシステムは、すべてのコンポーネントを、互いに接続され、より大きな箱の中に入れ子にされた隔離された（「カプセル化された」）箱として扱います。
+            </p>
+            <p data-dl-uid="38" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="39" data-dl-original="true" data-dl-translated="true">カプセル</b
+              >化は、ソフトウェア工学において非常に重要な概念です。オブジェクト指向のプログラマーでなくとも、カプセル化の概念は存在するのです。
+            </p>
+
+            <h1 data-dl-uid="40" data-dl-original="true" data-dl-translated="true">
+              インターフェースとインプリメンテーション
+            </h1>
+
+            ポンデリングの箱の例で言うと、「インターフェース」が箱で、「インプリメンテーション」が箱の中にあるものということになります。箱のインターフェース（「パブリック」）部分は、その箱から外の世界へ接続するものです。このサブシステム内の他のボックスと我々のボックスを接続するものです。インターフェース自体には、ボックスが外部に公開する関数プロトタイプ、構造体、クラス、その他の定義がすべて含まれており、外部はボックスを使用し、相互作用することができます。これが「<b
+              data-dl-uid="41"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >インターフェイス</b
+            >」です。このボックスの中にある、モジュールやその関数、クラスルーチンなどを定義する邪悪なコードはすべて、モジュールの<b
+              data-dl-uid="42"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >インプリメンテーション（実装</b
+            >）です。
+            <p data-dl-uid="43" data-dl-original="true" data-dl-translated="true">
+              各ボックス（「コンポーネント」）は、シンプルでポイントを押さえたインターフェースで構成することが重要である。また、各コンポーネントが何をするのかが明確でなければならない。C言語では、グローバルな名前空間が大量のルーチンで非常に煩雑になることがあります。このため、これらのルーチンやインターフェースを明確に識別できるような名前を付けることが重要です。また、ボックスの実装の詳細（「プライベート」な部分）は、プライベートなメンバとして保持されることを確認する必要があります。この部分をインターフェイスの中に入れてしまうと、ボックスが開放されてしまうので、よくありません（これは悪いことです）。
+            </p>
+            <p data-dl-uid="44" data-dl-original="true" data-dl-translated="true">
+              C言語では、<b data-dl-uid="45" data-dl-original="true" data-dl-translated="true">static</b
+              >キーワードを使うことで、ルーチンを実装の一部として残すことができます。インターフェイスは<b
+                data-dl-uid="46"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >extern</b
+              >キーワードで作ることができます。C++では、<b
+                data-dl-uid="47"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >private、public</b
+              >、<b data-dl-uid="48" data-dl-original="true" data-dl-translated="true">protected</b
+              >キーワードを使用して、クラスを使用することが推奨されています。
+            </p>
+            <h1 data-dl-uid="49" data-dl-original="true" data-dl-translated="true">準備する</h1>
+
+            私たちは、上記の概念を用いて、大規模なソフトウェアで良いプログラミングを実践するためのシステムを開発する予定です。
+            <p data-dl-uid="50" data-dl-original="true" data-dl-translated="true">
+              本システムはコンパイラ間の移植性を考慮し、C言語を用いて開発を行いますが、C++を用いることも可能であることを念頭においてください。
+            </p>
+            <p data-dl-uid="51" data-dl-original="true" data-dl-translated="true">
+              私たちは、拡張性・移植性を第一に考えています。このため、ハードウェアに依存する実装はすべて、独自の小さな箱
+              -<b data-dl-uid="52" data-dl-original="true" data-dl-translated="true"
+                >HAL (Hardware Abstraction Layer</b
+              >) -
+              の中に隠蔽する予定です。C++のスタートアップランタイムコードはコンパイラに依存しているので、私たちはそれを<b
+                data-dl-uid="53"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >CRT（C++ランタイム）ライブラリという</b
+              >小さな箱に入れます。これらすべては、システムの他の部分から完全に独立しています。
+            </p>
+            <p data-dl-uid="54" data-dl-original="true" data-dl-translated="true">
+              覚えておいてください。重要なのは、分離することです。一度閉じた箱は決して開けないようにしましょう。
+            </p>
+            <p data-dl-uid="55" data-dl-original="true" data-dl-translated="true">
+              このことを念頭に置いて、私たちのシステムの第一歩を踏み出しましょう...
+            </p>
+            <h1 data-dl-uid="56" data-dl-original="true" data-dl-translated="true">
+              コードレイアウトと設計
+            </h1>
+
+            このチュートリアルでは、これまでで最も複雑なデモを行います。そのため、読者の皆さんには、デモのソースを開き、チュートリアルに沿って、すべてをよりよく理解していただきたいと思います。
+            <h2 data-dl-uid="57" data-dl-original="true" data-dl-translated="true">コード設計</h2>
+
+            このシリーズで、なぜこのような構造を選択したのかを理解することは、非常に重要です。第一の理由は<b
+              data-dl-uid="58"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >カプセル化</b
+            >で、各ディレクトリには個別の<b
+              data-dl-uid="59"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >ライブラリモジュールが</b
+            >含まれます。つまり、<b data-dl-uid="60" data-dl-original="true" data-dl-translated="true"
+              >それぞれのモジュールはポンドラの箱</b
+            >なのです。コードの安定性、構造、移植性を維持するためには、これらのモジュールをできる限り分離しておくことが<b
+              data-dl-uid="61"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >極めて</b
+            >重要なのです。このため、各モジュールを独立したライブラリモジュールとして扱うことにしました。
+
+            <blockquote>
+              <pre><div class="code">Our two stage bootloader (We have already constructed this from our previous tutorials)
+=======================================
+ 
+SysBoot\
+ 
+      Stage1\                          - Stage1 bootstrap loader
+      Stage2\                          - Stage2 KRNLDR bootloder
+ 
+Our System Core
+=======================================
+ 
+SysCore\
+ 
+      Debug\                           - Pre-Release complete builds
+      Release\                         - Release builds
+      Include\                         - Standard Library Include directory
+ 
+      Lib\                             - Standard Library Runtime. Outputs Crtlib.lib or Crtlib.dll.
+      Hal\                             - Hardware Abstraction Layer. Outputs Hal.lib or Hal.dll.
+      Kernel\                          - Kernel Program. Outputs Krnl32.lib or KRNL32.EXE</div></pre>
+            </blockquote>
+
+            <p data-dl-uid="65" data-dl-original="true" data-dl-translated="true">
+              ライブラリモジュールとしてビルドする必要がないのは、Include/ディレクトリ内のファイルだけです。
+              これらは単なるヘッダーファイルなので、インプリメンテーションを含む必要はないはずです。このため、開くべきボックスはありません。
+            </p>
+            <p data-dl-uid="66" data-dl-original="true" data-dl-translated="true">
+              アプリケーションと同様に、C++ランタイムコードを最初に実行されるコードとすることにしました。言い換えれば、ブートローダはカーネルを実行しないのです。代わりにランタイムコード(CRTLIB)を実行し、カーネルのための環境を整え、そしてカーネルを実行するのです。
+            </p>
+
+
+
+
+
+
+
+
+            <h1 data-dl-uid="67" data-dl-original="true" data-dl-translated="true">_null.h</h1>
+
+            やったー!そろそろチュートリアルの本題に入りましょう。
+            <h2 data-dl-uid="68" data-dl-original="true" data-dl-translated="true">
+              C++のインクルードについて...
+            </h2>
+
+            C++をお使いの方は、ライブラリのヘッダーファイルについて興味があるかもしれません。つまり、C++では、*.hというアペンドは削除され、すべてのCヘッダーの前に<b
+              data-dl-uid="69"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >cが</b
+            >付けられます。つまり、C++では<b
+              data-dl-uid="70"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >#include &lt;stdlib.h&gt;の</b
+            >代わりに<b data-dl-uid="71" data-dl-original="true" data-dl-translated="true"
+              >#include &lt;cstdlib&gt;が</b
+            >使われるわけです。しかし、どうすればいいのか、疑問に思うかもしれません。
+            <p data-dl-uid="72" data-dl-original="true" data-dl-translated="true">
+              実はとても簡単です。例えば、<b
+                data-dl-uid="73"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >stdlib.hと</b
+              >
+              <b data-dl-uid="74" data-dl-original="true" data-dl-translated="true">cstdlibが</b
+              >あります。<b data-dl-uid="75" data-dl-original="true" data-dl-translated="true"
+                >cstdlibは</b
+              >単に<b data-dl-uid="76" data-dl-original="true" data-dl-translated="true">stdlib.hを</b
+              >#includeするヘッダーファイルで、それ以上ではありません。私たちのライブラリも同じようにする予定です。
+            </p>
+            <p data-dl-uid="77" data-dl-original="true" data-dl-translated="true">
+              これにより、C言語の開発者は<b
+                data-dl-uid="78"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >stdlib.hを</b
+              >使用し、C++の開発者は<b data-dl-uid="79" data-dl-original="true" data-dl-translated="true"
+                >cstdlibを</b
+              >使用することができます。
+              このようにして、私たちは共に良い習慣を奨励することができるのです。
+            </p>
+            <h2 data-dl-uid="80" data-dl-original="true" data-dl-translated="true">本題に戻ります。</h2>
+
+            まず、最初の抽象化はNULLです。ここで言うべきことはそれほど多くはないのですが、ひとつだけ細かいことがあります。NULLの定義方法は、CとC++のどちらを使用しているかによって異なります。
+            <p data-dl-uid="81" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="82" data-dl-original="true" data-dl-translated="true"
+                >標準的なC言語では、NULLは(void*)0と定義されていますが、C++では、単に0です。</b
+              >
+
+              これは、かなり標準的な<b data-dl-uid="83" data-dl-original="true" data-dl-translated="true"
+                >__cplusplus</b
+              >定数を使用することによって決定することができます。
+            </p>
+
+
+
+
+
+
+
+            <blockquote>
+              <pre><div class="code">// Undefines NULL
+#ifdef NULL
+#  undef NULL
+#endif
+ 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+/* standard NULL declaration */
+#define	NULL	0
+#ifdef __cplusplus
+}
+#else
+/* standard NULL declaration */
+#define NULL	(void*)0
+#endif</div></pre>
+            </blockquote>
+
+
+
+
+
+
+
+
+
+            このヘッダにはテンプレートに関するものがもっとありますが、これが重要な部分です。他のすべては非常に簡単です。
+            <h1 data-dl-uid="87" data-dl-original="true" data-dl-translated="true">size_t.h</h1>
+
+            <h2 data-dl-uid="88" data-dl-original="true" data-dl-translated="true">
+              データ隠蔽について...
+            </h2>
+
+            パンドラの箱の理論を思い出してください。箱の中のデータ型は<b
+              data-dl-uid="89"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >インプリメンテーションのディテールに</b
+            >ある。<b data-dl-uid="90" data-dl-original="true" data-dl-translated="true">size_tは</b
+            >その一つです。
+            インプリメンテーションの詳細を維持することで、後方互換性を維持する限り、そのデータ型を使用するものに影響を与えることなく、そのデータ型について好きなように変更することができます。
+            <h2 data-dl-uid="91" data-dl-original="true" data-dl-translated="true">本題に戻る</h2>
+
+            これについてはあまり話すことはないのですが......。
+
+
+
+
+
+
+
+
+
+
+
+
+
+            <blockquote>
+              <pre><div class="code">#ifdef __cplusplus
+extern "C"
+{
+#endif
+ 
+/* standard size_t type */
+typedef unsigned size_t;
+ 
+#ifdef __cplusplus
+}
+#endif</div></pre>
+            </blockquote>
+
+
+
+
+
+
+            <h1 data-dl-uid="95" data-dl-original="true" data-dl-translated="true">
+				データ型の隠蔽 - stdint.hとcstdint
+			  </h1>
+  
+			  前のセクションでは、インターフェイス内のデータ隠蔽の重要性を説きましたが、移植性との関連では重要性を強調しませんでした。
+			  <p data-dl-uid="96" data-dl-original="true" data-dl-translated="true">
+				各データ型には、そのサイズが指定されています。しかし、各データ型のサイズは、これがビルドされるコンパイラとシステムに完全に依存します。このため、データ型を標準的なインターフェースの後ろに隠すことが重要です。特に、Size
+				Does Matter(tm)の環境で作業しているためです。
+			  </p>
+			  <h2 data-dl-uid="97" data-dl-original="true" data-dl-translated="true">stdint.h</h2>
+			  このファイルは約150行とかなり大きなファイルです。しかし、どれもそれほど難しいものではありません。このファイルでは、あるサイズが保証されたさまざまな積分データ型が定義されています。
+			  <p data-dl-uid="98" data-dl-original="true" data-dl-translated="true">
+				システム全体で使うことになる、基本的なデータ型を見てみましょう。
+			  </p>
+
+
+
+
+
+
+            <blockquote>
+              <pre><div class="code">typedef signed char          int8_t;
+typedef unsigned char        uint8_t;
+typedef short                int16_t;
+typedef unsigned short       uint16_t;
+typedef int                  int32_t;
+typedef unsigned             uint32_t;
+typedef long long            int64_t;
+typedef unsigned long long   uint64_t;</div></pre>
+            </blockquote>
+
+
+
+
+
+
+
+
+            32ビットシステム用にコンパイルする場合、上記のデータ型は同じであることが保証されます。つまり、<b
+              data-dl-uid="102"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >uint8_tは</b
+            >8ビット、<b data-dl-uid="103" data-dl-original="true" data-dl-translated="true"
+              >uint16_tは</b
+            >WORD（2バイト）のサイズであることが保証されている、というように。データ型のサイズはその名前にエンコードされているので、常にそのサイズを知ることができます。
+            <p data-dl-uid="104" data-dl-original="true" data-dl-translated="true">
+              このファイルにはさらに多くのコードがありますが、そのほとんどは非常に簡単です。
+            </p>
+            <p data-dl-uid="105" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="106" data-dl-original="true" data-dl-translated="true">cstdint</b
+              >ファイルは stdint.h を単に #include
+              しているだけです。これにより、これらの宣言を2つの方法でインクルードすることができます。
+            </p>
+
+
+
+
+
+
+
+
+
+
+            <blockquote>
+              <pre><div class="code">#include &lt;stdint.h&gt; // C
+#include &lt;cstdint&gt;  // C++ only</div></pre>
+            </blockquote>
+
+
+
+
+
+
+            なぜこのようにしたのか、詳しくは<b
+              data-dl-uid="110"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >C++ includesについて</b
+            >...の項をご覧ください。
+
+
+
+
+
+            <h1 data-dl-uid="111" data-dl-original="true" data-dl-translated="true">ctype.hとcctype</h1>
+
+            <b data-dl-uid="112" data-dl-original="true" data-dl-translated="true">ctype.hは</b
+            >、文字列中の文字がどのようなタイプであるかを決定するのに役立つマクロのセットです。これは、標準的な<b
+              data-dl-uid="113"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >ASCII文字</b
+            >セットのさまざまなプロパティに従うことによって行われます。<a
+              href="http://www.asciitable.com/"
+              target="_blank"
+              data-dl-uid="114"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >asciitable.comから</a
+            >入手することができます。
+            <p data-dl-uid="115" data-dl-original="true" data-dl-translated="true">
+              このヘッダーファイルはいくつかのマクロと定数を含んでいます。
+            </p>
+
+
+
+
+
+
+            <blockquote>
+              <pre><div class="code">extern char _ctype[];
+ 
+#define CT_UP	0x01	/* upper case */
+#define CT_LOW	0x02	/* lower case */
+#define CT_DIG	0x04	/* digit */
+#define CT_CTL	0x08	/* control */
+#define CT_PUN	0x10	/* punctuation */
+#define CT_WHT	0x20	/* white space (space/cr/lf/tab) */
+#define CT_HEX	0x40	/* hex digit */
+#define CT_SP	0x80	/* hard space (0x20) */
+ 
+#define isalnum(c)	((_ctype + 1)[(unsigned)(c)] &amp; (CT_UP | CT_LOW | CT_DIG))
+#define isalpha(c)	((_ctype + 1)[(unsigned)(c)] &amp; (CT_UP | CT_LOW))
+#define iscntrl(c)	((_ctype + 1)[(unsigned)(c)] &amp; (CT_CTL))
+#define isdigit(c)	((_ctype + 1)[(unsigned)(c)] &amp; (CT_DIG))
+#define isgraph(c)	((_ctype + 1)[(unsigned)(c)] &amp; (CT_PUN | CT_UP | CT_LOW | CT_DIG))
+#define islower(c)	((_ctype + 1)[(unsigned)(c)] &amp; (CT_LOW))
+#define isprint(c)	((_ctype + 1)[(unsigned)(c)] &amp; (CT_PUN | CT_UP | CT_LOW | CT_DIG | CT_SP))
+#define ispunct(c)	((_ctype + 1)[(unsigned)(c)] &amp; (CT_PUN))
+#define isspace(c)	((_ctype + 1)[(unsigned)(c)] &amp; (CT_WHT))
+#define isupper(c)	((_ctype + 1)[(unsigned)(c)] &amp; (CT_UP))
+#define isxdigit(c)	((_ctype + 1)[(unsigned)(c)] &amp; (CT_DIG | CT_HEX))
+#define isascii(c)	((unsigned)(c) &lt;= 0x7F)
+#define toascii(c)	((unsigned)(c) &amp; 0x7F)
+#define tolower(c)	(isupper(c) ? c + 'a' - 'A' : c)
+#define toupper(c)	(islower(c) ? c + 'A' - 'a' : c)</div></pre>
+            </blockquote>
+
+
+
+
+
+
+            ここまではかなり単純なものです。上記のマクロは、個々の文字を決定したり変更したりするために使用することができます。
+            <p data-dl-uid="119" data-dl-original="true" data-dl-translated="true">
+              C++の場合、<b data-dl-uid="121" data-dl-original="true" data-dl-translated="true"
+                >ctype.hの</b
+              >代わりに<b data-dl-uid="120" data-dl-original="true" data-dl-translated="true">cctypeを</b
+              >使うこともできます。
+            </p>
+            <h1 data-dl-uid="122" data-dl-original="true" data-dl-translated="true">
+              va_list.hとstdarg
+            </h1>
+
+            これらは、無名のパラメータにアクセスするためのマクロを含む標準的なヘッダであり、変数の引数リストを白くしています。
+            <h2 data-dl-uid="123" data-dl-original="true" data-dl-translated="true">va_list.h</h2>
+
+            va_list.h は，可変長引数リストに使われるデータ型を抽象化したものです．
+
+
+
+
+
+
+
+
+
+
+            <blockquote>
+              <pre><div class="code">/* va list parameter list */
+typedef unsigned char *va_list;</div></pre>
+            </blockquote>
+
+
+
+
+
+
+
+
+            <h2 data-dl-uid="127" data-dl-original="true" data-dl-translated="true">
+				stdarg.hとcstdarg
+			  </h2>
+			  これは、これから見る最後の基本的なライブラリインクルードファイルです。CやC++の可変長引数リストで使用するためのマクロが定義されています。
+			  <p data-dl-uid="128" data-dl-original="true" data-dl-translated="true">
+				これらのマクロはかなりトリッキーなので、1つずつ見ていきましょう。
+			  </p>
+			  <h3 data-dl-uid="129" data-dl-original="true" data-dl-translated="true">VA_SIZE</h3>
+
+
+
+
+
+
+
+
+            <blockquote>
+              <pre><div class="code">/* width of stack == width of int */
+#define	STACKITEM	int
+ 
+/* round up width of objects pushed on stack. The expression before the
+&amp; ensures that we get 0 for objects of size 0. */
+#define	VA_SIZE(TYPE)					\
+	((sizeof(TYPE) + sizeof(STACKITEM) - 1)	\
+		&amp; ~(sizeof(STACKITEM) - 1))</div></pre>
+            </blockquote>
+
+
+
+
+
+            これは少しトリッキーです。VA_SIZE はスタックにプッシュされたパラメータのサイズを返します。 C
+            と C++はルーチンにパラメータを渡すためにスタックを使用することを思い出してください。32
+            ビットマシンでは、各スタック項目は通常 32 ビットです。
+            <h3 data-dl-uid="133" data-dl-original="true" data-dl-translated="true">va_start</h3>
+
+
+
+
+
+
+
+
+
+            <blockquote>
+              <pre><div class="code">/* &amp;(LASTARG) points to the LEFTMOST argument of the function call
+(before the ...) */
+#define	va_start(AP, LASTARG)	\
+	(AP=((va_list)&amp;(LASTARG) + VA_SIZE(LASTARG)))</div></pre>
+            </blockquote>
+
+
+
+
+
+
+            標準の va_start マクロは 2 つのパラメータを取ります。AP はパラメータリスト(va_list
+            型)へのポインタ、LASTARG はパラメータリストの最後のパラメータ(・・・の直前のパ
+            ラメータ)である。
+            <p data-dl-uid="137" data-dl-original="true" data-dl-translated="true">
+              このルーチンがすることは、最後のパラメータのアドレスを取得し、そのアドレスにパラメータサイズを追加するだけです。
+              もしスタックサイズが32であれば、スタック上の最後のパラメータのアドレスに32を追加するだけです。
+            </p>
+            <h3 data-dl-uid="138" data-dl-original="true" data-dl-translated="true">va_end</h3>
+
+
+
+
+
+
+
+
+
+
+            <blockquote>
+              <pre><div class="code">/* nothing for va_end */
+#define va_end(AP)</div></pre>
+            </blockquote>
+
+
+
+
+            
+            ここですることはあまりありません。
+            <h3 data-dl-uid="142" data-dl-original="true" data-dl-translated="true">va_arg</h3>
+
+
+
+
+
+
+
+            <blockquote>
+              <pre><div class="code">#define va_arg(AP, TYPE)	\
+	(AP += VA_SIZE(TYPE), *((TYPE *)(AP - VA_SIZE(TYPE))))</div></pre>
+            </blockquote>
+
+
+
+
+
+
+
+            va_arg()は、パラメータリストの次のパラメータを返します。
+            APは、現在作業中のパラメータリストへのポインタを含みます。TYPEにはデータ型(int, char,
+            etc.)を指定します。
+            <p data-dl-uid="146" data-dl-original="true" data-dl-translated="true">
+              あとは、可変パラメータリストポインタ(AP)にデータ型(TYPE)のバイト数を足すだけです。これにより、可変パラメータリストポインタは、リストの<b
+                data-dl-uid="147"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >次の</b
+              >パラメータを指すようになります。
+            </p>
+            <p data-dl-uid="148" data-dl-original="true" data-dl-translated="true">
+              この後、（ポインタの位置をインクリメントすることによって）今渡したデータを参照解除し、そのデータを返します。
+            </p>
+
+
+
+
+
+            
+            <h1 data-dl-uid="157" data-dl-original="true" data-dl-translated="true">まとめ</h1>
+
+            このチュートリアルでは、たくさんのことを学びました。読者の中には新しい概念もあるかもしれません。
+            <p data-dl-uid="158" data-dl-original="true" data-dl-translated="true">
+              このチュートリアルは、個人的には書きたいとは思いませんでした。私は、コードに飛び込む前に、いくつかの基本的な地面、理論、および設計概念をカバーするための素晴らしい、良い方法を見つけたかったのです。また、いくつかの基本的な標準ライブラリのヘッダも見て、システムの基本的な構造も見てきました。
+            </p>
+            <p data-dl-uid="159" data-dl-original="true" data-dl-translated="true">
+              基本的な必要事項が解決されたので、次のチュートリアルでは、実際のカーネルとハードウェア抽象化レイヤ
+              (HAL)
+              の構築を始めることにします。エラーと例外処理の理論と概念、割り込み処理、割り込み記述子テーブル（IDT）、プロセッサの例外をトリプルフォルトにならないようにトラップする方法について説明します。また、独自のスーパー1337
+              BSoDも構築することができます;)
+            </p>
+            </p>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </body>
+</html>
