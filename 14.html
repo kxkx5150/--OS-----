@@ -1,0 +1,1964 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Cache-Control" content="no-cache" />
+    <title></title>
+    <link href="css/reference.css" rel="stylesheet" />
+  </head>
+  <body>
+    <table cellspacing="0" cellpadding="3" width="80%" border="0">
+      <tbody>
+        <tr>
+          <td class="tblhdr">Operating Systems Development Series</td>
+        </tr>
+        <tr>
+          <td align="middle" colspan="2"></td>
+        </tr>
+      </tbody>
+    </table>
+    <table cellspacing="0" cellpadding="5" width="100%" border="0">
+      <tbody>
+        <tr>
+          <td>
+            <!-- Title -->
+
+            <div>
+              <span class="title">PIC, PIT, and exceptions</span>
+
+              <br />
+              <span class="author">by Mike, 2008, 2009</span>
+            </div>
+
+            <i
+              >Please note: This tutorial covers hardware interrupt handling, not software interrupt
+              handling. If you are looking for software interrupts, please see
+              <a href="13.html">Tutorial 15</a>. This tutorial requires knowledge of software interrupt
+              handling.</i
+            >
+
+            <h1 data-dl-uid="9" data-dl-original="true" data-dl-translated="true">はじめに</h1>
+
+            ようこそ...あれ？もうチュートリアル16？
+            <p data-dl-uid="10" data-dl-original="true" data-dl-translated="true">
+              前回のチュートリアルでは、割込み処理の世界に深く潜り込みました。<b
+                data-dl-uid="11"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ソフトウェア</b
+              >割込み処理に必要なことはほぼすべて網羅しました。しかし、ハードウェア割り込みについてはどうでしょうか？
+            </p>
+            <p data-dl-uid="12" data-dl-original="true" data-dl-translated="true">
+              多くの重要なシステムデバイスは割り込みを使うので、ハードウェアデバイスによって引き起こされる割り込みを処理し、キャッチすることができるようにする必要があります。良いニュース？これはもうすでに私たちのために行われています!<b
+                data-dl-uid="13"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >8259プログラマブル割り込みコントローラ(PIC</b
+              >)である。次のセクションで詳しく見ていきましょう。
+            </p>
+            <p data-dl-uid="14" data-dl-original="true" data-dl-translated="true">
+              たとえハードウェア割り込みがそれ自体で動作するようになったとしても、システムタイマーの問題に遭遇することになります。システムタイマーは、私たちが設定した有効な割り込みハンドラを使用しない限り、ハードウェア割り込みを有効にしてから数ミリ秒後にトリプルフォルトを起こします。結局のところ、無効な割り込みハンドラを呼び出すことになるわけですからね。したがって、この小さな問題は、<b
+                data-dl-uid="15"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >プログラマブルインターバルタイマ（PIT</b
+              >）として知られるシステムタイマを再プログラムすることによっても解決されるでしょう。
+            </p>
+            <p data-dl-uid="16" data-dl-original="true" data-dl-translated="true">
+              このチュートリアルでは、多くのことを学びます。このチュートリアルでは、次のようなことを学びます。
+            </p>
+            <ul data-dl-uid="17" data-dl-original="true" data-dl-translated="true">
+              <li data-dl-uid="18" data-dl-original="true" data-dl-translated="true">
+                ハードウェア割り込み
+              </li>
+              <li data-dl-uid="19" data-dl-original="true" data-dl-translated="true">
+                インタラプトチェーン
+              </li>
+              <li data-dl-uid="20" data-dl-original="true" data-dl-translated="true">
+                Hal: プログラマブルインタラプトコントローラ
+              </li>
+              <li data-dl-uid="21" data-dl-original="true" data-dl-translated="true">
+                Hal：プログラマブルインターバルタイマ
+              </li>
+              <li data-dl-uid="22" data-dl-original="true" data-dl-translated="true">
+                ハードウェアの抽象化
+              </li>
+              <li data-dl-uid="23" data-dl-original="true" data-dl-translated="true">
+                割り込みのインプリメンテーションとHALの設計
+              </li>
+            </ul>
+
+            割込み処理については触れていませんのでご注意ください。割込み処理については<a
+              href="13.html"
+              data-dl-uid="24"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >チュートリアル</a
+            >をご覧ください。
+            <p data-dl-uid="25" data-dl-original="true" data-dl-translated="true">
+              さて、それでは早速見ていきましょう。
+            </p>
+
+            <h1 data-dl-uid="26" data-dl-original="true" data-dl-translated="true">
+              ハードウェア割り込み
+            </h1>
+
+            割り込みには、ソフトウェアで発生させるもの（INT, INT 3, BOUND,
+            INTOなどの命令で発生させるもの）と、ハードウェアで発生させるものとがあります。
+            <p data-dl-uid="27" data-dl-original="true" data-dl-translated="true">
+              ハードウェア割り込みは、PCにとって非常に重要です。他のハードウェアデバイスから、何かが起ころうとしていることをCPUに知らせることができます。例えば、キーボードのキーストロークや、内部タイマーの1クロックの刻みなどです。
+            </p>
+            <p data-dl-uid="28" data-dl-original="true" data-dl-translated="true">
+              これらの割り込みが発生したときに、どのような割り込み要求（IRQ）を発生させるかをマッピングしておく必要があります。こうすることで、ハードウェアの変化を追跡することができます。
+            </p>
+            <p data-dl-uid="29" data-dl-original="true" data-dl-translated="true">
+              これらのハードウェア割り込みについて見てみましょう。
+            </p>
+
+            <center>
+              <table border="1" bgcolor="CCCCCC">
+                <tbody>
+                  <tr>
+                    <th colspan="5" bgcolor="FFFFFF">x86 Hardware Interrupts</th>
+                  </tr>
+                  <tr bgcolor="AAAAAA">
+                    <td>8259A Input pin</td>
+                    <td>Interrupt Number</td>
+                    <td>Description</td>
+                  </tr>
+
+                  <tr>
+                    <td bgcolor="ffffff">IRQ0</td>
+                    <td>0x08</td>
+                    <td colspan="4">Timer</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="ffffff">IRQ1</td>
+                    <td>0x09</td>
+                    <td colspan="4">Keyboard</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="ffffff">IRQ2</td>
+                    <td>0x0A</td>
+                    <td colspan="4">Cascade for 8259A Slave controller</td>
+                  </tr>
+
+                  <tr>
+                    <td bgcolor="ffffff">IRQ3</td>
+                    <td>0x0B</td>
+                    <td colspan="4">Serial port 2</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="ffffff">IRQ4</td>
+                    <td>0x0C</td>
+                    <td colspan="4">Serial port 1</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="ffffff">IRQ5</td>
+                    <td>0x0D</td>
+                    <td colspan="4">AT systems: Parallel Port 2. PS/2 systems: reserved</td>
+                  </tr>
+
+                  <tr>
+                    <td bgcolor="ffffff">IRQ6</td>
+                    <td>0x0E</td>
+                    <td colspan="4">Diskette drive</td>
+                  </tr>
+
+                  <tr>
+                    <td bgcolor="ffffff">IRQ7</td>
+                    <td>0x0F</td>
+                    <td colspan="4">Parallel Port 1</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="ffffff">IRQ8/IRQ0</td>
+                    <td>0x70</td>
+                    <td colspan="4">CMOS Real time clock</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="ffffff">IRQ9/IRQ1</td>
+                    <td>0x71</td>
+                    <td colspan="4">CGA vertical retrace</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="ffffff">IRQ10/IRQ2</td>
+                    <td>0x72</td>
+                    <td colspan="4">Reserved</td>
+                  </tr>
+
+                  <tr>
+                    <td bgcolor="ffffff">IRQ11/IRQ3</td>
+                    <td>0x73</td>
+                    <td colspan="4">Reserved</td>
+                  </tr>
+
+                  <tr>
+                    <td bgcolor="ffffff">IRQ12/IRQ4</td>
+                    <td>0x74</td>
+                    <td colspan="4">AT systems: reserved. PS/2: auxiliary device</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="ffffff">IRQ13/IRQ5</td>
+                    <td>0x75</td>
+                    <td colspan="4">FPU</td>
+                  </tr>
+
+                  <tr>
+                    <td bgcolor="ffffff">IRQ14/IRQ6</td>
+                    <td>0x76</td>
+                    <td colspan="4">Hard disk controller</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="ffffff">IRQ15/IRQ7</td>
+                    <td>0x77</td>
+                    <td colspan="4">Reserved</td>
+                  </tr>
+                </tbody>
+              </table>
+            </center>
+
+            <p data-dl-uid="103" data-dl-original="true" data-dl-translated="true">
+              各デバイスについては、まだそれほど心配する必要はありません。 8259Aのピンは、<a
+                href="pc.html"
+                data-dl-uid="104"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >8259PICチュートリアルで</a
+              >詳しく説明されています。
+              この表に記載されている割り込み番号は、これらのイベントが発生したときに実行するデフォルトのDOS<b
+                data-dl-uid="105"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >割り込み要求（IRQ）</b
+              >です。
+            </p>
+            <p data-dl-uid="106" data-dl-original="true" data-dl-translated="true">
+              ほとんどの場合、新しい割り込みテーブルを再作成する必要があります。このように、ほとんどのOSでは、PICが使用する割り込みを再マッピングして、IVT内で適切なIRQを呼び出すことを保証する必要があります。これは、リアルモードIVTのBIOSによって行われます。
+              このチュートリアルの後半で、これを行う方法についても説明します。
+            </p>
+            <p data-dl-uid="107" data-dl-original="true" data-dl-translated="true">
+              待てよ、このPICというのは何なんだ？ハードウェアデバイスに信号を送ることができるこれらのハードウェアデバイスはすべて、<b
+                data-dl-uid="108"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >8259Aプログラマブル割り込みコントローラ(PIC</b
+              >)に間接的に接続されています。これは特別な、そして非常に重要なマイクロコントローラーで、マイクロプロセッサーがハードウェア割り込みを発射する必要があるときに信号を送るために使用されます。
+            </p>
+            <p data-dl-uid="109" data-dl-original="true" data-dl-translated="true">
+              このマイクロコントローラのプログラミングは、このチュートリアルの後半で少し行います。このマイクロコントローラはかなり複雑なので、別のチュートリアルを用意しています。<a
+                href="pic.html"
+                data-dl-uid="110"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >こちらを</a
+              >お読みください。
+            </p>
+
+            <h1 data-dl-uid="111" data-dl-original="true" data-dl-translated="true">割り込みの連鎖</h1>
+
+            <b data-dl-uid="112" data-dl-original="true" data-dl-translated="true"
+              >IDT（Interrupt Descriptor Table）</b
+            >内に独自の割り込みハンドラを非常に簡単に設置することができるようになります。ソフトウェア割り込みだけでなく、ハードウェアデバイスから発生する割り込みも処理するために割り込みハンドラを作成します。<b
+              data-dl-uid="113"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >覚えておいてください。ハードウェアデバイスは、プログラマブル割り込みコントローラに信号を送り、プロセッサにハードウェア割り込みの発生を要求します。</b
+            >PICはプロセッサに、<b data-dl-uid="115" data-dl-original="true" data-dl-translated="true"
+              >割り込み記述子テーブル（IDT</b
+            >）内でどの割り込み<b data-dl-uid="114" data-dl-original="true" data-dl-translated="true"
+              >要求（IRQ</b
+            >）を呼び出すかを知らせます。
+            <p data-dl-uid="116" data-dl-original="true" data-dl-translated="true">
+              しかし、待ってください...IDTの中でどのIRQを呼び出すか、PICはどのように知るのでしょうか？<i
+                data-dl-uid="117"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >私たちはそれを教えて</i
+              >います。
+            </p>
+            <p data-dl-uid="118" data-dl-original="true" data-dl-translated="true">
+              そのため、どの割り込みを使用するかを知らせるために、PICを再プログラムする必要があります。
+            </p>
+            <p data-dl-uid="119" data-dl-original="true" data-dl-translated="true">
+              さて、ソフトウェアとハードウェアの割り込みを処理するための割り込みハンドラができたとします。さて、どうでしょう？私たちの視点から見るとどうでしょうか？確かにデバイスごとにハンドラをインストールするのは簡単ですが、複数のデバイスが同じ割り込みを要求したらどうでしょう？ソフトウエア割り込みで複数の機能が必要な場合はどうでしょうか？そこで登場するのが<b
+                data-dl-uid="120"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >インタラプトチェーン</b
+              >です。
+            </p>
+            <p data-dl-uid="121" data-dl-original="true" data-dl-translated="true">
+              インタラプトチェーニングは、同じ割り込み番号を共有するすべての割り込みハンドラを復元して呼び出すために使用される技術です。これは、以前の<b
+                data-dl-uid="122"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >割込みルーチン（IR</b
+              >）を関数ポインタに保存し、新しいハンドラをインストールし、新しいIRが呼ばれるたびに以前の割込みハンドラを呼び出すことによって行われます。
+            </p>
+            <p data-dl-uid="123" data-dl-original="true" data-dl-translated="true">以下はその例です。</p>
+
+            <blockquote>
+              <pre><div class="code">void deviceInitialize () {
+ 
+	//store previus interrupt handler
+	prevhandler = getvect (0);
+ 
+	//install new interrupt handler
+	setvect (0, handler);
+}
+ 
+void deviceShutdown () {
+ 
+	//install previus interrupt handler
+	setvect (0, prevhandler);
+}
+ 
+void handler () {
+ 
+	// do stuff...
+ 
+	// call previus interrupt handler
+	(*prevhandler) ();
+}</div></pre>
+            </blockquote>
+
+            ご覧のように、割り込みの連鎖は非常に簡単です。<b
+              data-dl-uid="127"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >setvect()</b
+            >は新しい割り込みベクタをインストールし、<b
+              data-dl-uid="128"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >getvect()</b
+            >は割り込みベクタを返します。これらの割り込みベクタは、<b
+              data-dl-uid="129"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >割り込みベクタテーブル（IVT）</b
+            >または<b data-dl-uid="130" data-dl-original="true" data-dl-translated="true"
+              >割り込みディスクリプタテーブル（IDT</b
+            >）に格納することができます。待って、何？そうです、私たちのものです。）
+            <h1 data-dl-uid="131" data-dl-original="true" data-dl-translated="true">
+              割込み処理の実装の準備
+            </h1>
+
+            私たちは割り込みと割り込み処理について多くの領域をカバーしました。テキストだけでは限界があります。ハードウェアの割り込み処理の仕組みも少し見てきましたが、まだ十分ではありません。
+            <p data-dl-uid="132" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="133" data-dl-original="true" data-dl-translated="true"
+                >プログラマブルインタラプトコントローラの</b
+              >プログラミングを学ぶまでは、ハードウェア割り込み処理を実装できません。
+              また、タイミングの問題を解決するまでは、ハードウェア割り込みを有効にできません（BIOSのおかげで<b
+                data-dl-uid="134"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >プログラマブルインターバルタイマが</b
+              >まだIRQ8に接続されているのを覚えていますか？つまり、ハードウェア割り込みを再度有効にすると、次のタイマーティックでダブルフォールトが発生するのです)。このため、<b
+                data-dl-uid="135"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >Programmable Interval Timerを</b
+              >再プログラムする方法を学ぶ必要があります。
+            </p>
+            <p data-dl-uid="136" data-dl-original="true" data-dl-translated="true">
+              ここからが、読者の皆さんにとって、ややこしいところです。<b
+                data-dl-uid="137"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ハードウェアプログラミングの世界へようこそ</b
+              >!）
+            </p>
+            <p data-dl-uid="138" data-dl-original="true" data-dl-translated="true">
+              しかし、良いニュースもあります...これらのマイクロコントローラは、どれもそれほど複雑ではありません。しかし、本シリーズが複雑になり過ぎないように、<b
+                data-dl-uid="139"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >これらのマイコンに特化したチュートリアルを2つ</b
+              >書くことにしました。このチュートリアルは、この先のデモやコードを理解するための必読書です。
+            </p>
+            <p data-dl-uid="140" data-dl-original="true" data-dl-translated="true">
+              このため、読者の皆さんには、次のチュートリアルを読んでから続きを読むことをお勧めします。
+            </p>
+            <ul data-dl-uid="141" data-dl-original="true" data-dl-translated="true">
+              <li data-dl-uid="142" data-dl-original="true" data-dl-translated="true">
+                <a href="pic.html" data-dl-uid="143" data-dl-original="true" data-dl-translated="true"
+                  >8259プログラマブルインタラプトコントローラ</a
+                >
+              </li>
+              <li data-dl-uid="144" data-dl-original="true" data-dl-translated="true">
+                <a href="pit.html" data-dl-uid="145" data-dl-original="true" data-dl-translated="true"
+                  >8253 プログラマブルインターバルタイマ</a
+                >
+              </li>
+            </ul>
+            もし、このチュートリアルの内容をすべて理解できなくても心配しないでください。この後、このチュートリアルの内容をすべて実装していきます。:)また、私はここですべてを説明しますので、あなたを暗闇に導くことはありません。
+            <p data-dl-uid="146" data-dl-original="true" data-dl-translated="true">
+              また、上記のチュートリアルを参考文献として使用することも有用でしょう。この後のセクションで、上記のチュートリアルを多く参照します。
+            </p>
+            <p data-dl-uid="147" data-dl-original="true" data-dl-translated="true">
+              さてと...？何を待っているのですか？これらのチュートリアルに飛び込んでください。そして、終わったらここに戻って来てください。心配しないでください、私はただのテキストです...あなたが戻ってきても、私はまだここにいます。）
+            </p>
+
+            <h1 data-dl-uid="162" data-dl-original="true" data-dl-translated="true">
+              ハードウェアの抽象化
+            </h1>
+
+            最初に見ていくのは、ハードウェア抽象化レイヤーが提供するインターフェイスです。これは<b
+              data-dl-uid="163"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >include/hal.hと</b
+            >
+            <b data-dl-uid="164" data-dl-original="true" data-dl-translated="true">hal/hal.cppを</b
+            >見ればわかることです。ルーチンのほとんどは非常に単純で、私たちが開発した（そしてこれから開発する）他のインターフェース（GDT、IDT、CPU、PIC、PITなど）を単に使用するだけなので、深く説明することはありません。その代わりに、インタフェースそのものを見てみたいと思います。これはカーネルとデバイスドライバが使うインタフェースになるわけですが、なぜそうしないのでしょうか？
+
+            <h2 data-dl-uid="165" data-dl-original="true" data-dl-translated="true">新しい hal.h</h2>
+
+            ここで、ハードウェアの抽象化がいかに有用であるかがわかるのです。私は、16bitのDOSをプログラミングするのと同じように簡単に使える「DOS」的なインタフェースを提供したいと思いました。そのために、さまざまな目的に使えるルーチンの簡単なリストを作りました。これらのルーチンを見てみると、そのルーチンが使用するハードウェアデバイスやテーブルを全く参照していないことがわかります。
+            これこそハードウェアの抽象化です。アーキテクチャを抽象化するのではなく、そのアーキテクチャが使用するハードウェアを抽象化するのです。
+            <p data-dl-uid="166" data-dl-original="true" data-dl-translated="true">
+              この後使うコードの多くは、HALの中のルーチンを使ってタスクを実行します。このため、ハードウェアの抽象化レイヤと、それが提供するルーチンを見ていただきたいと思います。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">extern	int			_cdecl	hal_initialize ();
+extern	int			_cdecl	hal_shutdown ();
+extern	void			_cdecl	enable ();
+extern	void			_cdecl	disable ();
+extern	void			_cdecl	geninterrupt (int n);
+extern	unsigned char		_cdecl	inportb (unsigned short id);
+extern	void			_cdecl	outportb (unsigned short id, unsigned char value);
+extern	void			_cdecl	setvect (int intno, void (_cdecl far &amp;vect) ( ) );
+extern	void (_cdecl	far *   _cdecl	getvect (int intno)) ( );
+extern	bool			_cdecl	interruptmask (uint8_t intno, bool enable);
+extern	inline void		_cdecl	interruptdone (unsigned int intno);
+extern	void			_cdecl	sound (unsigned frequency);
+extern  const char*		_cdecl	get_cpu_vender ();
+extern	int			_cdecl	get_tick_count ();</div></pre>
+            </blockquote>
+
+            <p data-dl-uid="170" data-dl-original="true" data-dl-translated="true">
+              もし、あなたが16bit
+              DOSをプログラムしたことがあるなら、今すぐ家にいるような気分になれるはずです!:)
+            </p>
+            <h1 data-dl-uid="171" data-dl-original="true" data-dl-translated="true">
+              プログラマブルインタラプトコントローラ
+            </h1>
+
+            <h2 data-dl-uid="172" data-dl-original="true" data-dl-translated="true">
+              8259:マイクロコントローラ
+            </h2>
+
+            8259マイクロコントローラファミリは、<b
+              data-dl-uid="173"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >PIC（Programmable Interrupt Controller）集積回路（IC</b
+            >）のセットであり、ハードウェア割り込みが要求されると、ハードウェアコントローラはPICに間接的に接続される。このため、ハードウェア割り込みを処理するためには、このマイクロコントローラのプログラム方法を理解しておく必要があります。
+            <p data-dl-uid="174" data-dl-original="true" data-dl-translated="true">
+              8259は複雑なマイクロコントローラなので、ここですべてを説明します。このため、このコントローラだけをカバーするために、完全なチュートリアルを用意しました。このため、<b
+                data-dl-uid="175"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >このセクションを最大限に活用するために、PICについて学ぶために次のチュートリアルを参照してください（参照）</b
+              >。
+            </p>
+            <p data-dl-uid="176" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="177" data-dl-original="true" data-dl-translated="true"
+                ><a href="pic.html" data-dl-uid="178" data-dl-original="true" data-dl-translated="true"
+                  >8259Aプログラマブルインタラプトコントローラチュートリアル</a
+                ></b
+              >
+            </p>
+            <p data-dl-uid="179" data-dl-original="true" data-dl-translated="true">
+              注意：<b data-dl-uid="180" data-dl-original="true" data-dl-translated="true"
+                >ここでは、PICやハードウェア割り込み処理に関するすべてをカバーする</b
+              >わけではありません。<b data-dl-uid="180" data-dl-translated="true"
+                >上記のチュートリアルを参照してください。</b
+              >
+            </p>
+
+            <h2 data-dl-uid="181" data-dl-original="true" data-dl-translated="true">8259:概要</h2>
+
+            <b data-dl-uid="182" data-dl-original="true" data-dl-translated="true"
+              >PIC（Programmable Interrupt Controller</b
+            >）は、<b data-dl-uid="183" data-dl-original="true" data-dl-translated="true"
+              >割り込み線を通じて</b
+            >デバイスとプロセッサの接続を行うためのマイクロコントローラです。これにより、デバイスがシステムソフトウェアやエグゼクティブからの注意を必要とするときはいつでも、プロセッサに信号を送ることができます。これが<b
+              data-dl-uid="184"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >IRQ(Interrupt Request)</b
+            >です。
+            <p data-dl-uid="185" data-dl-original="true" data-dl-translated="true">
+              PICはハードウェア割り込み要求のすべてを制御します。これにより、異なるハードウェアデバイスが注意を必要とするときに、そのデバイスからの信号を受信することができます。<b
+                data-dl-uid="186"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >フロッピーディスクコントローラ（FDC）の</b
+              >ようなデバイスが注意を必要とするとき、それは割り当てられているIRQを発射するようにPICに指示します。ここから、PICはプロセッサに信号を送り、呼び出すべき割り込み番号を伝えます。プロセッサは次にIDTにオフセットし、リング0で割り込みハンドラを実行します。
+              すべての割り込みハンドラを定義したので、これで制御が可能になりました。
+            </p>
+            <p data-dl-uid="187" data-dl-original="true" data-dl-translated="true">
+              これの最も良いところは、PICのおかげですべて<b
+                data-dl-uid="188"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >自動で</b
+              >行われることです。デバイスがPICに信号を送るたびに、私たちの割り込みハンドラが自動的に実行されます。プロセッサはリング0への<b
+                data-dl-uid="189"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >タスクスイッチも</b
+              >実行するので、我々は常にカーネルランドで要求を処理することになる。クールでしょう？
+            </p>
+            <p data-dl-uid="190" data-dl-original="true" data-dl-translated="true">
+              PIC自体は複雑なマイクロコントローラです。このチュートリアルを最大限に活用するために、読者の皆さんには上記のPICチュートリアルを読んでいただくことをお勧めします。
+            </p>
+            <p data-dl-uid="191" data-dl-original="true" data-dl-translated="true">
+              それでは、インターフェイスを見ていきましょう。このコードはすべて、このチュートリアルの最後にあるデモの中で見ることができます。
+            </p>
+            <h2 data-dl-uid="192" data-dl-original="true" data-dl-translated="true">操作コマンド</h2>
+
+            <b data-dl-uid="193" data-dl-original="true" data-dl-translated="true"
+              >オペレーションコマンドは</b
+            >、ビットパターンで構成される特別なコマンドです。このビットパターンを設定して、マイコンにコマンドを記述する必要がある。オペレーションコマンドには、基本的に、<b
+              data-dl-uid="194"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >ICW（Initialization Command Words</b
+            >）と<b data-dl-uid="195" data-dl-original="true" data-dl-translated="true"
+              >OCW（Operation Command Words</b
+            >）の2種類が存在します。
+            <p data-dl-uid="196" data-dl-original="true" data-dl-translated="true">
+              ICWは操作コマンドで、デバイスの初期化中にのみ使用する必要があります。OCWは、デバイスが初期化された後に、デバイスを制御するために使用されます。
+            </p>
+            <h2 data-dl-uid="197" data-dl-original="true" data-dl-translated="true">
+              pic.h:インターフェース
+            </h2>
+
+            このファイルは、それ以外のミニドライバ全体のインターフェイスを提供します。これは、PICを制御・管理するためのインターフェイスです。私は「ミニドライバ」を、独立したソフトウェアではなく、ソフトウェアの一部に組み込まれたドライバと定義しています。
+            <h3 data-dl-uid="198" data-dl-original="true" data-dl-translated="true">
+              pic.h:デバイスの接続
+            </h3>
+
+            PICのチュートリアルでは、ハードウェアの割り込みを深く掘り下げて見てきました。ハードウェアデバイスがシステムソフトウェアやエグゼクティブの注意を必要とするときに、どのようにPICに信号を送るかを見てきました。これが機能するために、各デバイスはPIC上の<b
+              data-dl-uid="199"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >割り込み要求（IR）</b
+            >ラインに間接的に接続されています。このラインは、デバイスが使用する<b
+              data-dl-uid="200"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >割り込み要求（IRQ）だけ</b
+            >でなく、そのプリリティレベル（IRQ番号が低いほど、プリリティが高い）も表しています。
+            <p data-dl-uid="201" data-dl-original="true" data-dl-translated="true">
+              個々のデバイスとそのIRQを扱うときに役立つように、それらが使用するIRQを抽象化したいと思います。
+              これは移植性を高めるだけでなく、それらが美しい定数の後ろにあるため可読性を高めるのにも役に立ちます。覚えておいてください。マジックナンバーは悪です!
+            </p>
+
+            <blockquote>
+              <pre><div class="code">//! The following devices use PIC 1 to generate interrupts
+#define		I86_PIC_IRQ_TIMER		0
+#define		I86_PIC_IRQ_KEYBOARD		1
+#define		I86_PIC_IRQ_SERIAL2		3
+#define		I86_PIC_IRQ_SERIAL1		4
+#define		I86_PIC_IRQ_PARALLEL2		5
+#define		I86_PIC_IRQ_DISKETTE		6
+#define		I86_PIC_IRQ_PARALLEL1		7
+ 
+//! The following devices use PIC 2 to generate interrupts
+#define		I86_PIC_IRQ_CMOSTIMER		0
+#define		I86_PIC_IRQ_CGARETRACE		1
+#define		I86_PIC_IRQ_AUXILIARY		4
+#define		I86_PIC_IRQ_FPU			5
+#define		I86_PIC_IRQ_HDC			6</div></pre>
+            </blockquote>
+
+            上記の定数は、使用するすべてのデバイス（とIRQライン/番号）をリストアップしています。PICには<b
+              data-dl-uid="205"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >8本のIR線が</b
+            >あり、それゆえPICごとに8つのIRQしかありません。<b
+              data-dl-uid="206"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >PICはセカンダリPICとカスケード接続できる</b
+            >ことを忘れないでください（最大8個のPICを互いにカスケード接続できます）。一般的なx86アーキテクチャでは、2個（1個のプライマリと1個のセカンダリ）だけです。
+            <p data-dl-uid="207" data-dl-original="true" data-dl-translated="true">
+              今、私たちにとって最も重要な2つのデバイスは、タイマー（I86_PIC_IRQ_TIMER）とキーボード（I86_PIC_IRQ_KEYBOARD）です。このチュートリアルでは、I86_PIC_IRQ_TIMERを使用するので、すべてがどのように連動しているかがわかると思います。
+            </p>
+            <h3 data-dl-uid="208" data-dl-original="true" data-dl-translated="true">pic:8259コマンド</h3>
+
+            PICのセットアップは非常に複雑です。これは、初期化と操作に使用されるさまざまな状態を含むビットパターンである、一連の<b
+              data-dl-uid="209"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >コマンドワードを通して</b
+            >行われます。まず、PICを制御するために使用される<b
+              data-dl-uid="210"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >オペレーションコマンドワード（OCW</b
+            >）を見ていきます。初期化コマンドについては、もう少し後で見ていきます。
+            <h3 data-dl-uid="211" data-dl-original="true" data-dl-translated="true">
+              pic:オペレーション・コマンド・ワード1
+            </h3>
+
+            これは、<b data-dl-uid="212" data-dl-original="true" data-dl-translated="true"
+              >IMR（Interrupt Mask Register</b
+            >）の値を表しています。特別なフォーマットはないので、インプリメンテーションファイルで直接扱って、ハードウェア割り込みを有効・無効にします。
+            サイズは1バイトです。正しいビットを設定することで、割り込み要求ラインを有効/無効にします（「マスク/アンマスク」）。1つのPICに8つのIRQしかないことを思い出してください。つまり、IMR
+            のビット 0 は IRQ 0、ビット 1 は IRQ 1、ビット 2 は IRQ 2、...といった具合です。
+            <p data-dl-uid="213" data-dl-original="true" data-dl-translated="true">
+              この後、<b data-dl-uid="214" data-dl-original="true" data-dl-translated="true"
+                >インタラプトマスクレジスタについて</b
+              >説明します。
+            </p>
+            <h3 data-dl-uid="215" data-dl-original="true" data-dl-translated="true">
+              pic:オペレーション・コマンド・ワード（OCW）2
+            </h3>
+
+            これがPICを制御するための主要な制御語です。では、見てみましょう。
+            <p data-dl-uid="216" data-dl-original="true" data-dl-translated="true"></p>
+
+            <center>
+              <table border="1" bgcolor="CCCCCC">
+                <tbody>
+                  <tr>
+                    <th colspan="5" bgcolor="FFFFFF">Operation Command Word (OCW) 2</th>
+                  </tr>
+                  <tr bgcolor="AAAAAA">
+                    <td>Bit Number</td>
+                    <td>Value</td>
+                    <td>Description</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="ffffff">0-2</td>
+                    <td>L0/L1/L2</td>
+                    <td>Interrupt level upon which the controller must react</td>
+                  </tr>
+
+                  <tr>
+                    <td bgcolor="ffffff">3-4</td>
+                    <td>0</td>
+                    <td>Reserved, must be 0</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="ffffff">5</td>
+                    <td>EOI</td>
+                    <td>End of Interrupt (EOI) request</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="ffffff">6</td>
+                    <td>SL</td>
+                    <td>Selection</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="ffffff">7</td>
+                    <td>R</td>
+                    <td>Rotation option</td>
+                  </tr>
+                </tbody>
+              </table>
+            </center>
+
+            <p data-dl-uid="246" data-dl-original="true" data-dl-translated="true">それでは!</p>
+            <p data-dl-uid="247" data-dl-original="true" data-dl-translated="true">
+              OCW
+              2のフォーマットは非常に簡単です。最初の3ビットは現在の割り込みレベルです。ビット3-4は予約です（0でなければなりません）。ビット5は<b
+                data-dl-uid="248"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >EOI(End of Interrupt</b
+              >)を表します。Bit 6は<b data-dl-uid="249" data-dl-original="true" data-dl-translated="true"
+                >Selection</b
+              >ビットです。ビット 7 は<b
+                data-dl-uid="250"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ローテーション</b
+              >コマンドを提供します。
+            </p>
+            <p data-dl-uid="251" data-dl-original="true" data-dl-translated="true">
+              各コマンドは個別のビットで選択されるため、これらのコマンドを<b
+                data-dl-uid="252"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ビットごとに OR</b
+              >して OCW 2 を生成することができます。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">//! Command Word 2 bit masks. Use when sending commands
+#define		I86_PIC_OCW2_MASK_L1		1		//00000001	//Level 1 interrupt level
+#define		I86_PIC_OCW2_MASK_L2		2		//00000010	//Level 2 interrupt level
+#define		I86_PIC_OCW2_MASK_L3		4		//00000100	//Level 3 interrupt level
+#define		I86_PIC_OCW2_MASK_EOI		0x20		//00100000	//End of Interrupt command
+#define		I86_PIC_OCW2_MASK_SL		0x40		//01000000	//Select command
+#define		I86_PIC_OCW2_MASK_ROTATE	0x80		//10000000	//Rotation command</div></pre>
+            </blockquote>
+
+            これです。これは、私たちにとって重要なコマンドワードです。すべての割り込みハンドラからこのコマンドワードを送信することが要求されます。
+            <p data-dl-uid="256" data-dl-original="true" data-dl-translated="true">
+              PICは実行されると割り込みをマスクオフするのを覚えていますか？これは、プロセッサがPICを確認するまで、そのIRライン上の割り込み要求がそれ以上実行できないことを意味します。これは、<b
+                data-dl-uid="257"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >End of Interrupt</b
+              >コマンドワードを正しいPICに送信することによって行われます。これは、コマンドワードのEOIビットを<b
+                data-dl-uid="258"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >マスクオフ</b
+              >することで行えます。これが<b
+                data-dl-uid="259"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >I86_PIC_OCW2_MASK_EOIが</b
+              >使用される理由です。
+            </p>
+            <p data-dl-uid="260" data-dl-original="true" data-dl-translated="true">
+              少し後に、インターフェイスには<b
+                data-dl-uid="261"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >i86_pic_send_command</b
+              >ルーチンがあり、これはPICにコマンドを送信するために使用されることがわかります。このルーチンを使ってEOIコマンドを送信する例を見て、どのように動作するのかを確認しましょう。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">i86_pic_send_command (I86_PIC_OCW2_MASK_EOI, picNumber);</div></pre>
+            </blockquote>
+
+            上記のコードは、EOIコマンドを<b
+              data-dl-uid="265"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >picNumberに</b
+            >あるPICに送ります、クール？
+            <p data-dl-uid="266" data-dl-original="true" data-dl-translated="true">
+              OCW 2はこれで終わりです。次のものに移ります。
+            </p>
+            <h3 data-dl-uid="267" data-dl-original="true" data-dl-translated="true">
+              pic:オペレーションコマンドワード 3
+            </h3>
+
+            <i data-dl-uid="268" data-dl-original="true" data-dl-translated="true"
+              >*このセクションに追加する予定です。</i
+            >
+
+            <blockquote>
+              <pre><div class="code">//! Command Word 3 bit masks. Use when sending commands
+#define		I86_PIC_OCW3_MASK_RIS		1		//00000001
+#define		I86_PIC_OCW3_MASK_RIR		2		//00000010
+#define		I86_PIC_OCW3_MASK_MODE		4		//00000100
+#define		I86_PIC_OCW3_MASK_SMM		0x20		//00100000
+#define		I86_PIC_OCW3_MASK_ESMM		0x40		//01000000
+#define		I86_PIC_OCW3_MASK_D7		0x80		//10000000</div></pre>
+            </blockquote>
+
+            <h2 data-dl-uid="272" data-dl-original="true" data-dl-translated="true">
+              pic.cpp:インプリメンテーション
+            </h2>
+
+            さて...ここまでは簡単だったでしょう？おそらく、"チャレンジはどこだ！？"と思っていることでしょう。じゃあ、いいや。
+            <p data-dl-uid="273" data-dl-original="true" data-dl-translated="true">
+              pic.cppは、PICインターフェイスの実装を提供します。最初に見ておかなければならないのは、レジスタです。
+            </p>
+            <h3 data-dl-uid="274" data-dl-original="true" data-dl-translated="true">
+              pic.cppを参照してください。レジスタ定数
+            </h3>
+
+            ここでは、PICのポート位置を抽象化するための定数を定義しています。同じポートアドレスを共有していても、すべてのレジスタ名に対して定数を定義していることに注意してください。
+            理由は完全性のためです。同じポート位置を共有していても、異なるレジスタであることに変わりはないのです。
+
+            <blockquote>
+              <pre><div class="code">//! PIC 1 register port addresses
+#define I86_PIC1_REG_COMMAND			0x20			// command register
+#define I86_PIC1_REG_STATUS			0x20			// status register
+#define I86_PIC1_REG_DATA			0x21			// data register
+#define I86_PIC1_REG_IMR			0x21			// interrupt mask register (imr)
+ 
+//! PIC 2 register port addresses
+#define I86_PIC2_REG_COMMAND			0xA0			// ^ see above register names
+#define I86_PIC2_REG_STATUS			0xA0
+#define I86_PIC2_REG_DATA			0xA1
+#define I86_PIC2_REG_IMR			0xA1</div></pre>
+            </blockquote>
+
+            難しいことではありません。<b
+              data-dl-uid="279"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >データ</b
+            >レジスタから書き込む場合、<b
+              data-dl-uid="280"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >割り込みマスクレジスタ（IMR</b
+            >）にアクセスし、割り込み要求を手動でマスクオフまたはマスク解除するために使用します。このようにして、割り込み要求を有効にしたり、無効にしたりすることができます。
+            <p data-dl-uid="281" data-dl-original="true" data-dl-translated="true">
+              アクセスするレジスタは、書き込み操作か読み出し操作かによって異なります。ポート 0x20 に<b
+                data-dl-uid="282"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >書き込む</b
+              >場合は、コマンド・レジスタにアクセスすることになります。ポート 0x20
+              に書き込む場合は、コマンド・レジスタにアクセスし、ポート 0x20 から<b
+                data-dl-uid="283"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >読み出す</b
+              >場合は、ステータ ス・レジスタにアクセスします。
+            </p>
+            <p data-dl-uid="284" data-dl-original="true" data-dl-translated="true">
+              最後に、これは実装の詳細なので、インタフェースではなく、実装(pic.cpp)の一部となります。
+            </p>
+            <p data-dl-uid="285" data-dl-original="true" data-dl-translated="true">
+              次に、初期化時に使用される定数について見てみましょう。
+            </p>
+            <h3 data-dl-uid="286" data-dl-original="true" data-dl-translated="true">
+              pic.cpp。初期化制御語1
+            </h3>
+
+            これはPICを初期化するときに使用されるプライマリコントロールワードです。
+            これはプライマリPICコマンドレジスタに入れる必要がある7ビットの値です。このような形式になっています。
+            <p data-dl-uid="287" data-dl-original="true" data-dl-translated="true"></p>
+
+            <center>
+              <table border="1" bgcolor="CCCCCC">
+                <tbody>
+                  <tr>
+                    <th colspan="5" bgcolor="FFFFFF">Initialization Control Word (ICW) 1</th>
+                  </tr>
+                  <tr bgcolor="AAAAAA">
+                    <td>Bit Number</td>
+                    <td>Value</td>
+                    <td>Description</td>
+                  </tr>
+
+                  <tr>
+                    <td bgcolor="ffffff">0</td>
+                    <td>IC4</td>
+                    <td>セット(1)されると、PICは初期化中にIC4を受信することを期待します</td>
+                  </tr>
+
+                  <tr>
+                    <td bgcolor="ffffff">1</td>
+                    <td>SNGL</td>
+                    <td>
+                      セット(1)されると、システム内でPICは1つだけです。クリアされた場合、PICはスレーブPICとカスケード接続され、ICW3はコントローラに送信される必要があります。
+                    </td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="ffffff">2</td>
+                    <td>ADI</td>
+                    <td>
+                      セット(1)されると、CALLアドレス間隔は4、さもなくば8。これは通常、x86では無視され、デフォルトは0である。
+                    </td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="ffffff">3</td>
+                    <td>LTIM</td>
+                    <td>
+                      設定されている場合(1)，レベルトリガモードで動作する。設定しない場合(0)，エッジトリガモードで動作する。
+                    </td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="ffffff">4</td>
+                    <td>1</td>
+                    <td>初期化ビット。PICを初期化する場合、1 を設定する。</td>
+                  </tr>
+
+                  <tr>
+                    <td bgcolor="ffffff">5</td>
+                    <td>0</td>
+                    <td>MCS-80/85: 割り込みベクターアドレス。0でなければならない</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="ffffff">6</td>
+                    <td>0</td>
+                    <td>MCS-80/85: 割り込みベクターアドレス。0でなければならない</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="ffffff">7</td>
+                    <td>0</td>
+                    <td>MCS-80/85: 割り込みベクターアドレス。0でなければならない</td>
+                  </tr>
+                </tbody>
+              </table>
+            </center>
+
+            <p data-dl-uid="329" data-dl-original="true" data-dl-translated="true">
+              このように、いろいろなことが起こっています。これらのいくつかは、以前にも見たことがあります。これらのビットのほとんどはx86プラットフォームでは使用されないので、これはそれほど難しいことではありません。
+            </p>
+            <p data-dl-uid="330" data-dl-original="true" data-dl-translated="true">
+              各コマンドワードには、2種類の定数があります。1つ目のタイプは<b
+                data-dl-uid="331"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ビットマスクで</b
+              >、データが表すビットをマスクするために使用されます。もう1つは<b
+                data-dl-uid="332"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >コマンド・コントロール・ビットで</b
+              >、マスクと組み合わせて正しい値に設定するために使用されます。
+            </p>
+            <p data-dl-uid="333" data-dl-original="true" data-dl-translated="true">
+              もう少し詳しく見てみましょう。以下はICWの1ビットマスクです。最後の3ビットはx86アーキテクチャでは常に0なので、何も定義していません。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">//! Initialization Control Word 1 bit masks
+#define I86_PIC_ICW1_MASK_IC4			0x1	//00000001	// Expect ICW 4 bit
+#define I86_PIC_ICW1_MASK_SNGL			0x2	//00000010	// Single or Cascaded
+#define I86_PIC_ICW1_MASK_ADI			0x4	//00000100	// Call Address Interval
+#define I86_PIC_ICW1_MASK_LTIM			0x8	//00001000	// Operation Mode
+#define I86_PIC_ICW1_MASK_INIT			0x10	//00010000	// Initialization Command</div></pre>
+            </blockquote>
+
+            <p data-dl-uid="337" data-dl-original="true" data-dl-translated="true">
+              さて、上記のビットマスクを使えば、ICW1のビットを設定するのは簡単ですが、その意味をどうやって知るのでしょうか？
+              つまり、設定したいビットをマスクしたとき、設定する値の意味をどうやって知るのでしょうか？そこで登場するのが<b
+                data-dl-uid="338"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >コマンド・コントロール・ビット</b
+              >です。
+            </p>
+            <p data-dl-uid="339" data-dl-original="true" data-dl-translated="true">
+              コマンド制御ビットには、上記のマスクオフされたビットに設定するための定数値が格納されています。これにより、可読性と拡張性が大幅に向上します。
+            </p>
+            <p data-dl-uid="340" data-dl-original="true" data-dl-translated="true">
+              ICW1のコマンド・コントロール・ビットを以下に示します。見てみましょう。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">#define I86_PIC_ICW1_IC4_EXPECT			1	//1		//Use when setting I86_PIC_ICW1_MASK_IC4
+#define I86_PIC_ICW1_IC4_NO			0	//0
+#define I86_PIC_ICW1_SNGL_YES			2	//10		//Use when setting I86_PIC_ICW1_MASK_SNGL
+#define I86_PIC_ICW1_SNGL_NO			0	//00
+#define I86_PIC_ICW1_ADI_CALLINTERVAL4		4	//100		//Use when setting I86_PIC_ICW1_MASK_ADI
+#define I86_PIC_ICW1_ADI_CALLINTERVAL8		0	//000
+#define I86_PIC_ICW1_LTIM_LEVELTRIGGERED	8	//1000		//Use when setting I86_PIC_ICW1_MASK_LTIM
+#define I86_PIC_ICW1_LTIM_EDGETRIGGERED		0	//0000
+#define I86_PIC_ICW1_INIT_YES			0x10	//10000		//Use when setting I86_PIC_ICW1_MASK_INIT
+#define I86_PIC_ICW1_INIT_NO			0	//00000</div></pre>
+            </blockquote>
+
+            難しくはありません。この命名規則が使われているので、何をどこで使えばいいのかが簡単にわかります。例えば、<b
+              data-dl-uid="344"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >I86_PIC_ICW1_SNGL_YESは</b
+            >
+            <b data-dl-uid="345" data-dl-original="true" data-dl-translated="true"
+              >I86_PIC_ICW1_MASK_SNGLで</b
+            >、<b data-dl-uid="346" data-dl-original="true" data-dl-translated="true"
+              >I86_PIC_ICW1_LTIM_EDGETRIGGEREDは</b
+            >
+            <b data-dl-uid="347" data-dl-original="true" data-dl-translated="true"
+              >I86_PIC_ICW1_MASK_LTIMで</b
+            >使用されるのだそうです。
+            <p data-dl-uid="348" data-dl-original="true" data-dl-translated="true">
+              以下は、それらの連携例です。PICを初期化する際、初期化を有効にし、ICW4を送信する必要があります。
+              これを行うには、単純に以下のようにICW1を設定します。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">	uint8_t	icw=0;
+	icw = (icw &amp; ~I86_PIC_ICW1_MASK_INIT) | I86_PIC_ICW1_INIT_YES;
+	icw = (icw &amp; ~I86_PIC_ICW1_MASK_IC4) | I86_PIC_ICW1_IC4_EXPECT;</div></pre>
+            </blockquote>
+
+            それだけですか!そうです。すべてがどのように機能し、組み合わされているかに注目してください。これは、特定のビット(または一連のビット)を既知の値に設定するために、実装全体で使用されています。ここで一番良いのは、上記のコードを見るだけで、それが何をやっているのかがわかることです。(初期化を開始し、ICW
+            4を期待する）。この方法は、このシリーズを通して、ビットの設定やマスクオフの際に必要なときに使用する予定です。
+            <h3 data-dl-uid="352" data-dl-original="true" data-dl-translated="true">
+              初期化制御ワード2
+            </h3>
+            この制御ワードは、PICが使用するIVTのベースアドレスをマップするために使用されます。
+            <p data-dl-uid="353" data-dl-original="true" data-dl-translated="true"></p>
+
+            <center data-dl-uid="354" data-dl-original="true" data-dl-translated="true">
+              <table
+                border="1"
+                bgcolor="CCCCCC"
+                data-dl-uid="355"
+                data-dl-original="true"
+                data-dl-translated="true"
+              >
+                <tbody data-dl-uid="356" data-dl-original="true" data-dl-translated="true">
+                  <tr data-dl-uid="357" data-dl-original="true" data-dl-translated="true">
+                    <th
+                      colspan="5"
+                      bgcolor="FFFFFF"
+                      data-dl-uid="358"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      初期化制御ワード(ICW) 2
+                    </th>
+                  </tr>
+                  <tr
+                    bgcolor="AAAAAA"
+                    data-dl-uid="359"
+                    data-dl-original="true"
+                    data-dl-translated="true"
+                  >
+                    <td data-dl-uid="360" data-dl-original="true" data-dl-translated="true">
+                      ビット番号
+                    </td>
+                    <td data-dl-uid="361" data-dl-original="true" data-dl-translated="true">値</td>
+                    <td data-dl-uid="362" data-dl-original="true" data-dl-translated="true">説明</td>
+                  </tr>
+
+                  <tr data-dl-uid="363" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="ffffff"
+                      data-dl-uid="364"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      0-2
+                    </td>
+                    <td data-dl-uid="365" data-dl-original="true" data-dl-translated="true">
+                      A8/A9/A10
+                    </td>
+                    <td data-dl-uid="366" data-dl-original="true" data-dl-translated="true">
+                      MCS-80/85モード時のIVT用アドレスビットA8～A10。
+                    </td>
+                  </tr>
+                  <tr data-dl-uid="367" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="ffffff"
+                      data-dl-uid="368"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      3-7
+                    </td>
+                    <td data-dl-uid="369" data-dl-original="true" data-dl-translated="true">
+                      A11(T3)/A12(T4)/A13(T5)/A14(T6)/A15(T7)
+                    </td>
+                    <td data-dl-uid="370" data-dl-original="true" data-dl-translated="true">
+                      MCS-80/85 モード時の IVT 用アドレスビット A11-A15 です。<b
+                        data-dl-uid="371"
+                        data-dl-original="true"
+                        data-dl-translated="true"
+                        >80x86 モードでは、割り込みベクタのアドレスを指定します。</b
+                      >x86モードでは0に設定してもよい。
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </center>
+
+            <p data-dl-uid="372" data-dl-original="true" data-dl-translated="true"></p>
+            <p data-dl-uid="373" data-dl-original="true" data-dl-translated="true">
+              初期化時に、ICW2をPICに送って、使用するIRQのベースアドレスを伝える必要があります。もしICW1がPICに送られたなら（初期化ビットが設定された状態で）、次にICW2を送らなければなりません。<b
+                data-dl-uid="374"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >そうしないと、未定義の結果になることがあります。</b
+              >ほとんどの場合、不正な割り込みハンドラが実行されます。
+            </p>
+            <p data-dl-uid="375" data-dl-original="true" data-dl-translated="true">
+              このコマンドは複雑な形式ではないので、<b
+                data-dl-uid="376"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >pic.cpp</b
+              >内部で直接処理され、定数はありません。
+            </p>
+            <h3 data-dl-uid="377" data-dl-original="true" data-dl-translated="true">
+              初期化制御ワード 3
+            </h3>
+
+            このコマンドワードは、PICコントローラがどのようにカスケード接続されるかを知らせるために使用されます。複数のPICをカスケード接続するには、PICのIRラインを互いに接続する必要があります。それがどのラインなのかを知らせるために、このコマンドワードを使用します。
+            <p data-dl-uid="378" data-dl-original="true" data-dl-translated="true"></p>
+
+            <center>
+              <table border="1" bgcolor="CCCCCC">
+                <tbody>
+                  <tr>
+                    <th colspan="5" bgcolor="FFFFFF">初期化制御ワード(ICW) 3</th>
+                  </tr>
+                  <tr bgcolor="AAAAAA">
+                    <td>Bit Number</td>
+                    <td>Value</td>
+                    <td>Description</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="ffffff">0-7</td>
+                    <td>S0-S7</td>
+                    <td>スレーブPICに接続されている割り込み要求(IRQ)を指定します。</td>
+                  </tr>
+                </tbody>
+              </table>
+            </center>
+
+            <p data-dl-uid="392" data-dl-original="true" data-dl-translated="true"></p>
+            <p data-dl-uid="393" data-dl-original="true" data-dl-translated="true">
+              このコマンドは複雑な形式ではないので、<b
+                data-dl-uid="394"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >pic.cpp</b
+              >内部で直接処理され、定数はありません。
+            </p>
+            <h3 data-dl-uid="395" data-dl-original="true" data-dl-translated="true">
+              初期化制御ワード4
+            </h3>
+
+            イエーイ!これは最終的な初期化制御ワードです。これは、すべてがどのように動作するかを制御します。
+            <p data-dl-uid="396" data-dl-original="true" data-dl-translated="true"></p>
+
+            <center data-dl-uid="397" data-dl-original="true" data-dl-translated="true">
+              <table
+                border="1"
+                bgcolor="CCCCCC"
+                data-dl-uid="398"
+                data-dl-original="true"
+                data-dl-translated="true"
+              >
+                <tbody data-dl-uid="399" data-dl-original="true" data-dl-translated="true">
+                  <tr data-dl-uid="400" data-dl-original="true" data-dl-translated="true">
+                    <th
+                      colspan="5"
+                      bgcolor="FFFFFF"
+                      data-dl-uid="401"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      初期化制御ワード(ICW) 4
+                    </th>
+                  </tr>
+                  <tr
+                    bgcolor="AAAAAA"
+                    data-dl-uid="402"
+                    data-dl-original="true"
+                    data-dl-translated="true"
+                  >
+                    <td data-dl-uid="403" data-dl-original="true" data-dl-translated="true">
+                      ビット番号
+                    </td>
+                    <td data-dl-uid="404" data-dl-original="true" data-dl-translated="true">値</td>
+                    <td data-dl-uid="405" data-dl-original="true" data-dl-translated="true">説明</td>
+                  </tr>
+                  <tr data-dl-uid="406" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="ffffff"
+                      data-dl-uid="407"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      0
+                    </td>
+                    <td data-dl-uid="408" data-dl-original="true" data-dl-translated="true">uPM</td>
+                    <td data-dl-uid="409" data-dl-original="true" data-dl-translated="true">
+                      セット(1)の場合、80x86モード。MCS-80/86モードであればクリアされる。
+                    </td>
+                  </tr>
+                  <tr data-dl-uid="410" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="ffffff"
+                      data-dl-uid="411"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      1
+                    </td>
+                    <td data-dl-uid="412" data-dl-original="true" data-dl-translated="true">AEOI</td>
+                    <td data-dl-uid="413" data-dl-original="true" data-dl-translated="true">
+                      設定されている場合、最後の割り込みアクノリッジパルスで、コントローラは自動的に割り込みの終了（EOI）操作を実行します。
+                    </td>
+                  </tr>
+                  <tr data-dl-uid="414" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="ffffff"
+                      data-dl-uid="415"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      2
+                    </td>
+                    <td data-dl-uid="416" data-dl-original="true" data-dl-translated="true">M/S</td>
+                    <td data-dl-uid="417" data-dl-original="true" data-dl-translated="true">
+                      BUFが設定されている場合のみ使用します。設定(1)の場合、バッファマスタを選択します。バッファスレーブの場合はクリアされます。
+                    </td>
+                  </tr>
+
+                  <tr data-dl-uid="418" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="ffffff"
+                      data-dl-uid="419"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      3
+                    </td>
+                    <td data-dl-uid="420" data-dl-original="true" data-dl-translated="true">BUF</td>
+                    <td data-dl-uid="421" data-dl-original="true" data-dl-translated="true">
+                      設定された場合，コントローラはバッファードモードで動作します。
+                    </td>
+                  </tr>
+                  <tr data-dl-uid="422" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="ffffff"
+                      data-dl-uid="423"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      4
+                    </td>
+                    <td data-dl-uid="424" data-dl-original="true" data-dl-translated="true">SFNM</td>
+                    <td data-dl-uid="425" data-dl-original="true" data-dl-translated="true">
+                      Special Fully Nested
+                      Mode（スペシャル・フルネスト・モード）。カスケード接続された多数のコントローラーを持つシステムで使用されます。
+                    </td>
+                  </tr>
+                  <tr data-dl-uid="426" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="ffffff"
+                      data-dl-uid="427"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      5-7
+                    </td>
+                    <td data-dl-uid="428" data-dl-original="true" data-dl-translated="true">0</td>
+                    <td data-dl-uid="429" data-dl-original="true" data-dl-translated="true">
+                      予約済み、0でなければならない
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </center>
+
+            <p data-dl-uid="430" data-dl-original="true" data-dl-translated="true">
+              これはかなり複雑なコマンドワードですが、それほど悪くはありません。それでは、定義されたビット・マスクを見てみましょう。
+              上図のようなフォーマットになっていることに注目してください。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">//! Initialization Control Word 4 bit masks
+#define I86_PIC_ICW4_MASK_UPM		0x1	//00000001	// Mode
+#define I86_PIC_ICW4_MASK_AEOI		0x2	//00000010	// Automatic EOI
+#define I86_PIC_ICW4_MASK_MS		0x4	//00000100	// Selects buffer type
+#define I86_PIC_ICW4_MASK_BUF		0x8	//00001000	// Buffered mode
+#define I86_PIC_ICW4_MASK_SFNM		0x10	//00010000	// Special fully-nested mode</div></pre>
+            </blockquote>
+
+            <b data-dl-uid="434" data-dl-original="true" data-dl-translated="true">ICW 1と</b
+            >同様に、プロパティを設定するためにビットマスクと組み合わせて使用される制御ビットのセットがあります。これが...
+
+            <blockquote>
+              <pre><div class="code">#define I86_PIC_ICW4_UPM_86MODE		1	//1		//Use when setting I86_PIC_ICW4_MASK_UPM
+#define I86_PIC_ICW4_UPM_MCSMODE	0	//0
+#define I86_PIC_ICW4_AEOI_AUTOEOI	2	//10		//Use when setting I86_PIC_ICW4_MASK_AEOI
+#define I86_PIC_ICW4_AEOI_NOAUTOEOI	0	//00
+#define I86_PIC_ICW4_MS_BUFFERMASTER	4	//100		//Use when setting I86_PIC_ICW4_MASK_MS
+#define I86_PIC_ICW4_MS_BUFFERSLAVE	0	//000
+#define I86_PIC_ICW4_BUF_MODEYES	8	//1000		//Use when setting I86_PIC_ICW4_MASK_BUF
+#define I86_PIC_ICW4_BUF_MODENO		0	//0000
+#define I86_PIC_ICW4_SFNM_NESTEDMODE	0x10	//10000		//Use when setting I86_PIC_ICW4_MASK_SFNM
+#define I86_PIC_ICW4_SFNM_NOTNESTED	0	//00000</div></pre>
+            </blockquote>
+
+            これはシンプルなスナフキンですね。^_^
+            上記のコントロールビットをビットマスクと組み合わせて使うことで、コントロールワードを構築することができます。命名規則が使われているので、どのようなビットマスクと一緒に使われているのかが簡単にわかります。
+            <p data-dl-uid="438" data-dl-original="true" data-dl-translated="true">
+              インプリメンテーションで使用する定数はこれで終わりとします。では、関数に取りかかりましょう。
+            </p>
+            <h3 data-dl-uid="439" data-dl-original="true" data-dl-translated="true">
+              i86_pic_send_command ():PICにコマンドを送信します。
+            </h3>
+
+            このルーチンは、PICのコマンドレジスタにコマンドバイトを送信します。<b
+              data-dl-uid="440"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >picNumは</b
+            >、アクセスするPICを表すゼロベースのインデックスです。x86では、これは0か1のどちらかであるべきです。正しいコマンド・レジスタを得るために、どのPICで作業しているかをテストしていることに注意してください。
+            <p data-dl-uid="441" data-dl-original="true" data-dl-translated="true">
+              これはインターフェイスの一部ですが、インターフェイスの外ではそれほど使用されるべきものではありません。これは、必要であれば、手動でPICを送信し、制御できるようにメソッドを提供します。<b
+                data-dl-uid="442"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >これは、EOIコマンドを送信するための割り込みハンドラによって必要とされるでしょう。</b
+              >
+            </p>
+
+            <blockquote>
+              <pre><div class="code">inline void i86_pic_send_command (uint8_t cmd, uint8_t picNum) {
+ 
+	if (picNum &gt; 1)
+		return;
+ 
+	uint8_t	reg = (picNum==1) ? I86_PIC2_REG_COMMAND : I86_PIC1_REG_COMMAND;
+	outportb (reg, cmd);
+}</div></pre>
+            </blockquote>
+
+            <h3 data-dl-uid="446" data-dl-original="true" data-dl-translated="true">
+              i86_pic_send_data()とi86_pic_read_data()。PICにデータバイトを送ったり、PICからデータバイトを返したりします。
+            </h3>
+
+            これらのルーチンは上記のルーチンと非常に似ていますが、<b
+              data-dl-uid="447"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >picNumの</b
+            >PICに応じてPICのデータレジスタに書き込みまたは読み出しを行います。
+            これらのルーチンの両方が<b
+              data-dl-uid="448"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >インラインで</b
+            >あることに注意してください。これらのルーチンは小さいので、関数コールを取り除きたいと思います。
+
+            <blockquote>
+              <pre><div class="code">inline void i86_pic_send_data (uint8_t data, uint8_t picNum) {
+ 
+	if (picNum &gt; 1)
+		return;
+ 
+	uint8_t	reg = (picNum==1) ? I86_PIC2_REG_DATA : I86_PIC1_REG_DATA;
+	outportb (reg, data);
+}
+ 
+inline uint8_t i86_pic_read_data (uint8_t picNum) {
+ 
+	if (picNum &gt; 1)
+		return 0;
+ 
+	uint8_t	reg = (picNum==1) ? I86_PIC2_REG_DATA : I86_PIC1_REG_DATA;
+	return inportb (reg);
+}</div></pre>
+            </blockquote>
+
+            <h3 data-dl-uid="452" data-dl-original="true" data-dl-translated="true">
+              i86_pic_initialize()。PICを初期化する
+            </h3>
+
+            これはPICインターフェイスのための最終ルーチンです。これは、上記のすべてのルーチンと、初期化制御語用に定義された定数を使って、動作のために両方のPICを初期化します。
+            <p data-dl-uid="453" data-dl-original="true" data-dl-translated="true">
+              このルーチンはあまり複雑ではありません。というか、見た目ほど複雑ではありません
+              ;)このルーチンが行うのは、PICに初期化コマンドを送るだけです。これは、コマンドワードの<b
+                data-dl-uid="454"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >I86_PIC_ICW1_INIT_YES</b
+              >ビットを設定することで行います。また、<b
+                data-dl-uid="455"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >I86_PIC_ICW1_IC4_EXPECT</b
+              >ビットを設定し、コントローラがICW 4を送信することを保証しています。
+              定数が可読性を向上させていることにお気づきでしょうか。
+            </p>
+            <p data-dl-uid="456" data-dl-original="true" data-dl-translated="true">
+              ICWは...そう...<b data-dl-uid="457" data-dl-original="true" data-dl-translated="true"
+                >icwに</b
+              >格納されています。<b data-dl-uid="458" data-dl-original="true" data-dl-translated="true"
+                >i86_pic_send_command()</b
+              >ルーチンを使って、両方のPICにコマンドを送ります。
+            </p>
+            <p data-dl-uid="459" data-dl-original="true" data-dl-translated="true">
+              ICW 1が送信された後、ICW 2を送信して初期化を開始します。ICW
+              2にはベース割り込み番号が含まれており、<b
+                data-dl-uid="460"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >base0と</b
+              >
+              <b data-dl-uid="461" data-dl-original="true" data-dl-translated="true">base1</b
+              >パラメータに渡されます。
+            </p>
+            <p data-dl-uid="462" data-dl-original="true" data-dl-translated="true">
+              ICW 3はPICコントローラのマスターとセカンダリ間の接続に使用されます。
+            </p>
+            <p data-dl-uid="463" data-dl-original="true" data-dl-translated="true">
+              最後にICW 4ですが、<b data-dl-uid="464" data-dl-original="true" data-dl-translated="true"
+                >I86_PIC_ICW4_UPM_86MODE</b
+              >ビットをセットして、x86モードをセットアップしています。このルーチンを<a
+                href="pic.html"
+                data-dl-uid="465"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >PICチュートリアルに</a
+              >ある例と比較してみてください、驚くことでしょう...その類似性にとても驚かされることでしょう!
+            </p>
+
+            <blockquote>
+              <pre><div class="code">//! Initialize pic
+void i86_pic_initialize (uint8_t base0, uint8_t base1) {
+ 
+	uint8_t		icw	= 0;
+ 
+	//! Begin initialization of PIC
+ 
+	icw = (icw &amp; ~I86_PIC_ICW1_MASK_INIT) | I86_PIC_ICW1_INIT_YES;
+	icw = (icw &amp; ~I86_PIC_ICW1_MASK_IC4) | I86_PIC_ICW1_IC4_EXPECT;
+ 
+	i86_pic_send_command (icw, 0);
+	i86_pic_send_command (icw, 1);
+ 
+	//! Send initialization control word 2. This is the base addresses of the irq's
+ 
+	i86_pic_send_data (base0, 0);
+	i86_pic_send_data (base1, 1);
+ 
+	//! Send initialization control word 3. This is the connection between master and slave.
+	//! ICW3 for master PIC is the IR that connects to secondary pic in binary format
+	//! ICW3 for secondary PIC is the IR that connects to master pic in decimal format
+ 
+	i86_pic_send_data (0x04, 0);
+	i86_pic_send_data (0x02, 1);
+ 
+	//! Send Initialization control word 4. Enables i86 mode
+ 
+	icw = (icw &amp; ~I86_PIC_ICW4_MASK_UPM) | I86_PIC_ICW4_UPM_86MODE;
+ 
+	i86_pic_send_data (icw, 0);
+	i86_pic_send_data (icw, 1);
+}</div></pre>
+            </blockquote>
+
+            *ふぅー*、これでPICの大仕事はすべて終わったようです。心配しないでください、PICほど複雑ではありません。
+            見てみましょう...
+            <h1 data-dl-uid="469" data-dl-original="true" data-dl-translated="true">
+              プログラマブルインターバルタイマ
+            </h1>
+
+            よし...PICの準備ができたので、ハードウェア割り込みを有効にすることができますね？ええ、ちょっとだけ。今のところすべて順調ですが、PIT用の割り込みハンドラはまだインストールされていません。では、次のタイマティックで何が起こるのでしょうか？
+            <p data-dl-uid="470" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="471" data-dl-original="true" data-dl-translated="true"
+                >プログラマブルインターバルタイマ（PIT</b
+              >）は、プログラムされたカウントに達すると割り込みを発生させるカウンタです。8253および8254マイコンは、i86アーキテクチャで使用可能なPITで、i86互換システムのタイマとして使用されます。
+            </p>
+            <p data-dl-uid="472" data-dl-original="true" data-dl-translated="true">
+              x86アーキテクチャでは、<b
+                data-dl-uid="473"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >PITはシステムタイマーとして</b
+              >動作し、<b data-dl-uid="474" data-dl-original="true" data-dl-translated="true"
+                >PICのIR0ラインに接続</b
+              >されています。 これにより、PITはタイマーを刻むごとに<b
+                data-dl-uid="475"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >IRQ 0を</b
+              >発生させることができます。このため、このマイクロコントローラを使用する前に、再プログラムする必要があります。
+            </p>
+            <p data-dl-uid="476" data-dl-original="true" data-dl-translated="true">
+              PITはプログラミングが複雑なマイコンです。このため、PITについては、別のチュートリアルを作成しました。
+              それでも、すべてを詳細に説明するつもりですが、<b
+                data-dl-uid="477"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ここでは、PITのすべてをカバーする</b
+              >ことはできません。
+            </p>
+            <p data-dl-uid="478" data-dl-original="true" data-dl-translated="true">
+              PITについて学ぶには、以下のチュートリアルをご覧ください（参考）。
+            </p>
+            <p data-dl-uid="479" data-dl-original="true" data-dl-translated="true">
+              <a href="OSDevPit.html" data-dl-uid="480" data-dl-original="true" data-dl-translated="true"
+                >8253プログラマブルインターバルタイマチュートリアル</a
+              >
+            </p>
+            <p data-dl-uid="481" data-dl-original="true" data-dl-translated="true"></p>
+
+            <h2 data-dl-uid="482" data-dl-original="true" data-dl-translated="true">
+              pit.h:インターフェース
+            </h2>
+
+            PITの良いところは、プログラミングがそれほど複雑でないことです。それほど多くのコマンドを含んでいるわけでもなく、かといってそれほど多くのコマンドを必要とするわけでもない。PITは小さいけれども、ハードウェアのタイミングやリクエストに使われるパワフルなチップです。
+            <h3 data-dl-uid="483" data-dl-original="true" data-dl-translated="true">
+              操作コマンドワード
+            </h3>
+
+            PITは、カウンタの初期化に使う<b
+              data-dl-uid="484"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >オペレーションコマンドワード（OCW</b
+            >）を1つだけ含んでいます。
+            これは、カウンタのカウントモード、オペレーションモードを設定し、初期カウント値を設定するためのものです。
+            <p data-dl-uid="485" data-dl-original="true" data-dl-translated="true">
+              コマンドワードは、少し複雑です。以下は、コマンドワードの完全版です。
+            </p>
+
+            <ul data-dl-uid="486" data-dl-original="true" data-dl-translated="true">
+              <li data-dl-uid="487" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="488" data-dl-original="true" data-dl-translated="true"
+                  >ビット0：（BCP）</b
+                >バイナリカウンタ
+              </li>
+              <ul data-dl-uid="489" data-dl-original="true" data-dl-translated="true">
+                <li data-dl-uid="490" data-dl-original="true" data-dl-translated="true">
+                  <b data-dl-uid="491" data-dl-original="true" data-dl-translated="true">0：</b>バイナリ
+                </li>
+                <li data-dl-uid="492" data-dl-original="true" data-dl-translated="true">
+                  <b data-dl-uid="493" data-dl-original="true" data-dl-translated="true">1：</b
+                  >バイナリコード付き10進数（BCD）
+                </li>
+              </ul>
+              <li data-dl-uid="494" data-dl-original="true" data-dl-translated="true">
+                ビット<b data-dl-uid="495" data-dl-original="true" data-dl-translated="true"
+                  >1-3：(M0, M1, M2)</b
+                >動作モード。それぞれの説明は、上記のセクションを参照してください。
+              </li>
+              <ul data-dl-uid="496" data-dl-original="true" data-dl-translated="true">
+                <li data-dl-uid="497" data-dl-original="true" data-dl-translated="true">
+                  <b data-dl-uid="498" data-dl-original="true" data-dl-translated="true">000：</b
+                  >モード0：割込みまたは端子カウント
+                </li>
+                <li data-dl-uid="499" data-dl-original="true" data-dl-translated="true">
+                  <b data-dl-uid="500" data-dl-original="true" data-dl-translated="true">001:</b>モード
+                  1: プログラマブルワンショット
+                </li>
+
+                <li data-dl-uid="501" data-dl-original="true" data-dl-translated="true">
+                  <b data-dl-uid="502" data-dl-original="true" data-dl-translated="true">010:</b>モード
+                  2: レートジェネレータ
+                </li>
+                <li data-dl-uid="503" data-dl-original="true" data-dl-translated="true">
+                  <b data-dl-uid="504" data-dl-original="true" data-dl-translated="true">011:</b
+                  >モード3：方形波発生器
+                </li>
+                <li data-dl-uid="505" data-dl-original="true" data-dl-translated="true">
+                  <b data-dl-uid="506" data-dl-original="true" data-dl-translated="true">100:</b>Mode 4:
+                  ソフトウェアトリガー ストロボ
+                </li>
+                <li data-dl-uid="507" data-dl-original="true" data-dl-translated="true">
+                  <b data-dl-uid="508" data-dl-original="true" data-dl-translated="true">101:</b>Mode 5:
+                  ハードウェアトリガー ストロボ
+                </li>
+
+                <li data-dl-uid="509" data-dl-original="true" data-dl-translated="true">
+                  <b data-dl-uid="510" data-dl-original="true" data-dl-translated="true">110:</b
+                  >未定義、使用しないでください。
+                </li>
+                <li data-dl-uid="511" data-dl-original="true" data-dl-translated="true">
+                  <b data-dl-uid="512" data-dl-original="true" data-dl-translated="true">111:</b
+                  >未定義、使用せず
+                </li>
+              </ul>
+              <li data-dl-uid="513" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="514" data-dl-original="true" data-dl-translated="true"
+                  >第4-5ビット：（RL0, RL1）</b
+                >リード/ロード・モード。カウンタ・レジスタへのデータの読み出し、または送信を行います
+              </li>
+
+              <ul data-dl-uid="515" data-dl-original="true" data-dl-translated="true">
+                <li data-dl-uid="516" data-dl-original="true" data-dl-translated="true">
+                  <b data-dl-uid="517" data-dl-original="true" data-dl-translated="true">00:</b
+                  >カウンタ値はI/Oライト動作時に内部コントロールレジスタにラッチされます。
+                </li>
+                <li data-dl-uid="518" data-dl-original="true" data-dl-translated="true">
+                  <b data-dl-uid="519" data-dl-original="true" data-dl-translated="true">01:</b
+                  >最下位バイト(LSB)のみをリードまたはロードします。
+                </li>
+                <li data-dl-uid="520" data-dl-original="true" data-dl-translated="true">
+                  <b data-dl-uid="521" data-dl-original="true" data-dl-translated="true">10</b>:
+                  最上位バイト(MSB)のみ読み出し/読み出し
+                </li>
+
+                <li data-dl-uid="522" data-dl-original="true" data-dl-translated="true">
+                  <b data-dl-uid="523" data-dl-original="true" data-dl-translated="true">11:</b
+                  >LSBを先に読み出し、その後MSBを読み出す。
+                </li>
+              </ul>
+              <li data-dl-uid="524" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="525" data-dl-original="true" data-dl-translated="true"
+                  >ビット6-7：(SC0-SC1)</b
+                >セレクトカウンタ。それぞれの説明は、上記のセクションを参照してください。
+              </li>
+              <ul data-dl-uid="526" data-dl-original="true" data-dl-translated="true">
+                <li data-dl-uid="527" data-dl-original="true" data-dl-translated="true">
+                  <b data-dl-uid="528" data-dl-original="true" data-dl-translated="true">00:</b>カウンタ0
+                </li>
+
+                <li data-dl-uid="529" data-dl-original="true" data-dl-translated="true">
+                  <b data-dl-uid="530" data-dl-original="true" data-dl-translated="true">01</b>:
+                  カウンタ1
+                </li>
+                <li data-dl-uid="531" data-dl-original="true" data-dl-translated="true">
+                  <b data-dl-uid="532" data-dl-original="true" data-dl-translated="true">10:</b>カウンタ2
+                </li>
+                <li data-dl-uid="533" data-dl-original="true" data-dl-translated="true">
+                  <b data-dl-uid="534" data-dl-original="true" data-dl-translated="true">11:</b>不正な値
+                </li>
+              </ul>
+            </ul>
+
+            <p data-dl-uid="535" data-dl-original="true" data-dl-translated="true">
+              PICのインターフェースと同様に、コマンドのフォーマットを記述するために、いくつかのビットマスクを設定します。以下は、その内容です...
+            </p>
+
+            <blockquote>
+              <pre><div class="code">#define		I86_PIT_OCW_MASK_BINCOUNT			1	//00000001
+#define		I86_PIT_OCW_MASK_MODE				0xE	//00001110
+#define		I86_PIT_OCW_MASK_RL				0x30	//00110000
+#define		I86_PIT_OCW_MASK_COUNTER			0xC0	//11000000</div></pre>
+            </blockquote>
+
+            なるほど、PICで設定したICWやOCWより小さいが、実はこちらの方が複雑である。PICで使うコマンドは1ビットと単純ですが、この演算コマンドワードで使うコマンドはそうではありません。
+            <p data-dl-uid="539" data-dl-original="true" data-dl-translated="true">
+              これは<b data-dl-uid="540" data-dl-original="true" data-dl-translated="true"
+                >コマンド制御ビットが</b
+              >輝くところです。これらは、上記の異なるビットマスクのための異なる設定とビットの組み合わせを定義するのに役立ちます。以下はその例です。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">#define		I86_PIT_OCW_BINCOUNT_BINARY	0	//0		//! Use when setting I86_PIT_OCW_MASK_BINCOUNT
+#define		I86_PIT_OCW_BINCOUNT_BCD	1	//1
+#define		I86_PIT_OCW_MODE_TERMINALCOUNT	0	//0000		//! Use when setting I86_PIT_OCW_MASK_MODE
+#define		I86_PIT_OCW_MODE_ONESHOT	0x2	//0010
+#define		I86_PIT_OCW_MODE_RATEGEN	0x4	//0100
+#define		I86_PIT_OCW_MODE_SQUAREWAVEGEN	0x6	//0110
+#define		I86_PIT_OCW_MODE_SOFTWARETRIG	0x8	//1000
+#define		I86_PIT_OCW_MODE_HARDWARETRIG	0xA	//1010
+#define		I86_PIT_OCW_RL_LATCH		0	//000000	//! Use when setting I86_PIT_OCW_MASK_RL
+#define		I86_PIT_OCW_RL_LSBONLY		0x10	//010000
+#define		I86_PIT_OCW_RL_MSBONLY		0x20	//100000
+#define		I86_PIT_OCW_RL_DATA		0x30	//110000
+#define		I86_PIT_OCW_COUNTER_0		0	//00000000	//! Use when setting I86_PIT_OCW_MASK_COUNTER
+#define		I86_PIT_OCW_COUNTER_1		0x40	//01000000
+#define		I86_PIT_OCW_COUNTER_2		0x80	//10000000</div></pre>
+            </blockquote>
+
+            例を見てみましょう。例えば、カウンタ0を矩形波発生器として、バイナリカウント方式で初期化したいとします。このようにします。
+
+            <blockquote>
+              <pre><div class="code">	uint8_t ocw=0;
+	ocw = (ocw &amp; ~I86_PIT_OCW_MASK_MODE) | I86_PIT_OCW_MODE_SQUAREWAVEGEN;
+	ocw = (ocw &amp; ~I86_PIT_OCW_MASK_BINCOUNT) | I86_PIT_OCW_BINCOUNT_BINARY;
+	ocw = (ocw &amp; ~I86_PIT_OCW_MASK_COUNTER) | I86_PIT_OCW_COUNTER_0;</div></pre>
+            </blockquote>
+
+            簡単すぎると思いますが、いかがでしょうか？<b
+              data-dl-uid="547"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >ocwには</b
+            >、PICに送信できる演算コマンドワードが入ります。これらの定数を使用することで、読みやすさを向上させるだけでなく、エラーの可能性を減少させることができることに注意してください。
+            <p data-dl-uid="548" data-dl-original="true" data-dl-translated="true">
+              私はそれがpit.hにあるすべてであると思います。次は、pit.cppに飛び込んでみましょうか？ウィー......!
+            </p>
+            <h2 data-dl-uid="549" data-dl-original="true" data-dl-translated="true">
+              pit.cpp。インプリメンテーション
+            </h2>
+
+            これは、PITミニドライバの大部分を含んでいます。これは、インターフェースと実装の両方で使用される各ルーチンの実装を含んでいます。
+            <h3 data-dl-uid="550" data-dl-original="true" data-dl-translated="true">
+              pit.cpp。レジスタ
+            </h3>
+
+            ここでは、PITのポートの位置を抽象化するための定数を定義しています。
+
+            <blockquote>
+              <pre><div class="code">#define		I86_PIT_REG_COUNTER0		0x40
+#define		I86_PIT_REG_COUNTER1		0x41
+#define		I86_PIT_REG_COUNTER2		0x42
+#define		I86_PIT_REG_COMMAND		0x43
+ 
+//! Global Tick count
+uint32_t		_pit_ticks=0;</div></pre>
+            </blockquote>
+
+            悪くないですね。<b data-dl-uid="554" data-dl-original="true" data-dl-translated="true"
+              >I86_PIT_REG_COUNTER0、I86_PIT_REG_COUNTER1、</b
+            >
+            <b data-dl-uid="555" data-dl-original="true" data-dl-translated="true">I86_PIT_REG_COUNTER</b
+            >2は、各カウンタのデータ・レジスタです。PIT には 3
+            つの内部カウンタがあることを思い出してください。<b
+              data-dl-uid="556"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >I86_PIT_REG_COMMAND</b
+            >はコマンド・レジスタで、PIT
+            を制御・操作するためにコマンド・レジスタにコマンドを書き込む必要があります。
+            <p data-dl-uid="557" data-dl-original="true" data-dl-translated="true">
+              また、<b data-dl-uid="558" data-dl-original="true" data-dl-translated="true"
+                >_pit_ticksに</b
+              >注目してください。これは非常に特別で重要なグローバルです。
+            </p>
+            <p data-dl-uid="559" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="560" data-dl-original="true" data-dl-translated="true"
+                >PITカウンタ0がPICのIR0ラインに接続されているのを覚えていますか？</b
+              >つまり、カウンタ0が発火すると、<b
+                data-dl-uid="561"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >割り込み要求（IRQ）0が</b
+              >発生します。この要求を処理するために、割り込みハンドラを作成し、インストールする必要があります。
+            </p>
+            <p data-dl-uid="562" data-dl-original="true" data-dl-translated="true">
+              割り込みハンドラが行うべきことは、システムの<b
+                data-dl-uid="563"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >グローバルティックカウントを</b
+              >更新することです。そのために<b
+                data-dl-uid="564"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >_pit_ticksが</b
+              >あります。
+            </p>
+            <h3 data-dl-uid="565" data-dl-original="true" data-dl-translated="true">
+              i86_pit_irq()。PITカウンタ0割り込みハンドラ
+            </h3>
+
+            IRQ
+            0の要求を処理する割り込みハンドラです。カウンタ0が発火するたびに、この割り込みハンドラを呼び出します。
+            <p data-dl-uid="566" data-dl-original="true" data-dl-translated="true">
+              このハンドラが行うことは、割り込みが発生するたびにグローバルティックカウントをインクリメントすることだけです。割り込みハンドラの一般的な書式に注意してください。
+            </p>
+            <p data-dl-uid="567" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="568" data-dl-original="true" data-dl-translated="true">intstart</b>(<b
+                data-dl-uid="569"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >)</b
+              >は、ハードウェア割り込みを無効にしてスタックフレームを保存し、タスクのスタックを空けずに復帰するために使用するマクロです。この目的は、単純に現在のスタックを変更されないように保護し、そのスタックを維持したままタスクに戻るためです。これらのマクロは、カーネルやデバイスドライバの割り込みハンドラで使用できるように<b
+                data-dl-uid="571"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >asm/system.h</b
+              >で定義されています。
+            </p>
+            <p data-dl-uid="572" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="573" data-dl-original="true" data-dl-translated="true">割り込みは</b
+              >、特定のコンパイラでのみ使用される特別な定数です。MSVC++の場合は、<b
+                data-dl-uid="574"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >__declspec（裸</b
+              >）として定義されています。これは、コンパイラが追加したコードを気にする必要がないようにするためです。一部のコンパイラはこのキーワードを直接サポートしています（最も顕著なのは16ビットコンパイラです）。他は（MSVC++のように）サポートしていないので、定義する必要があります。
+            </p>
+            <p data-dl-uid="575" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="576" data-dl-original="true" data-dl-translated="true">interruptdone()</b
+              >は、<b data-dl-uid="577" data-dl-original="true" data-dl-translated="true"
+                >ハードウェア抽象化レイヤで</b
+              >定義された特別なルーチンです。これは、PICに<b
+                data-dl-uid="578"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >割り込み終了</b
+              >コマンドを送信する責任があります。
+            </p>
+            <p data-dl-uid="579" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="580" data-dl-original="true" data-dl-translated="true"
+                >これは、私たちのすべての割り込みハンドラが使用する一般的な形式です。</b
+              >
+            </p>
+
+            <blockquote>
+              <pre><div class="code">void interrupt _cdecl i86_pit_irq () {
+ 
+	//! macro to hide interrupt start code
+	intstart ();
+ 
+	//! increment tick count
+	_pit_ticks++;
+ 
+	//! tell hal we are done
+	interruptdone(0);
+ 
+	//! macro used with intstart to return from interrupt handler
+	intret ();
+}</div></pre>
+            </blockquote>
+
+            <h3 data-dl-uid="584" data-dl-original="true" data-dl-translated="true">
+              i86_pit_send_command ():PIT にコマンドを送信
+            </h3>
+
+            このルーチンは、PITにコマンドを送信するための非常に重要なルーチンです。これは、送信先のコマンドポートを隠すことができ、ポート名を変更する必要がある場合に便利です。コマンドは、<b
+              data-dl-uid="585"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >オペレーションコマンドワード（OCW</b
+            >）の形式です。
+            <p data-dl-uid="586" data-dl-original="true" data-dl-translated="true"></p>
+
+            <blockquote>
+              <pre><div class="code">//! send command to pic
+void i86_pit_send_command (uint8_t cmd) {
+ 
+	outportb (I86_PIT_REG_COMMAND, cmd);
+}</div></pre>
+            </blockquote>
+
+            例えば、上記のビットマスクとコマンド制御ビットを使ってOCWを構築することができます。そして、<b
+              data-dl-uid="590"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >i86_pit_send_command()</b
+            >を使って、OCWをPITに送ります。
+            <h3 data-dl-uid="591" data-dl-original="true" data-dl-translated="true">
+              i86_pit_send_data()とi86_pit_read_data()。カウンタにデータを送る、カウンタからデータを読み取る
+            </h3>
+
+            これらのルーチンは、カウンタの読み書き時に使用されるポート名の抽象化を支援します。
+            これらは、現在のカウント値を設定したり取得したりするために使用されます。これらのルーチンが行うのは、<b
+              data-dl-uid="592"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >カウンタに</b
+            >渡されたカウンタをテストして、正しいポートを取得することを確認することだけです。そして、そのポートを介して、単純な読み取りまたは書き込み操作を行うだけです。
+
+            <blockquote>
+              <pre><div class="code">//! send data to a counter
+void i86_pit_send_data (uint16_t data, uint8_t counter) {
+ 
+	uint8_t	port= (counter==I86_PIT_OCW_COUNTER_0) ? I86_PIT_REG_COUNTER0 :
+		((counter==I86_PIT_OCW_COUNTER_1) ? I86_PIT_REG_COUNTER1 : I86_PIT_REG_COUNTER2);
+ 
+	outportb (port, data);
+}
+ 
+//! read data from counter
+uint8_t i86_pit_read_data (uint16_t counter) {
+ 
+	uint8_t	port= (counter==I86_PIT_OCW_COUNTER_0) ? I86_PIT_REG_COUNTER0 :
+		((counter==I86_PIT_OCW_COUNTER_1) ? I86_PIT_REG_COUNTER1 : I86_PIT_REG_COUNTER2);
+ 
+	return inportb (port);
+}</div></pre>
+            </blockquote>
+
+            <h3 data-dl-uid="596" data-dl-original="true" data-dl-translated="true">
+              i86_pit_initialize ():PITを初期化する
+            </h3>
+
+            さて、PITの初期化について説明しましょう。はい！初期化する必要がないので、特に話すことはありません。<b
+              data-dl-uid="597"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >irqは</b
+            >使用する割り込み番号、<b data-dl-uid="598" data-dl-original="true" data-dl-translated="true"
+              >irCodeSegは</b
+            >
+            <b data-dl-uid="600" data-dl-original="true" data-dl-translated="true"
+              >グローバルディスクリプターテーブル(GDT</b
+            >)の<b data-dl-uid="599" data-dl-original="true" data-dl-translated="true"
+              >コードスレターオフセット</b
+            >です。
+            <p data-dl-uid="601" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="602" data-dl-original="true" data-dl-translated="true">i86_install_ir()</b
+              >ルーチンを使って、割り込みハンドラ<b
+                data-dl-uid="603"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >（i86_pit_irq</b
+              >）を<b data-dl-uid="604" data-dl-original="true" data-dl-translated="true"
+                >割り込み記述子</b
+              >表にインストールします。<b
+                data-dl-uid="606"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >irq</b
+              >は、プライマリ PIC が IRQ 0 にマッピングされたことを確認するために使用したのと同じベース
+              IRQ 番号であるべきです。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">//! initialize minidriver
+void i86_pit_initialize (uint8_t irq, uint8_t irCodeSeg) {
+ 
+	//! Install our interrupt handler
+	i86_install_ir (irq, I86_IDT_DESC_PRESENT | I86_IDT_DESC_BIT32,
+		irCodeSeg, i86_pit_irq);
+}</div></pre>
+            </blockquote>
+
+            <h3 data-dl-uid="610" data-dl-original="true" data-dl-translated="true">
+              i86_pit_start_counter()。内部カウンタをスタートさせる
+            </h3>
+
+            これは、PITインタフェースの最後のルーチンです。これはカウンタを立ち上げます。<b
+              data-dl-uid="613"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >modeは</b
+            >、カウンタに使わせたい動作モード（<b
+              data-dl-uid="614"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >I86_PIT_OCW_MODE_SQUAREWAVEGENなど</b
+            >）、<b data-dl-uid="615" data-dl-original="true" data-dl-translated="true">freqは</b
+            >、カウンタに使わせたい周波数レートを含んでいます。
+            <p data-dl-uid="616" data-dl-original="true" data-dl-translated="true">
+              本ルーチンは、ルーチンに渡されたパラメータに基づいて、<b
+                data-dl-uid="617"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >操作コマンド・ワードを</b
+              >構築する。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">void i86_pit_start_counter (uint32_t freq, uint8_t counter, uint8_t mode) {
+ 
+	if (freq==0)
+		return;
+ 
+	uint16_t divisor = 1193180 / freq;
+ 
+	//! send operational command
+	uint8_t ocw=0;
+	ocw = (ocw &amp; ~I86_PIT_OCW_MASK_MODE) | mode;
+	ocw = (ocw &amp; ~I86_PIT_OCW_MASK_RL) | I86_PIT_OCW_RL_DATA;
+	ocw = (ocw &amp; ~I86_PIT_OCW_MASK_COUNTER) | counter;
+	i86_pit_send_command (ocw);
+ 
+	//! set frequency rate
+	i86_pit_send_data (divisor &amp; 0xff, 0);
+	i86_pit_send_data ((divisor &gt;&gt; 8) &amp; 0xff, 0);
+ 
+	//! reset tick count
+	_pit_ticks=0;
+}</div></pre>
+            </blockquote>
+
+            <h1 data-dl-uid="621" data-dl-original="true" data-dl-translated="true">まとめ</h1>
+            <p data-dl-uid="622" data-dl-original="true" data-dl-translated="true">
+              これで基本的なことはすべて完了です。プロセッサのモードやアーキテクチャから、プロセッサテーブル、割り込み、割り込み管理など、このシリーズでは多くのことをカバーしました。これはカーネルの始まりであり、カーネルがそこから構築される場所です。
+            </p>
+            <p data-dl-uid="623" data-dl-original="true" data-dl-translated="true">
+              このチュートリアルでは、PIC、PIT、例外、およびハードウェア割り込み管理のサポートを追加しました。これは重要なステップで、多くの重要なデバイスがハードウェア割り込みを使用するからです。また、これはハードウェア割り込みを再有効化する手段を提供します（保護モードに切り替える前に、ハードウェア割り込みを無効にする必要があったことを思い出してください）。
+            </p>
+            <p data-dl-uid="624" data-dl-original="true" data-dl-translated="true">
+              次のチュートリアルでは、カーネル自体に戻ります。その時は、コンピュータシステムの最も基本的な側面の1つについて話をします。<b
+                data-dl-uid="625"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ページングと</b
+              >
+              <b data-dl-uid="626" data-dl-original="true" data-dl-translated="true"
+                >低レベルのメモリ管理</b
+              >です。これはまた、私たち自身の<b
+                data-dl-uid="627"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >システムAPIの</b
+              >基礎となるものです。
+            </p>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </body>
+</html>
