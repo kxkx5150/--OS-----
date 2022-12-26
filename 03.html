@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Cache-Control" content="no-cache" />
+    <title></title>
+    <link href="css/reference.css" rel="stylesheet" />
+  </head>
+  <body
+    text="#000000"
+    vlink="#666699"
+    alink="#000000"
+    link="#666699"
+    bgcolor="#ffffff"
+    leftmargin="0"
+    background="./en01_files/watermark.gif"
+    topmargin="0"
+    marginheight="0"
+    marginwidth="0"
+  >
+    <table cellspacing="0" cellpadding="3" width="80%" border="0">
+      <tbody>
+        <tr>
+          <td class="tblhdr">Operating Systems Development Series</td>
+        </tr>
+        <tr>
+          <td align="middle" colspan="2"></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <table cellspacing="0" cellpadding="5" width="100%" border="0">
+      <tbody>
+        <tr>
+          <td>
+            <!-- Title -->
+
+            <div>
+              <span class="title">Bootloaders 3</span>
+
+              <br />
+              <span class="author">by Mike, 2008, 2009</span>
+            </div>
+
+            <p data-dl-uid="6" data-dl-original="true" data-dl-translated="true">
+              このシリーズは、オペレーティングシステムの開発を一から実演し、教えることを目的としています。
+            </p>
+
+            <p data-dl-uid="7" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="8" data-dl-original="true" data-dl-translated="true"
+                >注意：この章は近々更新される予定で、誤りを修正し、トピックに関するより詳細な情報を提供</b
+              >します。
+            </p>
+
+            <h1 data-dl-uid="9" data-dl-original="true" data-dl-translated="true">はじめに</h1>
+
+            ようこそ
+            <p data-dl-uid="10" data-dl-original="true" data-dl-translated="true">
+              前回のチュートリアルでは、様々なプロセッサモードと簡単な BIOS
+              インタラプトを取り上げました。
+              また、リアルモードでのセグメント：オフセットアドレッシングを取り上げ、リアルモードの詳細について説明しました。また、ブートローダに謎の「OEM
+              パラメータブロック」を追加し、画面上に文字列を印刷する機能 を追加しました
+            </p>
+
+            <p data-dl-uid="11" data-dl-original="true" data-dl-translated="true">
+              このチュートリアルでは、<b
+                data-dl-uid="12"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >アプリケーションプログラミングと</b
+              >
+              <b data-dl-uid="13" data-dl-original="true" data-dl-translated="true"
+                >システムプログラミングの</b
+              >違いを表す、さまざまな「リング」を見ていきます。
+            </p>
+            <p data-dl-uid="14" data-dl-original="true" data-dl-translated="true">
+              また、シングルステージとマルチステージのブートローダについて、それぞれの長所と短所を説明します。
+            </p>
+            <p data-dl-uid="15" data-dl-original="true" data-dl-translated="true">
+              最後に、<b data-dl-uid="16" data-dl-original="true" data-dl-translated="true"
+                >BIOS 割り込み 0x13</b
+              >、<b data-dl-uid="17" data-dl-original="true" data-dl-translated="true"
+                >OEM パラメータブロック</b
+              >、<b data-dl-uid="18" data-dl-original="true" data-dl-translated="true"
+                >プログラムの読み込み、ロード、実行</b
+              >につ いて説明します。このプログラムは、<b
+                data-dl-uid="19"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >セカンドステージブートローダと</b
+              >なります。<b data-dl-uid="20" data-dl-original="true" data-dl-translated="true"
+                >セカンドステージブートローダは</b
+              >、32 ビット環境を設定し、<b
+                data-dl-uid="21"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >C カーネルを</b
+              >ロードする準備をします。
+            </p>
+            <p data-dl-uid="22" data-dl-original="true" data-dl-translated="true">
+              <i data-dl-uid="23" data-dl-original="true" data-dl-translated="true"
+                >準備はいいですか？</i
+              >
+            </p>
+
+            <h1>The Rings of Assembly Language</h1>
+
+            アセンブリ言語では、「リング0プログラム」、「このプログラムはリング3で動作しています」という言葉を使うことがあります。
+            リングの違い（とその内容）を理解することは、OS開発において有益なことです。
+            <h2 data-dl-uid="25" data-dl-original="true" data-dl-translated="true">リング - 理論</h2>
+
+            さて、リングとは何でしょうか？リング」とは、アセンブリ言語では、プログラムがシステムに対して持つ保護と制御のレベルを表します。リングは4つあります。リング0、リング1、リング2、リング3です。
+            <p data-dl-uid="26" data-dl-original="true" data-dl-translated="true">
+              リング0はシステム内の全てを制御することができ、リング3は制御しにくい。
+              リング番号が小さいほど、ソフトウェアが制御できる範囲が広くなる（保護レベルが低くなる）。
+            </p>
+            <p data-dl-uid="27" data-dl-original="true" data-dl-translated="true">
+              リングは概念ではなく、プロセッサー・アーキテクチャに組み込まれている。
+            </p>
+            <p data-dl-uid="28" data-dl-original="true" data-dl-translated="true">
+              コンピュータが起動するとき、ブートローダが実行されるときでさえ、プロセッサはリング0です。DOSアプリケーションなど、ほとんどのアプリケーションはリング3で実行されます。つまり、Ring
+              0で動作するオペレーティングシステムは、通常のRing
+              3のアプリケーションよりもはるかに多くの制御を行うことができるのです。
+            </p>
+            <h2 data-dl-uid="29" data-dl-original="true" data-dl-translated="true">リングの切り替え</h2>
+
+            リングはプロセッサ・アーキテクチャの一部であるため、プロセッサは必要なときに状態を変更します。
+            変更するのは...
+            <ul data-dl-uid="30" data-dl-original="true" data-dl-translated="true">
+              <li data-dl-uid="31" data-dl-original="true" data-dl-translated="true">
+                ディレクティブ命令は、farジャンプ、farコール、farリターンなど、異なるリングレベルでプログラムを実行する命令です。
+              </li>
+              <li data-dl-uid="32" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="33" data-dl-original="true" data-dl-translated="true">トラップ</b
+                >命令（INT、<b data-dl-uid="34" data-dl-original="true" data-dl-translated="true"
+                  >SYSCALL</b
+                >、<b data-dl-uid="35" data-dl-original="true" data-dl-translated="true">SYSENTERなど</b>
+              </li>
+              <li data-dl-uid="36" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="37" data-dl-original="true" data-dl-translated="true">例外</b>
+              </li>
+            </ul>
+            例外処理については、<b data-dl-uid="38" data-dl-original="true" data-dl-translated="true"
+              >SYSCALL</b
+            >命令や<b data-dl-uid="39" data-dl-original="true" data-dl-translated="true">SYSENTER</b
+            >命令と同様、後で説明します。
+
+            <h1 data-dl-uid="40" data-dl-original="true" data-dl-translated="true">
+              マルチステージブートローダ
+            </h1>
+
+            <h2 data-dl-uid="41" data-dl-original="true" data-dl-translated="true">
+              シングルステージブートローダ
+            </h2>
+
+            ブートローダ、およびブートセクタのサイズはわずか512バイトであることを忘れないでください。ブートローダが、その同じ512バイトの中で、カーネルを直接実行する場合、それは<b
+              data-dl-uid="42"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >シングルステージブートローダと</b
+            >呼ばれます。
+            <p data-dl-uid="43" data-dl-original="true" data-dl-translated="true">
+              しかし、問題はその大きさです。512バイトの中にいろいろなことができる余地はほとんどないのです。16ビットのブートローダで32ビットのカーネルをセットアップし、ロードし、実行するのは非常に困難です。これには、エラー処理コードは含まれません。これには、以下のコードが含まれます。<b
+                data-dl-uid="44"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >GDT、IDT、A20、PMode、32ビットカーネルのロードと検索、カーネルの実行、エラー処理。</b
+              >これらのコードをすべて512バイトに収めることは不可能です。このため、<b
+                data-dl-uid="45"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >シングルステージのブートローダは、16ビットのカーネルをロードして実行しなければ</b
+              >なりません。
+            </p>
+            <p data-dl-uid="46" data-dl-original="true" data-dl-translated="true">
+              この問題から、ほとんどのブートローダはマルチステージローダになっています。
+            </p>
+            <h2 data-dl-uid="47" data-dl-original="true" data-dl-translated="true">
+              マルチステージブートローダ
+            </h2>
+
+            マルチステージブートローダは、1つの512バイトのブートローダ（シングルステージローダ）で構成されていますが、別のローダ（セカンドステージブートローダ）をロードして実行します。セカンドステージブートローダは通常16ビットですが、（前のセクションで挙げた）すべてのコードとそれ以上のコードが含まれます。32ビットカーネルをロードして実行することができます。
+            <p data-dl-uid="48" data-dl-original="true" data-dl-translated="true">
+              これがうまくいくのは、512バイトの制限がブートローダだけだからです。ブートローダがセカンドステージローダ用のセクタをすべてきちんとロードしていれば、セカンドステージローダはサイズに制限がありません。このため、カーネルのセットアップが非常に簡単になります。
+            </p>
+            <p data-dl-uid="49" data-dl-original="true" data-dl-translated="true">
+              ここでは、2ステージブートローダを使用します。
+            </p>
+
+            <h1 data-dl-uid="50" data-dl-original="true" data-dl-translated="true">
+              ディスクからセクタをロードする
+            </h1>
+
+            ブートローダは512バイトに制限されていることを忘れないでください。前のセクションで述べたように、2ステージのブートローダを使用するつもりです。つまり、Stage
+            2 のプログラム（カーネルローダー）をロードして実行するために、ブートロー ダーが必要なのです。
+            <p data-dl-uid="51" data-dl-original="true" data-dl-translated="true">
+              もし望むなら、The Stage 2 ローダーは、あなた自身の "Choose your Operating System" と
+              "Advanced Options" メニューを含めることができる場所です :) 。さあ、欲しいでしょ :)
+            </p>
+            <h2 data-dl-uid="52" data-dl-original="true" data-dl-translated="true">
+              BIOS割り込み(INT) 0x13 Function 0 - フロッピーディスクをリセットする
+            </h2>
+
+            BIOS割り込み0x13は、ディスクアクセスに使用されます。INT 0x13, Function
+            0を使用すると、フロッピーディスクドライブをリセットできます。
+            これは、フロッピーコントローラがどこから読み込もうと、すぐにディスク上の最初のセクタに移動することを意味します。
+            <p data-dl-uid="53" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="54" data-dl-original="true" data-dl-translated="true"
+                >INT 0x13/AH=0x0 - DISK : DISK SYSTEMのRESET</b
+              ><br data-dl-uid="55" data-dl-original="true" data-dl-translated="true" />
+              AH = 0x0<br data-dl-uid="56" data-dl-original="true" data-dl-translated="true" />
+              DL = リセットへのドライブ
+            </p>
+            <p data-dl-uid="57" data-dl-original="true" data-dl-translated="true">
+              を返します。<br data-dl-uid="58" data-dl-original="true" data-dl-translated="true" />
+              AH = 状態コード<br data-dl-uid="59" data-dl-original="true" data-dl-translated="true" />
+              CF (キャリー・フラグ) は成功するとクリアされ、失敗するとセットされる
+            </p>
+            <p data-dl-uid="60" data-dl-original="true" data-dl-translated="true">
+              これは完全な例です。これはフロッピーディスクドライブをリセットし、エラーが発生した場合に再試行します。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">.Reset:
+	mov		ah, 0					; reset floppy disk function
+	mov		dl, 0					; drive 0 is floppy drive
+	int		0x13					; call BIOS
+	jc		.Reset					; If Carry Flag (CF) is set, there was an error. Try resetting again</div></pre>
+            </blockquote>
+            なぜ、この割り込みが重要なのか？セクタを読み込む前に、セクタ0から始まることを確認する必要があります。これは良くないことで、再起動するといつでも変わってしまう可能性があるからです。ディスクをセクタ0にリセットすることで、毎回同じセクタを読み込んでいることを確認できます。
+
+            <p data-dl-uid="65" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="66" data-dl-original="true" data-dl-translated="true"
+                >INT 0x13/AH=0x02 - DISK : セクタをメモリに読み込む</b
+              ><br data-dl-uid="67" data-dl-original="true" data-dl-translated="true" />
+              AH = 0x02<br data-dl-uid="68" data-dl-original="true" data-dl-translated="true" />
+              AL = 読み込むセクタ数<br
+                data-dl-uid="69"
+                data-dl-original="true"
+                data-dl-translated="true"
+              />
+              CH = シリンダ番号の下位8ビット<br
+                data-dl-uid="70"
+                data-dl-original="true"
+                data-dl-translated="true"
+              />
+              CL = セクタ番号(ビット0-5)。6-7ビットはハードディスク用のみ<br
+                data-dl-uid="71"
+                data-dl-original="true"
+                data-dl-translated="true"
+              />
+              DH = ヘッド番号<br data-dl-uid="72" data-dl-original="true" data-dl-translated="true" />
+              DL = ドライブ番号 (ハードディスクの場合はビット7がセットされます)<br
+                data-dl-uid="73"
+                data-dl-original="true"
+                data-dl-translated="true"
+              />
+              ES:BX = セクタを読み込むためのバッファ
+            </p>
+            <p data-dl-uid="74" data-dl-original="true" data-dl-translated="true">
+              を返します。<br data-dl-uid="75" data-dl-original="true" data-dl-translated="true" />
+              AH = ステータス・コード<br
+                data-dl-uid="76"
+                data-dl-original="true"
+                data-dl-translated="true"
+              />
+              AL = 読み込まれたセクタの数<br
+                data-dl-uid="77"
+                data-dl-original="true"
+                data-dl-translated="true"
+              />
+              CF = 失敗したらセット、成功したらクリア
+            </p>
+            <p data-dl-uid="78" data-dl-original="true" data-dl-translated="true">
+              さて、これは考えるべきことがたくさんあります。簡単なものもあれば、もっと説明すべきものもあります。
+              もう少し詳しく見てみましょう。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">CH = Low eight bits of cylinder number</div></pre>
+            </blockquote>
+
+            <b data-dl-uid="82" data-dl-original="true" data-dl-translated="true">シリンダーとは</b
+            >何ですか？シリンダーとは、ディスク上の同じ半径のトラックの集まりです。
+            これをよりよく理解するために、絵を見てみましょう。
+            <p data-dl-uid="83" data-dl-original="true" data-dl-translated="true"></p>
+
+            <center><img src="./03_files/cylinder.gif" /></center>
+
+            <p data-dl-uid="86" data-dl-original="true" data-dl-translated="true">
+              上の図を見て、思い出してください。
+            </p>
+            <ul data-dl-uid="87" data-dl-original="true" data-dl-translated="true">
+              <li data-dl-uid="88" data-dl-original="true" data-dl-translated="true">
+                各Trackは通常512バイトのセクタに分割されています。フロッピーでは、1トラックあたり18のセクタがあります。
+              </li>
+              <li data-dl-uid="89" data-dl-original="true" data-dl-translated="true">
+                シリンダーとは、同じ半径のトラックの集まりです（上の写真の赤いトラックは1つのシリンダーです）。
+              </li>
+              <li data-dl-uid="90" data-dl-original="true" data-dl-translated="true">
+                フロッピーディスクには2つのヘッドがあります。
+              </li>
+              <li data-dl-uid="91" data-dl-original="true" data-dl-translated="true">
+                合計で2880個のセクタがあります。
+              </li>
+            </ul>
+            <p data-dl-uid="92" data-dl-original="true" data-dl-translated="true">
+              これは何を意味するのでしょうか。シリンダーナンバーは、基本的に1枚のディスクのトラックナンバーを表します。
+              フロッピーディスクの場合は、<b
+                data-dl-uid="93"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >読み出す</b
+              >トラックを表します。
+            </p>
+            <p data-dl-uid="94" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="95" data-dl-original="true" data-dl-translated="true"
+                >まとめると、1セクタあたり512バイト、1トラックあたり18セクタ、1面あたり80トラックということになります。</b
+              >
+            </p>
+
+            <blockquote>
+              <pre><div class="code">CL = Sector Number (Bits 0-5). Bits 6-7 are for hard disks only</div></pre>
+            </blockquote>
+
+            これは読み取りを開始する最初のセクタです。覚えておいてください。<b
+              data-dl-uid="99"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >つまり、この値は 0 から 17
+              の間にしかないのです。現在のトラック番号を増やし、セクタ番号が正しく設定されていることを確認し、正しいセクタを読み取る必要があります。</b
+            >
+            <p data-dl-uid="100" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="101" data-dl-original="true" data-dl-translated="true"
+                >この値が18より大きい場合、フロッピー・コントローラは例外を発生させます。この例外に対応するハンドラがないため、CPUは2つ目の例外を生成し、最終的にトリプルフォルトを引き起こします。</b
+              >
+            </p>
+
+            <blockquote>
+              <pre><div class="code">DH = Head Number</div></pre>
+            </blockquote>
+
+            フロッピーディスクには<b data-dl-uid="105" data-dl-original="true" data-dl-translated="true"
+              >2つのヘッド</b
+            >、または側面があることを忘れないでください。<b
+              data-dl-uid="106"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >ヘッド0は</b
+            >表側で、そこにはセクタ0があります。このため、<b
+              data-dl-uid="107"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >私たちはヘッド0から読み取る</b
+            >ことになります。
+
+            <p data-dl-uid="108" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="109" data-dl-original="true" data-dl-translated="true"
+                >この値が2より大きい場合、ヘッドが存在しないため、フロッピーディスクコントローラは例外を生成します。ハンドラが存在しないため、CPUは2つ目の故障例外を生成し、最終的にTriple
+                Faultに至ります。</b
+              >
+            </p>
+
+            <blockquote>
+              <pre><div class="code">DL = Drive Number (Bit 7 set for hard disks)
+ES:BX = Buffer to read sectors to</div></pre>
+            </blockquote>
+
+            <b data-dl-uid="113" data-dl-original="true" data-dl-translated="true">ドライブ番号とは</b
+            >何ですか？ドライブ番号<b data-dl-uid="114" data-dl-original="true" data-dl-translated="true"
+              >0は通常、フロッピーディスク・ドライブを</b
+            >表します。ドライブ番号1は通常5-1/4 "フロッピーディスクドライブを表します。
+            <p data-dl-uid="115" data-dl-original="true" data-dl-translated="true">
+              今回はフロッピーなので、フロッピーディスクから読み出したい。そのため、読み出し先の<b
+                data-dl-uid="116"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ドライブ番号は0と</b
+              >なります。
+            </p>
+            <p data-dl-uid="117" data-dl-original="true" data-dl-translated="true">
+              ES:BXには、セクタを読み込むセグメント:オフセットのベース・アドレスが格納されます。ベースアドレスは読み出しの<b
+                data-dl-uid="118"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >開始</b
+              >アドレスを表していることに注意してください。
+            </p>
+            <p data-dl-uid="119" data-dl-original="true" data-dl-translated="true">
+              それでは、セクタを読み込んでみましょう。
+            </p>
+
+            <h2 data-dl-uid="120" data-dl-original="true" data-dl-translated="true">
+              セクタの読み込みとロード
+            </h2>
+            ディスクからセクタを読み取るには、まずフロッピーディスクドライブをリセットし、そのまま読み取ります。
+
+            <blockquote>
+              <pre><div class="code">.Reset:
+	mov		ah, 0					; reset floppy disk function
+	mov		dl, 0					; drive 0 is floppy drive
+	int		0x13					; call BIOS
+	jc		.Reset					; If Carry Flag (CF) is set, there was an error. Try resetting again
+ 
+	mov		ax, 0x1000				; we are going to read sector to into address 0x1000:0
+	mov		es, ax
+	xor		bx, bx
+ 
+.Read:
+	mov		ah, 0x02				; function 2
+	mov		al, 1					; read 1 sector
+	mov		ch, 1					; we are reading the second sector past us, so its still on track 1
+	mov		cl, 2					; sector to read (The second sector)
+	mov		dh, 0					; head number
+	mov		dl, 0					; drive number. Remember Drive 0 is floppy drive.
+	int		0x13					; call BIOS - Read the sector
+	jc		.Read					; Error, so try again
+ 
+	jmp		0x1000:0x0				; jump to execute the sector!</div></pre>
+            </blockquote>
+
+            <p data-dl-uid="124" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="125" data-dl-original="true" data-dl-translated="true"
+                >注意：セクタの読み込みに問題があり、そこにジャンプして実行しようとすると、CPUはセクタが読み込まれているかどうかにかかわらず、そのアドレスの命令を実行します。
+                これは通常、CPUが無効/アンカット命令またはメモリの終端に遭遇することを意味し、両方ともトリプルフォールトになります。</b
+              >
+            </p>
+            <p data-dl-uid="126" data-dl-original="true" data-dl-translated="true">
+              上記のコードでは、生のセクタを読み取って実行するだけなので、我々のニーズには無意味です。
+              一つには<b data-dl-uid="127" data-dl-original="true" data-dl-translated="true"
+                >、現在、PartCopyは512バイトだけコピー</b
+              >するように設定されています。つまり、「どこで、どのように、未加工セクタを作成するのか？
+            </p>
+            <p data-dl-uid="128" data-dl-original="true" data-dl-translated="true">
+              また、このRawセクターは存在しないので、「ファイル名」を与えることはできません。単なるロー・セクタです。
+            </p>
+            <p data-dl-uid="129" data-dl-original="true" data-dl-translated="true">
+              最後に、私たちは現在、FAT12ファイルシステム用にブートローダを設定しています。Windowsは、セクタ2と3から特定のテーブル<b
+                data-dl-uid="130"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >（ファイルアロケーションテーブル</b
+              >）を読み取ろうとします。しかし、生セクタでは、これらのテーブルは存在しないため、Windowsはゴミのような値（あたかもそれがテーブルであるかのように）を取ります。その結果、Windowsでフロッピーディスクを読み込むと、ファイルやディレクトリの名前が壊れていたり、サイズが大きかったりします（3.14MBのフロッピーに2.5Gバイトのファイルを見たことがありますか？
+              私はあります）。
+            </p>
+            <p data-dl-uid="131" data-dl-original="true" data-dl-translated="true">
+              もちろん、私たちはこの方法で<b
+                data-dl-uid="132"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >セクタをロードする必要が</b
+              >あります。しかし、その前に、ファイルを正しく読み込むために、ファイルの<b
+                data-dl-uid="133"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >開始セクタ、セクタ数、ベースアドレスなどを</b
+              >調べなければなりません。これが、ディスクからファイルをロードするための基本です。
+            </p>
+            <p data-dl-uid="134" data-dl-original="true" data-dl-translated="true">
+              これについては、次に説明します。
+            </p>
+
+            <h1>Navigating The FAT12 FileSystem</h1>
+
+            <h2 data-dl-uid="136" data-dl-original="true" data-dl-translated="true">
+              OEM パラメータブロック - 詳細
+            </h2>
+            前回の記事で、私たちはコード中に醜いテーブルを捨てました。それは何だったのでしょうか？そうそう...
+            <blockquote>
+              <pre><div class="code">bpbBytesPerSector:  	DW 512
+bpbSectorsPerCluster: 	DB 1
+bpbReservedSectors: 	DW 1
+bpbNumberOfFATs: 	    DB 2
+bpbRootEntries: 	    DW 224
+bpbTotalSectors: 	    DW 2880
+bpbMedia: 	            DB 0xF0
+bpbSectorsPerFAT: 	    DW 9
+bpbSectorsPerTrack: 	DW 18
+bpbHeadsPerCylinder: 	DW 2
+bpbHiddenSectors: 	    DD 0
+bpbTotalSectorsBig:     DD 0
+bsDriveNumber: 	        DB 0
+bsUnused: 	            DB 0
+bsExtBootSignature: 	DB 0x29
+bsSerialNumber:	        DD 0xa0a1a2a3
+bsVolumeLabel: 	        DB "MOS FLOPPY "
+bsFileSystem: 	        DB "FAT12   "</div></pre>
+            </blockquote>
+
+            この多くはとてもシンプルです。では、これを詳しく分析してみましょう。
+            <blockquote>
+              <pre><div class="code">bpbBytesPerSector:  	DW 512
+bpbSectorsPerCluster: 	DB 1</div></pre>
+            </blockquote>
+
+            bpbBytesPerSectorは、1つのセクタを表すバイト数を表します。通常フロッピーディスクでは512バイトです。
+            <p data-dl-uid="143" data-dl-original="true" data-dl-translated="true">
+              bpbSectorsPerClusterは1<b
+                data-dl-uid="144"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >クラスタ</b
+              >あたりのセクタ数を示します。ここでは、1クラスタあたり1セクタとします。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">bpbReservedSectors: 	DW 1
+bpbNumberOfFATs: 	    DB 2</div></pre>
+            </blockquote>
+
+            <b data-dl-uid="148" data-dl-original="true" data-dl-translated="true">Reserved Sectorは</b
+            >、FAT12に含まれないセクタ数、つまり<b
+              data-dl-uid="149"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >Root Directoryに</b
+            >含まれないセクタです。 この場合、ブートローダを含む<b
+              data-dl-uid="150"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >ブートセクタは</b
+            >、このディレクトリに含まれません。このため、<b
+              data-dl-uid="151"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >bpbReservedSectorsは</b
+            >1でなければなりません。
+            <p data-dl-uid="152" data-dl-original="true" data-dl-translated="true">
+              これは、予約セクタ(Our
+              bootloader)にファイルアロケーションテーブルが含まれないことも意味します。
+            </p>
+            <p data-dl-uid="153" data-dl-original="true" data-dl-translated="true">
+              bpbNumberOfFATsは、ディスク上の<b
+                data-dl-uid="154"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ファイルアロケーションテーブル（FAT</b
+              >）の数を表します。<b data-dl-uid="155" data-dl-original="true" data-dl-translated="true"
+                >FAT12ファイルシステムは常に2つのFATを持っています。</b
+              >
+            </p>
+            <p data-dl-uid="156" data-dl-original="true" data-dl-translated="true">
+              通常、これらのFATテーブルを作成する必要があります。しかし、ここではVFDを使用しているため、<b
+                data-dl-uid="157"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >Windows/VFDがディスクをフォーマットする際に、これらのテーブルを作成して</b
+              >もらうことができます。
+            </p>
+            <p data-dl-uid="158" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="159" data-dl-original="true" data-dl-translated="true"
+                >注：これらのテーブルは、エントリを追加または削除したときにも、Windows/VFDによって書き込まれます。</b
+              >
+            </p>
+
+            <blockquote>
+              <pre><div class="code">bpbRootEntries: 	    DW 224
+bpbTotalSectors: 	    DW 2880</div></pre>
+            </blockquote>
+            フロッピーディスクは、<b data-dl-uid="163" data-dl-original="true" data-dl-translated="true"
+              >Root Directory</b
+            >内に最大224個のディレクトリを持ちます。 また、<b
+              data-dl-uid="164"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >フロッピーディスクには2880個のセクタが</b
+            >あることを忘れないでください。
+
+            <blockquote>
+              <pre><div class="code">bpbMedia: 	            DB 0xF0
+bpbSectorsPerFAT: 	    DW 9</div></pre>
+            </blockquote>
+
+            <b data-dl-uid="168" data-dl-original="true" data-dl-translated="true"
+              >Media Descriptor Byte</b
+            >(bpbMedia)は、ディスクに関する情報を含むバイトコードです。 このバイトは、Bit Patternです。
+            <ul data-dl-uid="169" data-dl-original="true" data-dl-translated="true">
+              <li data-dl-uid="170" data-dl-original="true" data-dl-translated="true">
+                ビット<b data-dl-uid="171" data-dl-original="true" data-dl-translated="true"
+                  >0：Sides/Heads = </b
+                >片面なら<b data-dl-uid="171" data-dl-translated="true">0 </b>、両面なら1
+              </li>
+              <li data-dl-uid="172" data-dl-original="true" data-dl-translated="true">
+                ビット<b data-dl-uid="173" data-dl-original="true" data-dl-translated="true"
+                  >1：サイズ </b
+                >= FATあたり9セクタの場合は0、8セクタの場合は1。
+              </li>
+              <li data-dl-uid="174" data-dl-original="true" data-dl-translated="true">
+                ビット2：<b data-dl-uid="175" data-dl-original="true" data-dl-translated="true">密度 </b
+                >= 80トラックなら0、40トラックなら1。
+              </li>
+              <li data-dl-uid="176" data-dl-original="true" data-dl-translated="true">
+                ビット3：<b data-dl-uid="177" data-dl-original="true" data-dl-translated="true"
+                  >タイプ </b
+                >＝固定ディスク（ハードディスクなど）なら0、リムーバブル（フロッピーディスクなど）なら1。
+              </li>
+              <li data-dl-uid="178" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="179" data-dl-original="true" data-dl-translated="true">ビット4から7は </b
+                >未使用で、常に1です。
+              </li>
+            </ul>
+            0xF0 = 11110000のバイナリです。これは、<b
+              data-dl-uid="180"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >片面、FATあたり9セクタ、80トラックで、ムーバブルディスク</b
+            >であることを意味します。
+            <b data-dl-uid="181" data-dl-original="true" data-dl-translated="true">bpbSectorsPerFATを</b
+            >見ると、これも9であることがわかります。
+
+            <blockquote>
+              <pre><div class="code">bpbSectorsPerTrack: 	DW 18
+bpbHeadsPerCylinder: 	DW 2</div></pre>
+            </blockquote>
+            以前のチュートリアルを思い出してください/<b
+              data-dl-uid="185"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >1トラックあたり18セクタ</b
+            >あります。 bpbHeadsPerCylinderは、単にシリンダーを表す2つのヘッドがあることを表しています。
+            (シリンダーが何かわからない場合は、「BIOS Interrupt (INT)
+            0x13」セクションのセクタの読み方を読んでください)。
+
+            <blockquote>
+              <pre><div class="code">bpbHiddenSectors: 	    DD 0</div></pre>
+            </blockquote>
+            これは、物理ディスクの先頭とボリュームの先頭からのセクタ数を表しています。
+
+            <blockquote>
+              <pre><div class="code">bpbTotalSectorsBig:     DD 0
+bsDriveNumber: 	        DB 0</div></pre>
+            </blockquote>
+            フロッピーディスクドライブはドライブ0であることを思い出してください。
+
+            <blockquote>
+              <pre><div class="code">bsUnused: 	            DB 0
+bsExtBootSignature: 	DB 0x29</div></pre>
+            </blockquote>
+
+            Boot Signitureは、この<b data-dl-uid="195" data-dl-original="true" data-dl-translated="true"
+              >BIOS Parameter Block</b
+            >（このOEMテーブル）の種類とバージョンを表しています。 値は、以下の通りです。
+            <ul data-dl-uid="196" data-dl-original="true" data-dl-translated="true">
+              <li data-dl-uid="197" data-dl-original="true" data-dl-translated="true">
+                0x28 と 0x29 は、MS/PC-DOS バージョン 4.0 の Bios Parameter Block (BPB)
+                であることを示す。
+              </li>
+            </ul>
+            ここでは0x29なので、このバージョンです。
+
+            <blockquote>
+              <pre><div class="code">bsSerialNumber:	        DD 0xa0a1a2a3
+bsVolumeLabel: 	        DB "MOS FLOPPY "
+bsFileSystem: 	        DB "FAT12   "</div></pre>
+            </blockquote>
+            シリアルナンバーは、フォーマットするユーティリティによって割り当てられます。シリアル・ナンバーは、そのフロッピー・ディスクに固有のものであり、同じものは2つとないはずです。
+            <p data-dl-uid="201" data-dl-original="true" data-dl-translated="true">
+              Microsoft、PC、DR-DOSでは、シリアルナンバーは現在の時刻と日付から次のように算出される。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">Low 16 bits = ((seconds + month) &lt;&lt; 8) + (hundredths + day_of_month)
+ 
+High 16 bits = (hours &lt;&lt; 8) + minutes + year
+</div></pre>
+            </blockquote>
+            シリアルナンバーは上書きされるから、好きなものを入れればいいんだ。
+            <p data-dl-uid="205" data-dl-original="true" data-dl-translated="true">
+              ボリュームラベルは、ディスクに何が入っているかを示す文字列である。OSによっては、これを名前として表示するものもあります。<b
+                data-dl-uid="206"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >注：この文字列は11バイトでなければなりません</b
+              >。<b data-dl-uid="206" data-dl-translated="true">それ以上でも以下でもない。</b>
+            </p>
+            <p data-dl-uid="207" data-dl-original="true" data-dl-translated="true">
+              ファイルシステム(Filesystem)文字列も同じ目的で使用されるが、それ以上ではな い。<b
+                data-dl-uid="208"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >注：この文字列は、8バイトでなければなりません。</b
+              >
+            </p>
+
+            <h1>Demo</h1>
+            わあ、たくさんあるね。以下は、このチュートリアルで開発したブートローダで、すべてをまとめています。
+            <p data-dl-uid="211" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="212" data-dl-original="true" data-dl-translated="true"
+                >注意: このデモは *そのままでは* 動きません。</b
+              >元々デモ用として作られたもので、このままではビルドできません。このチュートリアルを更新し、次回のシリーズ改訂時にデモをビルド可能にする予定です。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">;*********************************************
+;	Boot1.asm
+;		- A Simple Bootloader
+;
+;	Operating Systems Development Tutorial
+;*********************************************
+ 
+bits	16							; We are still in 16 bit Real Mode
+ 
+org		0x7c00						; We are loaded by BIOS at 0x7C00
+ 
+start:          jmp loader					; jump over OEM block
+ 
+;*************************************************;
+;	OEM Parameter block / BIOS Parameter Block
+;*************************************************;
+ 
+TIMES 0Bh-$+start DB 0
+ 
+bpbBytesPerSector:  	DW 512
+bpbSectorsPerCluster: 	DB 1
+bpbReservedSectors: 	DW 1
+bpbNumberOfFATs: 	DB 2
+bpbRootEntries: 	DW 224
+bpbTotalSectors: 	DW 2880
+bpbMedia: 	        DB 0xF0
+bpbSectorsPerFAT: 	DW 9
+bpbSectorsPerTrack: 	DW 18
+bpbHeadsPerCylinder: 	DW 2
+bpbHiddenSectors:       DD 0
+bpbTotalSectorsBig:     DD 0
+bsDriveNumber: 	        DB 0
+bsUnused: 	        DB 0
+bsExtBootSignature: 	DB 0x29
+bsSerialNumber:	        DD 0xa0a1a2a3
+bsVolumeLabel: 	        DB "MOS FLOPPY "
+bsFileSystem: 	        DB "FAT12   "
+ 
+;***************************************
+;	Prints a string
+;	DS=&gt;SI: 0 terminated string
+;***************************************
+ 
+Print:
+			lodsb					; load next byte from string from SI to AL
+			or			al, al		; Does AL=0?
+			jz			PrintDone	; Yep, null terminator found-bail out
+			mov			ah,	0eh	; Nope-Print the character
+			int			10h
+			jmp			Print		; Repeat until null terminator found
+PrintDone:
+			ret					; we are done, so return
+ 
+;*************************************************;
+;	Bootloader Entry Point
+;*************************************************;
+ 
+loader:
+ 
+.Reset:
+	mov		ah, 0					; reset floppy disk function
+	mov		dl, 0					; drive 0 is floppy drive
+	int		0x13					; call BIOS
+	jc		.Reset					; If Carry Flag (CF) is set, there was an error. Try resetting again
+ 
+	mov		ax, 0x1000				; we are going to read sector to into address 0x1000:0
+	mov		es, ax
+	xor		bx, bx
+ 
+	mov		ah, 0x02				; read floppy sector function
+	mov		al, 1					; read 1 sector
+	mov		ch, 1					; we are reading the second sector past us, so its still on track 1
+	mov		cl, 2					; sector to read (The second sector)
+	mov		dh, 0					; head number
+	mov		dl, 0					; drive number. Remember Drive 0 is floppy drive.
+	int		0x13					; call BIOS - Read the sector
+	
+ 
+	jmp		0x1000:0x0				; jump to execute the sector!
+ 
+ 
+times 510 - ($-$$) db 0						; We have to be 512 bytes. Clear the rest of the bytes with 0
+ 
+dw 0xAA55							; Boot Signiture
+ 
+; End of sector 1, beginning of sector 2 ---------------------------------
+ 
+ 
+org 0x1000							; This sector is loaded at 0x1000:0 by the bootsector
+ 
+cli								; just halt the system
+hlt</div></pre>
+            </blockquote>
+
+            <h1 data-dl-uid="216" data-dl-original="true" data-dl-translated="true">まとめ</h1>
+            <p data-dl-uid="217" data-dl-original="true" data-dl-translated="true">
+              ディスクの読み込みとBIOSパラメータブロック(BPB)について、かなり詳しく説明しました。さらに、すべてを組み合わせた簡単なデモも作成しました。
+            </p>
+            <p data-dl-uid="218" data-dl-original="true" data-dl-translated="true">
+              また、アセンブリ言語のリングの違いを見て、私たちのOSはリング0であり、他の多くのプログラムとは異なることを学びました。これにより、アプリケーションプログラムにはない、より特別な命令を使うことができるようになりました。
+            </p>
+            <p data-dl-uid="219" data-dl-original="true" data-dl-translated="true">
+              これで、セカンドステージローダを見つけてロードするのに必要なものはすべて揃いました。次のチュートリアルでは、FAT12に関するすべてのことを学び、セカンドステージをロードします。待ち遠しいですね。:)
+              それではまた次回。
+            </p>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </body>
+</html>
