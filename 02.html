@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Cache-Control" content="no-cache" />
+    <title></title>
+    <link href="css/reference.css" rel="stylesheet" />
+  </head>
+  <body
+    text="#000000"
+    vlink="#666699"
+    alink="#000000"
+    link="#666699"
+    bgcolor="#ffffff"
+    leftmargin="0"
+    background="./en01_files/watermark.gif"
+    topmargin="0"
+    marginheight="0"
+    marginwidth="0"
+  >
+    <table cellspacing="0" cellpadding="3" width="80%" border="0">
+      <tbody>
+        <tr>
+          <td class="tblhdr">Operating Systems Development Series</td>
+        </tr>
+        <tr>
+          <td align="middle" colspan="2"></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <table cellspacing="0" cellpadding="5" width="100%" border="0">
+      <tbody>
+        <tr>
+          <td>
+            <!-- Title -->
+
+            <div>
+              <span class="title">Bootloaders 2</span>
+
+              <br />
+              <span class="author">by Mike, 2008, 2009</span>
+            </div>
+
+            <p>
+              This series is intended to demonstrate and teach operating system development from the
+              ground up.
+            </p>
+
+            <h1 data-dl-uid="7" data-dl-original="true" data-dl-translated="true">はじめに</h1>
+
+            ようこそ!
+            <p data-dl-uid="8" data-dl-original="true" data-dl-translated="true">
+              前回のチュートリアルで、多くのことを学びました。電源ボタンを押したときに何が起こるのか、そしてBIOSがどのように起動するのかを正確に見てきました。また、BIOS
+              割り込み (INT) 0x19 を見て、ブートサイン (0xAA55) を検索し、見つかったら 0x7C00
+              にあるブートローダをロードして実行することを説明しました。
+            </p>
+            <p data-dl-uid="9" data-dl-original="true" data-dl-translated="true">
+              また、簡単なブートローダを開発し、ビルドプロセス全体を経験することができました。
+            </p>
+            <p data-dl-uid="10" data-dl-original="true" data-dl-translated="true">
+              このチュートリアルでは、ブートローダを拡張していきます。このチュートリアルでは、ブートローダを拡張します。
+            </p>
+            <ul data-dl-uid="11" data-dl-original="true" data-dl-translated="true">
+              <li data-dl-uid="12" data-dl-original="true" data-dl-translated="true">
+                BIOS パラメータブロックと MBR
+              </li>
+              <li data-dl-uid="13" data-dl-original="true" data-dl-translated="true">
+                プロセッサのモード
+              </li>
+              <li data-dl-uid="14" data-dl-original="true" data-dl-translated="true">
+                割り込み - テキストの印刷とその他
+              </li>
+              <li data-dl-uid="15" data-dl-original="true" data-dl-translated="true">
+                セグメント：オフセットアドレスモード
+              </li>
+            </ul>
+            <p data-dl-uid="16" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="17" data-dl-original="true" data-dl-translated="true"
+                >注意：ここから先は、ブートローダがシステム全体を完全に制御します。これはつまり、私たちがコードを書くことにすべてがかかっているということです。全ては私たち次第なのです。</b
+              >要するに、これから<b data-dl-uid="17" data-dl-translated="true"
+                >もっとたくさんのコードを</b
+              >書いていくことになります。
+            </p>
+            <p data-dl-uid="18" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="19" data-dl-original="true" data-dl-translated="true"
+                >これから先、物事はより複雑になっていくでしょう。このシリーズの構成をしっかりさせるために、これから始まるチュートリアルには、ダウンロード可能なデモを用意するつもりです。これは、コンセプトの理解を助けるものです。それでも、このチュートリアルでは、すべてを詳しく説明していきますので、ご安心ください。</b
+              >
+            </p>
+            <p data-dl-uid="20" data-dl-original="true" data-dl-translated="true">
+              <i data-dl-uid="21" data-dl-original="true" data-dl-translated="true"
+                >準備はいいですか？</i
+              >
+            </p>
+
+            <h1 data-dl-uid="22" data-dl-original="true" data-dl-translated="true">
+              プロセッサーモード
+            </h1>
+            さてさて...この言葉、どこかで聞いたことがあるような？そうですね...すべてのチュートリアルで!
+            <p data-dl-uid="23" data-dl-original="true" data-dl-translated="true">
+              プロセッサーモードについては、これまであまり触れてきませんでした。プロセッサのモードを理解することは、私たちにとって非常に重要なことです。なぜでしょうか？
+            </p>
+            <p data-dl-uid="24" data-dl-original="true" data-dl-translated="true">
+              前の2つのチュートリアルでは、x86ファミリーが16ビット環境で起動する方法と理由について説明しました。私たちは32ビットオペレーティングシステム（OS）を開発したいので、プロセッサを16ビットモードから32ビットモードに切り替える必要があります。
+            </p>
+            <p data-dl-uid="25" data-dl-original="true" data-dl-translated="true">
+              モードは2つ以上あります。それぞれについて説明しましょう。
+            </p>
+            <h2 data-dl-uid="26" data-dl-original="true" data-dl-translated="true">リアルモード</h2>
+            ご存知のように、x86プロセッサは16ビット環境で起動します。このモードは何なのでしょうか？そうですね
+            :)
+            <p data-dl-uid="27" data-dl-original="true" data-dl-translated="true">
+              リアルモードって何？リアルモードは...
+            </p>
+            <ul data-dl-uid="28" data-dl-original="true" data-dl-translated="true">
+              <li data-dl-uid="29" data-dl-original="true" data-dl-translated="true">
+                ネイティブの<b data-dl-uid="30" data-dl-original="true" data-dl-translated="true"
+                  >セグメント：オフセットメモリーモデルを</b
+                >使用します。
+              </li>
+              <li data-dl-uid="31" data-dl-original="true" data-dl-translated="true">
+                メモリは1MB(+64k)に制限される。
+              </li>
+              <li data-dl-uid="32" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="33" data-dl-original="true" data-dl-translated="true">仮想メモリや</b>
+                <b data-dl-uid="34" data-dl-original="true" data-dl-translated="true">メモリ保護は</b
+                >ありません。
+              </li>
+            </ul>
+            これらのうちいくつかは非常に簡単です。ひとつ注意すべきは、上記のすべてが間接的あるいは直接的にメモリに関連していることです。
+            <p data-dl-uid="35" data-dl-original="true" data-dl-translated="true">
+              もう少し詳しく見てみましょう。
+            </p>
+            <h3 data-dl-uid="36" data-dl-original="true" data-dl-translated="true">
+              セグメント：オフセット・メモリ・モード - 歴史
+            </h3>
+            もう一度、チュートリアル2を見てみましょう。メモリの概念とオペレーティングシステムの使用は1950年代までさかのぼります。この頃のコンピュータはパーソナルコンピュータではなく、大型のメインフレームコンピュータでした。
+            <p data-dl-uid="37" data-dl-original="true" data-dl-translated="true">
+              当時、すべてのコンピュータは非常に大きくかさばるハードウェアデバイスを持っていたことを思い出してください。
+              時を経て（チュートリアル2を振り返って）、オペレーティングシステムだけでなく、コンピュータも進歩していることがわかります。
+            </p>
+            <p data-dl-uid="38" data-dl-original="true" data-dl-translated="true">
+              コンピュータが普及するにつれて、その需要も増えてきました。コンピュータが8ビットだった頃、多くの人が16ビットを欲しがりました。16ビットの時代が来たとき、マイクロソフトはすでに32ビットを考えていた。32ビットの時代が来ると同時に、64ビットが主流になった。しかし、128ビットが登場した。
+            </p>
+            <p data-dl-uid="39" data-dl-original="true" data-dl-translated="true">
+              一番の問題は、コンピュータ業界の進歩が速すぎることです。
+            </p>
+            <p data-dl-uid="40" data-dl-original="true" data-dl-translated="true">
+              Intelが8086プロセッサを設計していたとき、プロセッサは16ビットのレジスタを使い、64KBまでのメモリにしかアクセスできなかった。しかし、問題は、多くのソフトウェアがこれ以上のメモリを必要とすることだった。
+            </p>
+            <p data-dl-uid="41" data-dl-original="true" data-dl-translated="true">
+              8086は、8088と同じ時期に設計されていた。しかし、8088はインテルの「次世代」プロセッサになる予定だったが、予想以上に時間がかかってしまった。そこで、インテルは8086を開発・発売し、8088が発売されるまでの間、他社に対抗しようと考えた。
+            </p>
+            <p data-dl-uid="42" data-dl-original="true" data-dl-translated="true">
+              しかし、ソフトウエアは64KB以上のメモリを要求しており、インテルは8088が出るまでの間、すでに16ビットプロセッサを作っている競合他社に対抗するために、8086というプロセッサを開発したのである。そこで、インテル社は、ある工夫をした。
+            </p>
+            <p data-dl-uid="43" data-dl-original="true" data-dl-translated="true">
+              そこで、8086の設計者は、ある解決策を提案した。8086は16ビットのまま、最大1MBのメモリにアクセスできるようにするのだ。彼らは同意し、インテルも承認した。
+            </p>
+            <p data-dl-uid="44" data-dl-original="true" data-dl-translated="true">
+              セグメント：オフセット・メモリ方式が誕生したのである。
+            </p>
+            <p data-dl-uid="45" data-dl-original="true" data-dl-translated="true">
+              セグメント：オフセット方式を理解するために、まずセグメントとオフセットを分解して見てみよう。
+            </p>
+
+            <h3 data-dl-uid="46" data-dl-original="true" data-dl-translated="true">セグメント</h3>
+            セグメント（Segment）とは、簡単に言えば、全体の一部分である。この場合、セグメントとはメモリの一部分のことです。
+            そう、基本的にはそれだけです。
+            <p data-dl-uid="47" data-dl-original="true" data-dl-translated="true">
+              メモリをセクションに分割することを想像してください。このセクションがセグメントです。
+            </p>
+            <p data-dl-uid="48" data-dl-original="true" data-dl-translated="true">
+              x86プロセッサーのファミリーは、セグメントの開始位置を格納する4つのプライマリーレジスタを使用します。これは<b
+                data-dl-uid="49"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ベースアドレスの</b
+              >ようなもの<b data-dl-uid="49" data-dl-translated="true">で、</b
+              >セグメントの開始位置を提供します。
+            </p>
+            <p data-dl-uid="50" data-dl-original="true" data-dl-translated="true">
+              通常、セグメントは64KBの大きさで、自由に移動することができます。
+            </p>
+            <p data-dl-uid="51" data-dl-original="true" data-dl-translated="true">
+              セグメントとは、単にメモリ上のセクションを表すものであることを忘れないでください。この場合、セグメントのベースアドレスが0であれば、バイト0と64KBの間のセグメントを表します。
+            </p>
+            <p data-dl-uid="52" data-dl-original="true" data-dl-translated="true">
+              レジスタは、<b data-dl-uid="53" data-dl-original="true" data-dl-translated="true"
+                >CS、DS、ES、</b
+              >
+              <b data-dl-uid="54" data-dl-original="true" data-dl-translated="true">SS</b
+              >です。このレジスタは、セグメントのベースアドレスを格納します。
+              このモードでのアドレッシングを見た後で、詳しく見ていきましょう。
+            </p>
+            <h3 data-dl-uid="55" data-dl-original="true" data-dl-translated="true">オフセット</h3>
+            オフセットとは、基本番号に追加される数値のことです。たとえば、ベースナンバーが3の場合。
+            <p data-dl-uid="56" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="57" data-dl-original="true" data-dl-translated="true">
+                オフセット＝基準番号（3）＋オフセット番号</b
+              ><br data-dl-uid="58" data-dl-original="true" data-dl-translated="true" />
+              オフセット2は、3+2=5<br
+                data-dl-uid="59"
+                data-dl-original="true"
+                data-dl-translated="true"
+              />
+              オフセット4は、3+4=7
+            </p>
+            <p data-dl-uid="60" data-dl-original="true" data-dl-translated="true">
+              さて、これがどう関係するのでしょうか。セグメント：オフセットアドレッシングでは、ベースアドレス（セグメントはベースアドレ
+              スを表すことを覚えておいてください）をオフセットアドレスに加えます。
+            </p>
+            <p data-dl-uid="61" data-dl-original="true" data-dl-translated="true">
+              かなり簡単でしょう？さて、すべてをまとめてみましょう。
+            </p>
+            <h3 data-dl-uid="62" data-dl-original="true" data-dl-translated="true">
+              セグメント：オフセットアドレッシング
+            </h3>
+            しかし、前項でReal Modeのセグメントアドレスは<b
+              data-dl-uid="63"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >16ビット</b
+            >であることを述べた。つまり、セグメントを16（10進数）倍してから、オフセットを加算する必要があります。
+            これが現在の計算式です。
+
+            <blockquote>
+              <pre>Absolute (Exact) Memory Address = (Segment Address * 16(decimal)) + Offset</pre>
+            </blockquote>
+
+            <h3 data-dl-uid="66" data-dl-original="true" data-dl-translated="true">
+              セグメント:オフセットの規則
+            </h3>
+            セグメントとオフセットのアドレスは、通常、コロン(:)で区切られます。 通常は、<b
+              data-dl-uid="67"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >セグメント :オフセット</b
+            >例えば、次のようになります。
+
+            <blockquote>
+              <pre>07C0:0000    &lt; 07C0 is the segment, and 0 is the offset</pre>
+            </blockquote>
+            上記を絶対アドレス0x7C00に変換するには、次の式を使用します。
+
+            <blockquote>
+              <pre>
+                 base address = base address * segment size (16) + offset
+			07C0:0000 = 07C0 * 16 (decimal) + 0
+                                  = 07C00 + 0 = 0x7C00</pre
+              >
+            </blockquote>
+
+            <h3 data-dl-uid="72" data-dl-original="true" data-dl-translated="true">
+              セグメント：オフセットの問題
+            </h3>
+
+            セグメント：オフセットはかなりユニークです。セグメントとオフセットの値を変更することで、異なるセグメントとオフセットのペアが同じ絶対アドレスを生成することを見つけることができます。なぜでしょうか？なぜなら、両方とも<b
+              data-dl-uid="73"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >同じメモリロケーションを参照して</b
+            >いるからです。
+            <p data-dl-uid="74" data-dl-original="true" data-dl-translated="true">
+              例えば、以下のアドレスはすべて、0x7C00 にあるブートローダを参照しています。
+            </p>
+
+            <blockquote>
+              <pre>
+  0007:7B90   0008:7B80   0009:7B70   000A:7B60   000B:7B50   000C:7B40   
+
+  0047:7790   0048:7780   0049:7770   004A:7760   004B:7750   004C:7740   
+
+  0077:7490   0078:7480   0079:7470   007A:7460   007B:7450   007C:7440   
+
+  01FF:5C10   0200:5C00   0201:5BF0   0202:5BE0   0203:5BD0   0204:5BC0   
+
+  07BB:0050   07BC:0040   07BD:0030   07BE:0020   07BF:0010   07C0:0000</pre
+              >
+            </blockquote>
+
+            これらはほんの一部に過ぎません。技術的には、メモリ上の同じバイトを参照できるセグメントとオフセットの組み合わせは、正確には<b
+              data-dl-uid="77"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >4096</b
+            >通りあります -- これは、メモリ上の各バイトに対してです!
+            <p data-dl-uid="78" data-dl-original="true" data-dl-translated="true">
+              もし、64KB<b data-dl-uid="79" data-dl-original="true" data-dl-translated="true">以内の</b
+              >セグメントアドレスが2つあったらどうでしょうか？セグメントのサイズ（とオフセット）は16ビットであることを思い出してください。そして、セグメントアドレスは、セグメントの<b
+                data-dl-uid="80"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ベースのみを</b
+              >参照する。 これが、<b data-dl-uid="81" data-dl-original="true" data-dl-translated="true"
+                >オーバーラップされたセグメント</b
+              >である。
+            </p>
+
+            <center>
+              <img src="./02_files/seg.gif" />
+            </center>
+
+            <p data-dl-uid="85" data-dl-original="true" data-dl-translated="true">
+              レイヤーの上にレイヤーがあり、それが他のセグメントの上に重なっていると想像してください。これは問題を引き起こす可能性がある。
+            </p>
+            <p data-dl-uid="86" data-dl-original="true" data-dl-translated="true">
+              つまり、Real
+              Modeでは、メモリ上のすべてのバイトに4,000通り以上のアクセスが可能で、知らないうちにセグメントをオーバーラップさせて、その領域のメモリを破壊する可能性がある。
+              これが、Real Modeに<b data-dl-uid="87" data-dl-original="true" data-dl-translated="true"
+                >メモリ保護が</b
+              >ないことの意味である。
+            </p>
+            <p data-dl-uid="88" data-dl-original="true" data-dl-translated="true">
+              x86がセグメント参照に使用するレジスタは以下の通りである。
+            </p>
+            <ul data-dl-uid="89" data-dl-original="true" data-dl-translated="true">
+              <li data-dl-uid="90" data-dl-original="true" data-dl-translated="true">
+                CS (コードセグメント) -コードのベースセグメントアドレスを格納します。
+              </li>
+              <li data-dl-uid="91" data-dl-original="true" data-dl-translated="true">
+                DS (データセグメント) - データ用のベースセグメントアドレスを格納します。
+              </li>
+              <li data-dl-uid="92" data-dl-original="true" data-dl-translated="true">
+                ES (エクストラセグメント) - 何でも格納するセグメントアドレスを格納します。
+              </li>
+              <li data-dl-uid="93" data-dl-original="true" data-dl-translated="true">
+                SS (スタックセグメント) - スタックのベースセグメントアドレスを格納します。
+              </li>
+            </ul>
+            <p data-dl-uid="94" data-dl-original="true" data-dl-translated="true">
+              うわー、リアルモードには問題がたくさんある。私たちは、この問題から何を守ればいいのでしょうか？
+            </p>
+
+            <h2 data-dl-uid="95" data-dl-original="true" data-dl-translated="true">プロテクトモード</h2>
+            プロテクトモード(PMode)は、よく耳にする言葉ですが、これからもっと耳にすることになると思います。PModeでは、メモリレイアウトを記述した<b
+              data-dl-uid="96"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >ディスクリプタテーブルを</b
+            >使用することで、メモリ保護を行うことができます。
+            <p data-dl-uid="97" data-dl-original="true" data-dl-translated="true">
+              PModeは32bitのプロセッサモードなので、32bitのレジスタも使えるし、最大<b
+                data-dl-uid="98"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >4GBのRAMにも</b
+              >アクセスできる。Real Modeに比べれば大きな進歩です。
+            </p>
+            <p data-dl-uid="99" data-dl-original="true" data-dl-translated="true">
+              私たちはPModeを使用することになります。そうです、聞かれる前に言っておきますが、WindowsはPMode
+              OSです :)
+            </p>
+            <p data-dl-uid="100" data-dl-original="true" data-dl-translated="true">
+              PModeはセットアップとその動作を完全に理解するのが少し難しいです。
+              PModeについての詳細は後ほど説明します。
+            </p>
+            <h2 data-dl-uid="101" data-dl-original="true" data-dl-translated="true">アンリアルモード</h2>
+            PMモードは、いつでも好きなときにプロセッサモードを切り替えることができます。アンリアルモードとは、PModeのアドレス空間（4GB制限）を持つReal
+            Modeを表現したダジャレです。
+            <p data-dl-uid="102" data-dl-original="true" data-dl-translated="true">
+              Unreal Modeを有効にするには、プロセッサをReal ModeからPModeに切り替え、新しい<b
+                data-dl-uid="103"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >Descriptorを</b
+              >ロードしたらまた元に戻すだけでよいのです。
+            </p>
+            <p data-dl-uid="104" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="105" data-dl-original="true" data-dl-translated="true"
+                >Descriptor Tablesは</b
+              >非常にわかりにくいものです。詳しくはProtected Mode (PMode)の説明の時に説明します。
+            </p>
+            <h2 data-dl-uid="106" data-dl-original="true" data-dl-translated="true">仮想8086モード</h2>
+            Virtual 8086 Mode (v86 Mode) は、Protected Mode を 16bit Real Mode
+            でエミュレートした環境として表現したモードです。
+            <p data-dl-uid="107" data-dl-original="true" data-dl-translated="true">
+              これはちょっと奇妙に思えるかもしれませんが、v86は便利なものなのです。<b
+                data-dl-uid="108"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >すべてのBIOS割り込みはリアルモードでのみ利用可能です！</b
+              >v86モードはPModeの中からBIOS割り込みを実行する方法を提供します。これについては後で詳しく説明します。
+            </p>
+
+            <h1 data-dl-uid="109" data-dl-original="true" data-dl-translated="true">
+              プロセッサモードの切り替え
+            </h1>
+
+            ここでは、プロセッサのモードを切り替えるためのコードについては、まだ説明しません。その代わりに、一歩下がって、いくつかの重要なコンセプトを説明したいと思います。
+            <p data-dl-uid="110" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="111" data-dl-original="true" data-dl-translated="true"
+                >実際のモードとして組み込まれているのは、Real ModeとPotected Modeの2つだけです。</b
+              >つまり、他のモードであるUnreal Modeとv86 Modeは、この2つのモードを元に作られています。
+            </p>
+            <p data-dl-uid="112" data-dl-original="true" data-dl-translated="true">
+              Unreal ModeはReal Modeだが、Protected Mode (PMode) Addressing
+              Systemを使っていること、Virtual 8086 ModeはPModeだが、16ビットコードを実行するためにReal
+              Modeを使っていることを思い出してほしい。
+            </p>
+            <p data-dl-uid="113" data-dl-original="true" data-dl-translated="true">
+              このように、v86モードもUnrealモードもReal ModeとProtected
+              Modeをベースにしているだけなので、PModeを理解しないとこれらのモードがどのように動作するのか理解するのは難しいかもしれません。
+            </p>
+            <p data-dl-uid="114" data-dl-original="true" data-dl-translated="true">
+              PMode、Unreal Mode、v86 Modeについては近日中に詳しく説明しますので、ご心配なく :)
+            </p>
+            <p data-dl-uid="115" data-dl-original="true" data-dl-translated="true">
+              しかし、PModeについて覚えておくべきいくつかの重要なことがあります。
+            </p>
+            <ul data-dl-uid="116" data-dl-original="true" data-dl-translated="true">
+              <li data-dl-uid="117" data-dl-original="true" data-dl-translated="true">
+                割り込みは絶対に使えません。自分で書く必要があります。ハードウェア、ソフトウェアにかかわらず、割り込みを使用するとトリプルフォルトが発生します。
+              </li>
+              <li data-dl-uid="118" data-dl-original="true" data-dl-translated="true">
+                PModeに切り替えた後は、<b
+                  data-dl-uid="119"
+                  data-dl-original="true"
+                  data-dl-translated="true"
+                  >わずかな</b
+                >ミスでもTriple Faultが発生します。注意してください。
+              </li>
+              <li data-dl-uid="120" data-dl-original="true" data-dl-translated="true">
+                PModeでは、<b data-dl-uid="122" data-dl-original="true" data-dl-translated="true"
+                  >GDT、LDT、IDTなどの</b
+                >
+                <b data-dl-uid="121" data-dl-original="true" data-dl-translated="true"
+                  >Descriptor Tablesを</b
+                >使用する必要があります。
+              </li>
+              <li data-dl-uid="123" data-dl-original="true" data-dl-translated="true">
+                PModeでは、4GBのメモリが使用できます。
+              </li>
+              <li data-dl-uid="124" data-dl-original="true" data-dl-translated="true">
+                セグメント：オフセットアドレスとリニアアドレスが使用されます。
+              </li>
+              <li data-dl-uid="125" data-dl-original="true" data-dl-translated="true">
+                32ビットレジスタへのアクセスおよび使用
+              </li>
+            </ul>
+            PModeについては後でもっと詳しく説明します。
+
+            <h1 data-dl-uid="126" data-dl-original="true" data-dl-translated="true">
+              ブートローダの拡張
+            </h1>
+
+            さて、ここまでで多くのことを学びましたね。Protected Mode、Unreal Mode、v86
+            Modeの基本的な理論について説明しました。しかし、Real
+            Modeについては深く掘り下げて説明しました。なぜか？なぜなら、コンピュータはDOSとの後方互換性のために16ビット環境で起動することを思い出してください。<b
+              data-dl-uid="127"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >この16ビット環境はReal Mode</b
+            >です。
+            <p data-dl-uid="128" data-dl-original="true" data-dl-translated="true">
+              ブートローダが実行されると、リアルモードになります。待って！これってBIOS割り込みが使えるってことだよね？
+              うん :)VGAビデオ割り込みや、ハードウェアから直接マッピングされたその他の割り込みも使えます
+              :)
+            </p>
+            <h2 data-dl-uid="129" data-dl-original="true" data-dl-translated="true">
+              便利なルーチンとBIOS割り込み
+            </h2>
+
+            <h3 data-dl-uid="130" data-dl-original="true" data-dl-translated="true">
+              OEMパラメータブロック
+            </h3>
+            OEMパラメータブロックは、WindowsのMBRとブートレコードの情報を格納します。
+            その主な目的は、ディスク上のファイルシステムを記述することです。
+            このテーブルについては、ファイルシステムを見るまで説明しません。しかし、このテーブルがないと先に進めません。
+            <p data-dl-uid="131" data-dl-original="true" data-dl-translated="true">
+              これは、Windowsからの "Not formatted "メッセージも修正します。
+            </p>
+            <p data-dl-uid="132" data-dl-original="true" data-dl-translated="true">
+              今のところ、この表は必要なものだけと考えてください。詳しくは、ファイルシステムやディスクからのファイルのロードについて説明するときに、説明します。
+            </p>
+            <p data-dl-uid="133" data-dl-original="true" data-dl-translated="true">
+              以下は、このテーブルを使ったブートローダです。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">;*********************************************
+;	Boot1.asm
+;		- A Simple Bootloader
+;
+;	Operating Systems Development Tutorial
+;*********************************************
+
+bits	16							; We are still in 16 bit Real Mode
+
+org		0x7c00						; We are loaded by BIOS at 0x7C00
+
+start:          jmp loader					; jump over OEM block
+
+;*************************************************;
+;	OEM Parameter block
+;*************************************************;
+
+TIMES 0Bh-$+start DB 0
+
+bpbBytesPerSector:  	DW 512
+bpbSectorsPerCluster: 	DB 1
+bpbReservedSectors: 	DW 1
+bpbNumberOfFATs: 	    DB 2
+bpbRootEntries: 	    DW 224
+bpbTotalSectors: 	    DW 2880
+bpbMedia: 	            DB 0xF0
+bpbSectorsPerFAT: 	    DW 9
+bpbSectorsPerTrack: 	DW 18
+bpbHeadsPerCylinder: 	DW 2
+bpbHiddenSectors: 	    DD 0
+bpbTotalSectorsBig:     DD 0
+bsDriveNumber: 	        DB 0
+bsUnused: 	            DB 0
+bsExtBootSignature: 	DB 0x29
+bsSerialNumber:	        DD 0xa0a1a2a3
+bsVolumeLabel: 	        DB "MOS FLOPPY "
+bsFileSystem: 	        DB "FAT12   "
+
+;*************************************************;
+;	Bootloader Entry Point
+;*************************************************;
+
+loader:
+
+	cli			; Clear all Interrupts
+	hlt			; halt the system
+	
+times 510 - ($-$$) db 0		; We have to be 512 bytes. Clear the rest of the bytes with 0
+
+dw 0xAA55			; Boot Signiture</div></pre>
+            </blockquote>
+
+            <h3 data-dl-uid="137" data-dl-original="true" data-dl-translated="true">
+              テキストの印刷 - 割り込み0x10関数0x0E
+            </h3>
+            <p data-dl-uid="138" data-dl-original="true" data-dl-translated="true">
+              INT
+              0x10はビデオ割り込みに使用できます。ただし、基本的な割り込みしか動作しないことを忘れないでください。
+            </p>
+            <p data-dl-uid="139" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="140" data-dl-original="true" data-dl-translated="true"
+                >INT 0x10 - ビデオテレタイプ出力</b
+              >
+            </p>
+            <p data-dl-uid="141" data-dl-original="true" data-dl-translated="true">
+              AH = 0x0E<br data-dl-uid="142" data-dl-original="true" data-dl-translated="true" />
+              AL = 書き込む文字<br data-dl-uid="143" data-dl-original="true" data-dl-translated="true" />
+              BH - ページ番号 (0であるべき)<br
+                data-dl-uid="144"
+                data-dl-original="true"
+                data-dl-translated="true"
+              />
+              BL = 前景色 (グラフィックモードのみ)<br
+                data-dl-uid="145"
+                data-dl-original="true"
+                data-dl-translated="true"
+              />
+
+              例えば
+            </p>
+
+            <blockquote>
+              <pre><div class="code">	xor	bx, bx		; A faster method of clearing BX to 0
+	mov	ah, 0x0e
+	mov	al, 'A'
+	int	0x10</div></pre>
+            </blockquote>
+
+            これは、画面上に文字'A'を表示します。
+
+            <h3 data-dl-uid="149" data-dl-original="true" data-dl-translated="true">
+              文字列の印刷 - 割り込み 0x10 関数 0x0E
+            </h3>
+
+            同じ割り込みを使って、0終端の文字列を簡単に出力することができます。
+
+            <blockquote>
+              <pre><div class="code">msg	db	"Welcome to My Operating System!", 0
+
+;***************************************
+;	Prints a string
+;	DS=&gt;SI: 0 terminated string
+;***************************************
+
+Print:
+			lodsb
+			or			al, al				; al=current character
+			jz			PrintDone			; null terminator found
+			mov			ah,	0eh			; get next character
+			int			10h
+			jmp			Print
+PrintDone:
+			ret
+
+;*************************************************;
+;	Bootloader Entry Point
+;*************************************************;
+
+loader:
+
+; Error Fix 1 ------------------------------------------
+
+	xor	ax, ax		; Setup segments to insure they are 0. Remember that
+	mov	ds, ax		; we have ORG 0x7c00. This means all addresses are based
+	mov	es, ax		; from 0x7c00:0. Because the data segments are within the same
+				; code segment, null em.
+
+	mov	si, msg
+	call	Print
+
+	cli			; Clear all Interrupts
+	hlt			; halt the system
+	
+times 510 - ($-$$) db 0		; We have to be 512 bytes. Clear the rest of the bytes with 0
+
+dw 0xAA55			; Boot Signiture</div></pre>
+            </blockquote>
+
+            <h3 data-dl-uid="153" data-dl-original="true" data-dl-translated="true">
+              RAMの量を取得する
+            </h3>
+
+            これは簡単すぎです。
+            <p data-dl-uid="154" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="155" data-dl-original="true" data-dl-translated="true"
+                >INT 0x12 - BIOS GET MEMORY SIZE（メモリサイズ取得</b
+              ><br data-dl-uid="156" data-dl-original="true" data-dl-translated="true" />
+              戻り値AX = 絶対アドレス0x0から始まる連続したメモリのキロバイト。
+            </p>
+            <p data-dl-uid="157" data-dl-original="true" data-dl-translated="true">例です。</p>
+
+            <blockquote>
+              <pre><div class="code">xor	ax, ax
+int	0x12
+; Now AX = Amount of KB in system recorded by BIOS</div></pre>
+            </blockquote>
+
+            うわぁ...大変だったでしょう?）実は、プロテクトモード(PMode)では、割り込みが使えないので、とても大変なのです。
+            <p data-dl-uid="161" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="162" data-dl-original="true" data-dl-translated="true"
+                >注意：BIOSから実際に返されるメモリ量は正確ではないかもしれません！後で他の方法について見て</b
+              >みましょう。
+            </p>
+
+            <h1>Demo</h1>
+
+            <blockquote>
+              <pre><div class="code">;*********************************************
+;	Boot1.asm
+;		- A Simple Bootloader
+;
+;	Operating Systems Development Tutorial
+;*********************************************
+
+bits	16							; We are still in 16 bit Real Mode
+
+org		0x7c00						; We are loaded by BIOS at 0x7C00
+
+start:          jmp loader					; jump over OEM block
+
+;*************************************************;
+;	OEM Parameter block
+;*************************************************;
+
+; Error Fix 2 - Removing the ugly TIMES directive -------------------------------------
+
+;;	TIMES 0Bh-$+start DB 0					; The OEM Parameter Block is exactally 3 bytes
+								; from where we are loaded at. This fills in those
+								; 3 bytes, along with 8 more. Why?
+
+bpbOEM			db "My OS   "				; This member must be exactally 8 bytes. It is just
+								; the name of your OS :) Everything else remains the same.
+
+bpbBytesPerSector:  	DW 512
+bpbSectorsPerCluster: 	DB 1
+bpbReservedSectors: 	DW 1
+bpbNumberOfFATs: 	    DB 2
+bpbRootEntries: 	    DW 224
+bpbTotalSectors: 	    DW 2880
+bpbMedia: 	            DB 0xF0
+bpbSectorsPerFAT: 	    DW 9
+bpbSectorsPerTrack: 	DW 18
+bpbHeadsPerCylinder: 	DW 2
+bpbHiddenSectors: 	    DD 0
+bpbTotalSectorsBig:     DD 0
+bsDriveNumber: 	        DB 0
+bsUnused: 	            DB 0
+bsExtBootSignature: 	DB 0x29
+bsSerialNumber:	        DD 0xa0a1a2a3
+bsVolumeLabel: 	        DB "MOS FLOPPY "
+bsFileSystem: 	        DB "FAT12   "
+
+msg	db	"Welcome to My Operating System!", 0		; the string to print
+
+;***************************************
+;	Prints a string
+;	DS=&gt;SI: 0 terminated string
+;***************************************
+
+Print:
+			lodsb					; load next byte from string from SI to AL
+			or			al, al		; Does AL=0?
+			jz			PrintDone	; Yep, null terminator found-bail out
+			mov			ah,	0eh	; Nope-Print the character
+			int			10h
+			jmp			Print		; Repeat until null terminator found
+PrintDone:
+			ret					; we are done, so return
+
+;*************************************************;
+;	Bootloader Entry Point
+;*************************************************;
+
+loader:
+
+	xor	ax, ax		; Setup segments to insure they are 0. Remember that
+	mov	ds, ax		; we have ORG 0x7c00. This means all addresses are based
+	mov	es, ax		; from 0x7c00:0. Because the data segments are within the same
+				; code segment, null em.
+
+	mov	si, msg						; our message to print
+	call	Print						; call our print function
+
+	xor	ax, ax						; clear ax
+	int	0x12						; get the amount of KB from the BIOS
+
+	cli							; Clear all Interrupts
+	hlt							; halt the system
+	
+times 510 - ($-$$) db 0						; We have to be 512 bytes. Clear the rest of the bytes with 0
+
+dw 0xAA55							; Boot Signiture</div></pre>
+            </blockquote>
+
+            <h1 data-dl-uid="170" data-dl-original="true" data-dl-translated="true">まとめ</h1>
+            <p data-dl-uid="171" data-dl-original="true" data-dl-translated="true">
+              ここまでできたら自分を褒めてあげてください :)
+            </p>
+            <p data-dl-uid="172" data-dl-original="true" data-dl-translated="true">
+              このチュートリアルは厄介なものでした。セグメント：オフセットアドレッシングとプロセッサモードを深く掘り下げることなく説明する非常に良い方法を見つけなければなりませんでした。うまくできたと思います
+              :)
+            </p>
+            <p data-dl-uid="173" data-dl-original="true" data-dl-translated="true">
+              リアルモード、プロテクトモード、アンリアルモード、v86
+              などのプロセッサモードについて説明しました。
+              リアルモードについては、ブートローダを開発するときに使うモードなので、詳しく調べました。
+              また、セグメントオフセットアドレッシングについても説明しました。これは DOS
+              プログラマにとっては再教育になるかもしれません。さらに、いくつかの BIOS
+              割り込みについても説明し、最後に完全な例を示しました。
+            </p>
+            <p data-dl-uid="174" data-dl-original="true" data-dl-translated="true">
+              次回のチュートリアルでは、追加した醜いOEMパラメータブロックの解読を行います。
+              また、基本的なファイルシステムの理論とディスクからのセクタのロードも見ていきます。
+            </p>
+            <p data-dl-uid="175" data-dl-original="true" data-dl-translated="true">では、また次回。</p>
+            </p>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </body>
+</html>
