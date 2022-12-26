@@ -1,0 +1,1428 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Cache-Control" content="no-cache" />
+    <title></title>
+    <link href="css/reference.css" rel="stylesheet" />
+  </head>
+  <body>
+    <table cellspacing="0" cellpadding="3" width="80%" border="0">
+      <tbody>
+        <tr>
+          <td class="tblhdr">Operating Systems Development Series</td>
+        </tr>
+        <tr>
+          <td align="middle" colspan="2"></td>
+        </tr>
+      </tbody>
+    </table>
+    <table cellspacing="0" cellpadding="5" width="100%" border="0">
+      <tbody>
+        <tr>
+          <td>
+            <!-- Title -->
+
+            <div>
+              <span class="title">Physical Memory</span>
+
+              <br />
+              <span class="author">by Mike, 2008, 2009</span>
+            </div>
+
+            <h1 data-dl-uid="7" data-dl-original="true" data-dl-translated="true">はじめに</h1>
+
+            ようこそ!
+            <p data-dl-uid="8" data-dl-original="true" data-dl-translated="true">
+              このチュートリアルでは、コンピュータシステム内の最も重要なリソースの1つである物理メモリを管理する方法を紹介します。物理メモリです。メモリ情報の取得方法、BIOS
+              割り込み、メモリマネージャの概念、そして完全な物理メモリマネージャの設計と実装について見ていきます。
+            </p>
+            <p data-dl-uid="9" data-dl-original="true" data-dl-translated="true">
+              これは誰もやりたがらないことの一つですが、最終的には作業がずっと楽になります。このことを念頭に置いて、このチュートリアルのリストを見てみましょう。
+            </p>
+            <ul data-dl-uid="10" data-dl-original="true" data-dl-translated="true">
+              <li data-dl-uid="11" data-dl-original="true" data-dl-translated="true">物理メモリ</li>
+              <li data-dl-uid="12" data-dl-original="true" data-dl-translated="true">
+                翻訳ルックサイドバッファ(TLB)
+              </li>
+              <li data-dl-uid="13" data-dl-original="true" data-dl-translated="true">
+                メモリ管理ユニット(MMU)
+              </li>
+              <li data-dl-uid="14" data-dl-original="true" data-dl-translated="true">
+                メモリマネージャ
+              </li>
+              <li data-dl-uid="15" data-dl-original="true" data-dl-translated="true">
+                メモリ情報の取得
+              </li>
+              <li data-dl-uid="16" data-dl-original="true" data-dl-translated="true">
+                ブートローダからカーネルへの情報の受け渡し
+              </li>
+              <li data-dl-uid="17" data-dl-original="true" data-dl-translated="true">
+                物理メモリマネージャの設計と開発
+              </li>
+            </ul>
+
+            では、アリガトウございます!ここではページングや仮想メモリについては触れないことに注意してください。その代わり、物理メモリ管理と仮想メモリ管理を完全に分けて考えたいと思います。
+            その理由は単純で、一方に集中すれば他方は不要だからです。心配しないでください。ページングと仮想メモリについては、次のチュートリアルで仮想メモリマネージャの開発について説明します。
+            <h1 data-dl-uid="18" data-dl-original="true" data-dl-translated="true">
+              メモリより深く見る
+            </h1>
+
+            メモリ管理に直接飛びつくのではなく、ここでは別のアプローチをとりたいと思います。つまり、<i
+              data-dl-uid="19"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >メモリが</i
+            >何であるかを理解せずに、メモリ管理が何であるかを理解することはできません。
+            つまり、管理しようとしているものが何であるかを知る必要がありますよね。
+            <p data-dl-uid="20" data-dl-original="true" data-dl-translated="true">
+              このため、まず物理メモリとは何かについて見ていくことにします。ご存じでしょう...コンピュータの中にある小さなRAMチップのことです:)
+            </p>
+            <p data-dl-uid="21" data-dl-original="true" data-dl-translated="true">
+              <i data-dl-uid="22" data-dl-original="true" data-dl-translated="true"
+                >さあ、始めましょう...!</i
+              >
+            </p>
+            <h2 data-dl-uid="23" data-dl-original="true" data-dl-translated="true">物理メモリ</h2>
+
+            <h3 data-dl-uid="24" data-dl-original="true" data-dl-translated="true">
+              物理メモリです。概要
+            </h3>
+
+            <b data-dl-uid="25" data-dl-original="true" data-dl-translated="true">物理メモリとは</b
+            >、コンピュータの<b data-dl-uid="26" data-dl-original="true" data-dl-translated="true"
+              >ランダムアクセスメモリ（RAM）</b
+            >内に格納される抽象的なメモリブロックのことです。物理メモリがRAM内に「格納」される方法は、システムが使用するRAMの種類によって異なります。例えば、<b
+              data-dl-uid="27"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >ダイナミック・ランダム・アクセス・メモリ（DRAM</b
+            >）は、データの各ビットを独自の<b
+              data-dl-uid="28"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >コンデンサに</b
+            >格納し、定期的にリフレッシュする必要があります。<b
+              data-dl-uid="29"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >コンデンサは</b
+            >、限られた時間だけ電流を蓄える電子デバイスです。このため、電流を蓄える（2進数の1）か、電流を蓄えない（2進数の0）かのどちらかを選択することができます。DRAMチップは、このようにしてコンピュータ内の個々のビットのデータを保存します。
+            <p data-dl-uid="30" data-dl-original="true" data-dl-translated="true">
+              ほとんどの場合、メモリタイプ（RAM、SRAM、DRAMなど）には、プロセッサと<b
+                data-dl-uid="32"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >システムバスとの</b
+              >インターフェースとして、特定のタイプの<b
+                data-dl-uid="31"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >メモリ</b
+              >コントローラが必要です。
+            </p>
+            <p data-dl-uid="33" data-dl-original="true" data-dl-translated="true">
+              メモリコントローラは、ソフトウェアを通じてメモリ位置を読み書きする方法を提供します。
+              メモリコントローラはまた、RAMチップが情報を保持できるように、常にリフレッシュする役割を果たします。
+            </p>
+            <p data-dl-uid="34" data-dl-original="true" data-dl-translated="true">
+              メモリコントローラにはマルチプレクサとデマルチプレクサ回路があり、<b
+                data-dl-uid="35"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >アドレスバスの</b
+              >アドレスを参照する正確なRAMチップと位置を選択します。これにより、<b
+                data-dl-uid="36"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >プロセッサは</b
+              >アドレスバスを介してメモリアドレスを送信することで、特定のメモリ位置を参照することができるようになります。
+            </p>
+            <p data-dl-uid="37" data-dl-original="true" data-dl-translated="true">
+              ...ここで、プロセッサにどのメモリ・アドレスを読み出すかを指示するソフトウェアの出番となるわけです)
+            </p>
+            <p data-dl-uid="38" data-dl-original="true" data-dl-translated="true">
+              メモリコントローラは、RAMチップ内の位置を順番に選択します。つまり、システム内の総メモリ量よりも大きな物理メモリ位置にアクセスしても、何も起こらないということです。つまり、そのメモリ位置に値を書き込んで、それを読み出すと--データバスに残っているデータを何でも得ることができるのです。
+            </p>
+            <p data-dl-uid="39" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="41" data-dl-original="true" data-dl-translated="true">物理アドレス空間</b
+              >には、<b data-dl-uid="40" data-dl-original="true" data-dl-translated="true"
+                >メモリホールが</b
+              >発生する可能性があります。例えば、スロット1と3にRAMチップがあり、スロット2にはRAMチップがない場合です。これは、スロット1のRAMに格納された最後のバイトと、スロット3の最初のバイト-1の間に、存在しないメモリ領域があることを意味します。これらの場所への読み書きは、メモリを越えて読み書きする場合とほぼ同じ効果があります。この存在しないメモリ位置がメモリコントローラによってリマップされている場合、メモリの別の部分に読み書きを行っている可能性があります。メモリがリマップされていない場合（ほとんどのメモリはそうではありません）、存在<b
+                data-dl-uid="42"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >しないメモリ位置への読み書</b
+              >きはまったく何も行いません。つまり、存在しないメモリ位置に書き込んでも、どこにも何も書き込まれません。存在しないメモリ位置から読み込むと、データバスに残っていたゴミがすべて読み込まれます。このように、存在しない場所に値を書き込んで読み込んでも、同じ値が得られるわけではないことを知って、ポインタ経由でメモリを手動で解析し、メモリのどの領域が良いのか悪いのかを判断する方法が考え出されました。しかし、この方法は、後で見るように危険です。
+            </p>
+            <p data-dl-uid="43" data-dl-original="true" data-dl-translated="true">
+              さて、以上が物理メモリの実態です。メモリがどのように各ビットを格納するかを知ることで、バイト、ワード、ドワード、クォード、バイトなどがどこに入ってくるかがわかると思います。このうち最も重要なのは<b
+                data-dl-uid="44"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >バイトで</b
+              >、これはプロセッサがアクセスできる最小のデータだからです。しかし、プロセッサはどのようにしてバイトがメモリ内のどこにあるのかを知るのでしょうか。そこで登場するのが「<b
+                data-dl-uid="45"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >物理アドレス空間</b
+              >」です。それでは見てみましょう。）
+            </p>
+            <h3 data-dl-uid="46" data-dl-original="true" data-dl-translated="true">
+              物理アドレス空間(PAS)
+            </h3>
+
+            これは、物理メモリ（RAM）に格納された 8
+            ビットのデータ（バイト）を参照するために、プロセッサが使用する（そしてメモリコントローラが変換する）アドレス空間です。<b
+              data-dl-uid="47"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >メモリアドレスとは</b
+            >、<b data-dl-uid="48" data-dl-original="true" data-dl-translated="true">メモリコントロー</b
+            >ラが1バイトのデータに対して選択した番号に過ぎません。例えば、メモリーアドレス0は物理メモリーの最初の8ビット、メモリーアドレス1は次の8ビットといった具合に、それぞれを参照することができます。<b
+              data-dl-uid="49"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >物理アドレス空間は</b
+            >、これらの<b data-dl-uid="50" data-dl-original="true" data-dl-translated="true"
+              >メモリアドレスと</b
+            >、メモリアドレスが参照する実際のメモリからなる配列である。
+            <p data-dl-uid="51" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="52" data-dl-original="true" data-dl-translated="true">物理アドレス空間</b
+              >は、システム・<b data-dl-uid="54" data-dl-original="true" data-dl-translated="true"
+                >アドレス・バスを通じて</b
+              >
+              <b data-dl-uid="53" data-dl-original="true" data-dl-translated="true">プロセッサから</b
+              >アクセスされます
+            </p>
+            <p data-dl-uid="56" data-dl-original="true" data-dl-translated="true">
+              さて、それでは...プロセッサは、メモリのバイトを参照するためにアドレスを使用することができます。通常、アドレスは0から始まり、メモリ内の各バイトを増分していきます。これはとてもシンプルなことです。しかし、これだけでは、ソフトウェアがどのようにメモリにアクセスするのか、まだ説明できません。確かに、<i
+                data-dl-uid="57"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >プロセッサは</i
+              >メモリを参照する方法を持っていますが、<i
+                data-dl-uid="58"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ソフトウエアはそう</i
+              >ではありません。プロセッサはそのニーズに応じて、ソフトウェアにメモリを参照する方法を提供するための特定の方法を提供する必要があります。ちょっと、何？そうです。メモリにアクセスするための、さまざまなアドレス指定方法です。
+            </p>
+            <h3 data-dl-uid="59" data-dl-original="true" data-dl-translated="true">
+              アドレッシング・モード
+            </h3>
+
+            <b data-dl-uid="60" data-dl-original="true" data-dl-translated="true">アドレスモードは</b
+            >、ソフトウェアが<b data-dl-uid="61" data-dl-original="true" data-dl-translated="true"
+              >物理アドレス</b
+            >空間にアクセスする方法を管理するためにプロセッサが作った抽象化されたものです。通常、ソフトウェアがプロセッサのレジスタを設定し、プロセッサがメモリを参照する方法を知ることができるようにします。すでに、<b
+              data-dl-uid="62"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >セグメント：オフセットメモリーアドレッシングと</b
+            >
+            <b data-dl-uid="63" data-dl-original="true" data-dl-translated="true"
+              >ディスクリプタ：オフセットメモリーアドレッシングの</b
+            >2つを見てきました。
+            <p data-dl-uid="64" data-dl-original="true" data-dl-translated="true">
+              メモリにアクセスする方法をソフトウェアに提供するためにプロセッサが提供するインタフェースです。
+            </p>
+            <p data-dl-uid="65" data-dl-original="true" data-dl-translated="true">
+              <a href="02.html" data-dl-uid="66" data-dl-original="true" data-dl-translated="true">第4</a
+              >セグメント：オフセットアドレシングモード、<a
+                href="06.html"
+                data-dl-uid="67"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >第8</a
+              >章でディスクリプタ：オフセットメモリーアドレッシングモードを取り上げました。
+            </p>
+
+            <h3 data-dl-uid="68" data-dl-original="true" data-dl-translated="true">
+              メモリの仕組み詳細
+            </h3>
+
+            さて、次は新しい方法でメモリを見てみましょう。メモリとは何か、アドレス空間とアドレッシングモードについて、すでに多くのことを学びました。さて、すべてをまとめてみましょうか。
+            <p data-dl-uid="69" data-dl-original="true" data-dl-translated="true">
+              このセクションの情報の多くは必要ではありませんが、完全性を期すために含めることにしました。ここですべてを理解できなくても、あまり気にしないでください。
+            </p>
+            <p data-dl-uid="70" data-dl-original="true" data-dl-translated="true">
+              <a href="OSDev7.html" data-dl-uid="71" data-dl-original="true" data-dl-translated="true"
+                >第7章</a
+              >では、コンピュータシステムとシステムアーキテクチャの基本的な概要について見てきました。
+              プロセッサの<b data-dl-uid="72" data-dl-original="true" data-dl-translated="true"
+                >システムバスと</b
+              >
+              <b data-dl-uid="73" data-dl-original="true" data-dl-translated="true"
+                >メモリコントローラが</b
+              >どのように接続され、システムが物理RAMを制御する方法を提供するために使用されているのかについて説明しました。このような感じです。
+            </p>
+            <p data-dl-uid="74" data-dl-original="true" data-dl-translated="true"></p>
+
+            <center><img src="./15_files/memory.JPG" /></center>
+
+            <p data-dl-uid="77" data-dl-original="true" data-dl-translated="true">
+              そうなんです。物理 RAM
+              がシステムの他の部分とどのように接続され、通信しているかを示しています。上の画像では、<b
+                data-dl-uid="78"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >DDR コントローラーが</b
+              >メモリコントローラーです。メモリコントローラーとプロセッサーの間には、<b
+                data-dl-uid="79"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >Translation Lookaside Buffer (TLB)</b
+              >が配置されています。これによって、<b
+                data-dl-uid="80"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >システムバスは</b
+              >
+              <b data-dl-uid="81" data-dl-original="true" data-dl-translated="true">アドレスバス</b>、<b
+                data-dl-uid="82"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >データバス</b
+              >、<b data-dl-uid="83" data-dl-original="true" data-dl-translated="true">コントロール</b
+              >バスを介して、これら3つを接続している。コントロールバスのうち、今重要なのは<b
+                data-dl-uid="84"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >RWラインと</b
+              >
+              <b data-dl-uid="85" data-dl-original="true" data-dl-translated="true">CLKラインの</b
+              >2本だけだ。
+            </p>
+            <p data-dl-uid="86" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="87" data-dl-original="true" data-dl-translated="true"
+                >TLBはページングが有効なときのみ使用されます。</b
+              >このため、TLBについては後でもう少し詳しく見ていくことにします。
+            </p>
+            <p data-dl-uid="88" data-dl-original="true" data-dl-translated="true">
+              では、物理的なメモリ位置にデータを書き込むと、実際に何が起こるのでしょうか。<b
+                data-dl-uid="89"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >書き込み操作</b
+              >の間、プロセッサはRWピンを<b
+                data-dl-uid="90"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >High</b
+              >（論理1）に設定します。プロセッサは<b
+                data-dl-uid="91"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >IO Control ラインを</b
+              >
+              <b data-dl-uid="92" data-dl-original="true" data-dl-translated="true">ロー</b>（論理
+              0）にリセットします。これにより、IOサブシステムはコマンドを無視し（IN/OUTポート命令ではないことを意味する）、むしろメモリコントローラのためのものであることが保証されます。その後、プロセッサは書き込み先のアドレスをアドレスバスに、書き込みデータをデータバスにコピーします。これらのラインはメモリコントローラに間接的に接続されているため、メモリコントローラは書き込み操作であることを認識することができる。そこで、メモリコントローラは、アドレスバス上のメモリアドレスをデマルチプレクサ回路で変換して、使用するRAMチップを探し、リニアオフセットバイトをRAMチップのメモリスペースに書き込むだけでよいのです。次に、メモリコントローラは、データバスからこの位置にデータをコピーし、次のクロック信号でメモリの状態を更新します。
+            </p>
+            <p data-dl-uid="93" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="94" data-dl-original="true" data-dl-translated="true">読み出し動作では</b
+              >、書き込み動作とほぼ同じ処理が行われます。ただし、<b
+                data-dl-uid="95"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >RWラインは</b
+              >読み出し動作を示すために<b
+                data-dl-uid="96"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >Lowに</b
+              >セットされます。また、メモリコントローラは、メモリアドレスをRAMチップのオフセットに変換した後、その場所に格納されているデータをコピーして、プロセッサのデータバスに配置します。その後、メモリコントローラは次のクロック信号でメモリ状態をリフレッシュします。
+            </p>
+            <p data-dl-uid="97" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="98" data-dl-original="true" data-dl-translated="true">CLK</b
+              >信号は、読み出しと書き込みによるアドレスとデータ値の交換を同期させるために使用されます。
+              メモリチップとの通信は、CLKラインが論理1（ハイ）になると開始されます。
+              CLKラインがハイに保たれている間、アドレスはアドレス線に置かれ、R/Wラインは書き込みの場合はハイ、読み込みの場合はローとなります。
+            </p>
+            <p data-dl-uid="99" data-dl-original="true" data-dl-translated="true">
+              実行中、プロセッサはメモリコントローラとの読み書きを実行するため、常にクロックラインをハイ／ローに切り替えています。
+            </p>
+            <p data-dl-uid="100" data-dl-original="true" data-dl-translated="true">
+              ページングを無効にしている間、TLB自体はまったく何もしません。メモリの読み書きの際には、TLBは全く使用されないことに注意してください。
+            </p>
+            <h2 data-dl-uid="101" data-dl-original="true" data-dl-translated="true">
+              物理メモリマネージャ
+            </h2>
+
+            ご存知のように、メモリの管理は非常に重要です。私たちのデータとコードはすべて同じ物理アドレス空間を共有しています。もし、より多くのデータやプログラムをロードして作業しようとするなら、それを可能にするために、何らかの方法でメモリを管理する方法を見つけなければなりません。
+            <p data-dl-uid="102" data-dl-original="true" data-dl-translated="true">
+              この段階で、カーネルはコンピュータのハードウェアとメモリのすべてを完全に制御することができます。これは素晴らしいことですが、同時に悪いことでもあります。カーネルはメモリのどの領域が現在使われているか、どの領域が空いているかを知る術がないのです。このため、プログラムの破損、データの破損、メモリがどのようにマッピングされているか分からない、トリプルフォルトやその他の例外エラーなど、問題が発生する可能性のないメモリを扱う方法は現実には存在しません。その結果、予期せぬ事態が発生する可能性があります。
+            </p>
+            <p data-dl-uid="103" data-dl-original="true" data-dl-translated="true">
+              このため、物理メモリを効果的に管理することは非常に重要です。もっと詳しく見てみましょう。
+            </p>
+            <h1 data-dl-uid="104" data-dl-original="true" data-dl-translated="true">メモリの検出</h1>
+
+            <h2 data-dl-uid="105" data-dl-original="true" data-dl-translated="true">概要</h2>
+
+            まず、コンピュータシステム内のRAMの量を調べる必要があります。これにはさまざまな方法があります。システムによっては、この方法が有効な場合もあれば、そうでない場合もあります。
+            <p data-dl-uid="106" data-dl-original="true" data-dl-translated="true">
+              メモリ量の取得はシステムに大きく依存する場合があります。具体的には、マザーボードのチップセットに依存します。初期化中にBIOSはメモリコントローラからメモリ情報を取得し、検出されたメモリで動作するようにチップセットを設定します。このため、<b
+                data-dl-uid="107"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >オペレーティングシステムは、システムBIOSを経由して、この情報を取得する必要が</b
+              >あります。でも、保護モードではBIOSを使えないんじゃなかったっけ？その通りです。その代わり、他の方法でこの情報を取得しなければなりません。ブートローダとか？
+            </p>
+            <p data-dl-uid="108" data-dl-original="true" data-dl-translated="true">
+              システム内のメモリ量を取得するためにできる他の方法があることを指摘しなければなりません。例えば、CMOS、PnP、SMBiosなどです。しかし、正しい量を得ることを保証する唯一の方法は、それを設定するデバイスからです。BIOSです。
+            </p>
+            <p data-dl-uid="109" data-dl-original="true" data-dl-translated="true">
+              最後に、すべてのPCは、追加可能なデバイス（メモリマップドハードウェアまたはBIOS
+              ROM）で使用するために、4GB未満のメモリ領域を持つ必要があります。
+              これを回避する方法については、後で少し見ていきますが、心配しないでください :)
+            </p>
+            <p data-dl-uid="110" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="111" data-dl-original="true" data-dl-translated="true"
+                >「ローメモリ」とは</b
+              >、<b data-dl-uid="112" data-dl-original="true" data-dl-translated="true"
+                >コンベンショナルメモリと</b
+              >呼ばれる1MB以下のメモリで、1MB以上のメモリは<b
+                data-dl-uid="113"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >エクステンドメモリと</b
+              >呼ばれます。
+            </p>
+            <p data-dl-uid="114" data-dl-original="true" data-dl-translated="true">
+              このことを念頭に置いて、私たちを助けてくれるいくつかの素晴らしいBios割り込みを見てみましょう...
+            </p>
+            <h2 data-dl-uid="115" data-dl-original="true" data-dl-translated="true">
+              Biosメモリサイズの取得
+            </h2>
+
+            以下のルーチンはすべて、このチュートリアルの最後にある、第2ステージのブートローダーのデモにある<b
+              data-dl-uid="116"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >memory.inc</b
+            >で見ることができます。
+            <h3 data-dl-uid="117" data-dl-original="true" data-dl-translated="true">
+              BIOS INT 0x12 - メモリサイズの取得（コンベンショナルメモリ）
+            </h3>
+
+            <b data-dl-uid="118" data-dl-original="true" data-dl-translated="true">戻る</b>
+            <p data-dl-uid="119" data-dl-original="true" data-dl-translated="true">
+              CF = 成功すればクリア<br
+                data-dl-uid="120"
+                data-dl-original="true"
+                data-dl-translated="true"
+              />
+              AX = 従来のメモリの KB 数<br
+                data-dl-uid="121"
+                data-dl-original="true"
+                data-dl-translated="true"
+              />
+              AH = エラー時の状態 (0x80:無効なコマンド、0x86) サポートされていない機能
+            </p>
+            <p data-dl-uid="122" data-dl-original="true" data-dl-translated="true">
+              これは最も簡単な方法です。この割り込みは、BIOSデータ領域（物理アドレス0x413のワード）にある値を返します。WORDサイズの値を返すので、0xFFFF（10進数で65535）までに制限されます。つまり、64KB以下のメモリしか検出できません。このため、64KB以上のメモリを搭載したシステムでは、正しいサイズが返されません。したがって、私はこの方法を使用しません。
+            </p>
+            <p data-dl-uid="123" data-dl-original="true" data-dl-translated="true">
+              この方法は、完全なメモリサイズを返さないかもしれませんが、すべてではないにしても、ほとんどすべてのPCで動作することが保証されている唯一の方法です。
+            </p>
+
+            <blockquote>
+              <pre><div class="code"> BiosGetMemorySize:
+	int	0x12
+	jc	.error
+	test	ax, ax		; if size=0
+	je	.error
+	cmp	ah, 0x86	;unsupported function
+	je	.error
+	cmp	ah, 0x80	;invalid command
+	je	.error
+	ret
+.error:
+	mov	ax, -1
+	ret</div></pre>
+            </blockquote>
+
+            <h3 data-dl-uid="127" data-dl-original="true" data-dl-translated="true">
+              BIOS INT 0x15 ファンクション 0x88 - 拡張メモリサイズ取得
+            </h3>
+
+            <b data-dl-uid="128" data-dl-original="true" data-dl-translated="true">戻る</b>
+            <p data-dl-uid="129" data-dl-original="true" data-dl-translated="true">
+              CF = 成功すればクリア<br
+                data-dl-uid="130"
+                data-dl-original="true"
+                data-dl-translated="true"
+              />
+              AX = 1MB 物理アドレスから始まる連続した KB 数<br
+                data-dl-uid="131"
+                data-dl-original="true"
+                data-dl-translated="true"
+              />
+              AH = エラー時の状態 (0x80:無効なコマンド; 0x86) 未対応の機能
+            </p>
+            <p data-dl-uid="132" data-dl-original="true" data-dl-translated="true">
+              この割り込みは、AXにあるKB拡張メモリの量を返します。16ビットのレジスタを使用するため、64MBまたは0xFFFFF（65535）を返すように制限されています。Windowsのバージョンによっては、この関数の代わりに15MBを返す場合があります。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">BiosGetExtendedMemorySize:
+	mov	ax, 0x88
+	int	0x15
+	jc	.error
+	test	ax, ax		; if size=0
+	je	.error
+	cmp	ah, 0x86	;unsupported function
+	je	.error
+	cmp	ah, 0x80	;invalid command
+	je	.error
+	ret
+.error:
+	mov	ax, -1
+	ret</div></pre>
+            </blockquote>
+
+            <h3 data-dl-uid="136" data-dl-original="true" data-dl-translated="true">
+              BIOS INT 0x15関数 0xE881 - 64MB以上のメモリサイズ取得 (32 Bit)
+            </h3>
+
+            <b data-dl-uid="137" data-dl-original="true" data-dl-translated="true">リターン</b>
+            <p data-dl-uid="138" data-dl-original="true" data-dl-translated="true">
+              CF = 成功すればクリア<br
+                data-dl-uid="139"
+                data-dl-original="true"
+                data-dl-translated="true"
+              />
+              EAX = 1MBから16MBまでの拡張メモリ(KB単位)<br
+                data-dl-uid="140"
+                data-dl-original="true"
+                data-dl-translated="true"
+              />
+              EBX = 16MB以上の拡張メモリ、64KBブロック単位<br
+                data-dl-uid="141"
+                data-dl-original="true"
+                data-dl-translated="true"
+              />
+              ECX = 1MBから16MBまでの構成されたメモリ、KB単位<br
+                data-dl-uid="142"
+                data-dl-original="true"
+                data-dl-translated="true"
+              />
+              EDX = 16MB以上の構成メモリ、64JBブロック単位<br
+                data-dl-uid="143"
+                data-dl-original="true"
+                data-dl-translated="true"
+              />
+            </p>
+            <p data-dl-uid="144" data-dl-original="true" data-dl-translated="true">
+              この割り込みは、拡張レジスタ（EAX/EBX/ECX/EDX）を使用する以外は、INT 0x15 Function 0xE801
+              と全く同じです。
+            </p>
+            <h3 data-dl-uid="145" data-dl-original="true" data-dl-translated="true">
+              BIOS INT 0x15 Function 0xE801 - Get Memory Size For &gt; 64 MB
+              Configuations（64ビット以上のメモリサイズの取得
+            </h3>
+
+            <b data-dl-uid="146" data-dl-original="true" data-dl-translated="true">戻り値</b>
+            <p data-dl-uid="147" data-dl-original="true" data-dl-translated="true">
+              CF = 成功すればクリア<br
+                data-dl-uid="148"
+                data-dl-original="true"
+                data-dl-translated="true"
+              />
+              EAX = 1MB から 16MB までの拡張メモリ、KB 単位<br
+                data-dl-uid="149"
+                data-dl-original="true"
+                data-dl-translated="true"
+              />
+              EBX = 16MB以上の拡張メモリ、64KBブロック単位<br
+                data-dl-uid="150"
+                data-dl-original="true"
+                data-dl-translated="true"
+              />
+              ECX = 1MBから16MBまでの構成されたメモリ、KB単位<br
+                data-dl-uid="151"
+                data-dl-original="true"
+                data-dl-translated="true"
+              />
+              EDX = 16MB以上の構成メモリ、64JBブロック単位<br
+                data-dl-uid="152"
+                data-dl-original="true"
+                data-dl-translated="true"
+              />
+            </p>
+            <p data-dl-uid="153" data-dl-original="true" data-dl-translated="true">
+              これは、私がよく使う方法です。この割り込みは、Windows NTとLinuxの両方で、INT 0x15 function
+              0xe820 がサポートされていない場合、メモリサイズを検出するために起動時に使用されます（Get
+              System Memory
+              Map）。これについては後ほど見ていきます。この方法は1994年頃からあるため、古いシステムではサポートされていない可能性があります。
+            </p>
+            <p data-dl-uid="154" data-dl-original="true" data-dl-translated="true">
+              Extended Memory」と「Configured
+              Memory」の値は、ほとんど同じです。BIOSによっては、EAXとEBX、またはECXとEDXのいずれかに結果を格納する場合があります。言い換えれば、あるBIOSはEAXとEBXを使用するが、ECXとEDXはそのままにしておくかもしれない。他のBIOSは全く逆のことをするかもしれません。標準化でヨロシク!:)あ、そうですか・・・すみません
+              ;)
+            </p>
+            <p data-dl-uid="155" data-dl-original="true" data-dl-translated="true">
+              この方法の典型的な使い方は、BIOSを呼び出す前に、まず汎用レジスタをすべてNULLにすることです。こうすることで、BIOSを呼び出した後、レジスタがNULLかどうかをテストし、どのレジスタのペアを使用すればよいかを知ることができます。EAX/EBXまたはECX/EDXです。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">;---------------------------------------------
+;	Get memory size for &gt;64M configuations
+;	ret\ ax=KB between 1MB and 16MB
+;	ret\ bx=number of 64K blocks above 16MB
+;	ret\ bx=0 and ax= -1 on error
+;---------------------------------------------
+ 
+BiosGetMemorySize64MB:
+	push	ecx
+	push	edx
+	xor	ecx, ecx		;clear all registers. This is needed for testing later
+	xor	edx, edx
+	mov	ax, 0xe801
+	int	0x15	
+	jc	.error
+	cmp	ah, 0x86		;unsupported function
+	je	.error
+	cmp	ah, 0x80		;invalid command
+	je	.error
+	jcxz	.use_ax			;bios may have stored it in ax,bx or cx,dx. test if cx is 0
+	mov	ax, cx			;its not, so it should contain mem size; store it
+	mov	bx, dx
+ 
+.use_ax:
+	pop	edx			;mem size is in ax and bx already, return it
+	pop	ecx
+	ret
+ 
+.error:
+	mov	ax, -1
+	mov	bx, 0
+	pop	edx
+	pop	ecx
+	ret</div></pre>
+            </blockquote>
+
+            このルーチンが返すものに注目してください。システム内のKBの量を得るためには、いくつかの計算をする必要があります。EBXには、64KBのメモリブロックの数が入っています。これを64倍すれば、EBXの値が16MB以上のKBの量に実質的に変換されます。1メガバイトが1024キロバイトなので、これに1024を足せば、システム全体のキロバイト数になるわけだ。
+            <h3 data-dl-uid="159" data-dl-original="true" data-dl-translated="true">
+              メモリを手動で調査する
+            </h3>
+
+            手動でメモリを調べるとは、メモリに直接アクセスしてポインタから手動でメモリを検出することです。
+            この方法は、すべてのメモリを検出できる可能性がありますが、最も危険な方法でもあります。私たちの知らないところで、メモリの領域を別の用途に使っているデバイスがあるかもしれないことを忘れないでください。また、メモリマップドデバイス、ROM
+            BIOS、その他メモリを使用するデバイスがあるかもしれません。
+            また、物理アドレス空間内のメモリホールも考慮していません。
+            <p data-dl-uid="160" data-dl-original="true" data-dl-translated="true">
+              メモリを直接調べることは、存在しないメモリに読み書きしても何も起こらないことに由来しています。つまり、存在しない物理メモリアドレスに書き込んでも、エラーは発生しません。しかし、その同じ場所から再び読み出そうとすると、返ってくる値はデータバスに残された、完全にランダムなゴミかもしれない。
+            </p>
+            <p data-dl-uid="161" data-dl-original="true" data-dl-translated="true">
+              このように、メモリを調べるには、1k（またはそれくらい）ごとにループに入ればよいのです。ポインタを使用して、メモリ位置の読み取りと書き込みを行います。ポインタから読み出された値が無効な値を含むまで、ポインタをインクリメントし続ける（したがって、メモリの別の場所から読み出す）。
+            </p>
+            <p data-dl-uid="162" data-dl-original="true" data-dl-translated="true">
+              このメソッドのデモコードを少し作るかもしれませんが、問題が多いので、おそらく使うことはないでしょう。しかし、この方法は最も危険な方法であり、予測できない結果を引き起こす可能性があるため、私はこの方法を含めることにしました。自己責任で使用してください。
+            </p>
+            <h2 data-dl-uid="163" data-dl-original="true" data-dl-translated="true">
+              メモリーマップの取得
+            </h2>
+
+            よっしゃー!これで、システム内のメモリ量が判明しました。しかし、このメモリがすべて利用できるわけではありません。
+            <p data-dl-uid="164" data-dl-original="true" data-dl-translated="true">
+              ここで、<b data-dl-uid="165" data-dl-original="true" data-dl-translated="true"
+                >メモリーマップの</b
+              >出番です。メモリマップは、メモリのどの領域が何に使われるかを定義します。これを使って、どの領域が安全に使えるかを知ることもできます。
+            </p>
+            <h3 data-dl-uid="166" data-dl-original="true" data-dl-translated="true">
+              BIOS INT 0x15関数 0xE820 - メモリマップの取得
+            </h3>
+            <b data-dl-uid="167" data-dl-original="true" data-dl-translated="true">入力</b>
+            <p data-dl-uid="168" data-dl-original="true" data-dl-translated="true">
+              EAX = 0x0000E820<br data-dl-uid="169" data-dl-original="true" data-dl-translated="true" />
+              EBX = マップの先頭で開始するための継続値または0<br
+                data-dl-uid="170"
+                data-dl-original="true"
+                data-dl-translated="true"
+              />
+              ECX = 結果のバッファサイズ (&gt;= 20バイトでなければならない)<br
+                data-dl-uid="171"
+                data-dl-original="true"
+                data-dl-translated="true"
+              />
+              EDX = 0x534D4150h ('SMAP')<br
+                data-dl-uid="172"
+                data-dl-original="true"
+                data-dl-translated="true"
+              />
+              ES:DI = 結果を格納するバッファ
+            </p>
+            <p data-dl-uid="173" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="174" data-dl-original="true" data-dl-translated="true">戻り値</b>
+            </p>
+            <p data-dl-uid="175" data-dl-original="true" data-dl-translated="true">
+              CF = 成功したらクリア<br
+                data-dl-uid="176"
+                data-dl-original="true"
+                data-dl-translated="true"
+              />
+              EAX = 0x534D4150h ('SMAP')<br
+                data-dl-uid="177"
+                data-dl-original="true"
+                data-dl-translated="true"
+              />
+              EBX = コピー元の次のエントリのオフセット、または完了した場合は0<br
+                data-dl-uid="178"
+                data-dl-original="true"
+                data-dl-translated="true"
+              />
+              ECX = 実際に返される長さ(バイト)<br
+                data-dl-uid="179"
+                data-dl-original="true"
+                data-dl-translated="true"
+              />
+              ES:DI = バッファが満たされた<br
+                data-dl-uid="180"
+                data-dl-original="true"
+                data-dl-translated="true"
+              />
+              エラーの場合、AHはエラーコードを含む
+            </p>
+            <p data-dl-uid="181" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="182" data-dl-original="true" data-dl-translated="true"
+                >アドレス範囲記述子</b
+              >
+            </p>
+            <p data-dl-uid="183" data-dl-original="true" data-dl-translated="true">
+              この割り込みが使用するバッファは、以下のフォーマットに従ったディスクリプタの配列として使用します。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">struc	MemoryMapEntry
+	.baseAddress	resq	1	; base address of address range
+	.length		resq	1	; length of address range in bytes
+	.type		resd	1	; type of address range
+	.acpi_null	resd	1	; reserved
+endstruc</div></pre>
+            </blockquote>
+
+            <b data-dl-uid="187" data-dl-original="true" data-dl-translated="true">アドレス空間の種類</b>
+            <p data-dl-uid="188" data-dl-original="true" data-dl-translated="true">
+              この関数で定義されるアドレス範囲の種類を以下に示す。
+            </p>
+            <ul data-dl-uid="189" data-dl-original="true" data-dl-translated="true">
+              <li data-dl-uid="190" data-dl-original="true" data-dl-translated="true">
+                1: 利用可能なメモリ
+              </li>
+              <li data-dl-uid="191" data-dl-original="true" data-dl-translated="true">
+                2: 予約済み、使用不可。(例:システムROM、メモリマップドデバイス)
+              </li>
+              <li data-dl-uid="192" data-dl-original="true" data-dl-translated="true">
+                3: ACPI Reclaim Memory (ACPIテーブルを読み込んだ後、OSが使用可能なメモリ)
+              </li>
+              <li data-dl-uid="193" data-dl-original="true" data-dl-translated="true">
+                4: ACPI NVS Memory (OSはNVSセッションの間にこのメモリを保存することが必要です)
+              </li>
+              <li data-dl-uid="194" data-dl-original="true" data-dl-translated="true">
+                それ以外の値は未定義として扱う必要があります。
+              </li>
+            </ul>
+
+            <b data-dl-uid="195" data-dl-original="true" data-dl-translated="true">メモリマップの取得</b>
+            <p data-dl-uid="196" data-dl-original="true" data-dl-translated="true">
+              この割り込みは少し複雑に見えるかもしれませんが、それほど悪くはありません。
+            </p>
+            <p data-dl-uid="197" data-dl-original="true" data-dl-translated="true">
+              まず、この割り込みが必要とする<b
+                data-dl-uid="198"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >入力を見て</b
+              >みましょう。もちろん、AXには関数番号（0xe820）を入れています。しかし、BIOSによっては、EAXの上半分を0にする<b
+                data-dl-uid="199"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >必要が</b
+              >あります。このため、ここではAXの代わりにEAXを使用する必要があります。
+            </p>
+            <p data-dl-uid="200" data-dl-original="true" data-dl-translated="true">
+              また、EDXには'SMAP'の値を入れなければならないことに注意してください。BIOSによっては、割り込みを呼び出した後、このレジスタをゴミ箱に捨ててしまうことがあります。
+            </p>
+            <p data-dl-uid="202" data-dl-original="true" data-dl-translated="true">
+              なるほど...この割り込みを実行すると、BIOSはメモリマップの1つのエントリを返します（このエントリにはフォーマットがあります。
+              上記の<b data-dl-uid="203" data-dl-original="true" data-dl-translated="true"
+                >Address Range Descriptorを</b
+              >参照してください）。もし、割り込みをかけた後、EBXが0でなければ、メモリマップにもっと多くのエントリがあることになります。
+              マップの各エントリに対してループする必要があります。エントリの長さが0であれば、そのエントリには何もないのでスキップし、リストの次のエントリに進み、最後に到達します。
+            </p>
+            <p data-dl-uid="204" data-dl-original="true" data-dl-translated="true">
+              このルーチンは、上で定義した MemoryMapEntry
+              構造体を使用して、バイオから取得したエントリから情報を取得します。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">;---------------------------------------------
+;	Get memory map from bios
+;	/in es:di-&gt;destination buffer for entries
+;	/ret bp=entry count
+;---------------------------------------------
+ 
+BiosGetMemoryMap:
+	pushad
+	xor	ebx, ebx
+	xor	bp, bp			; number of entries stored here
+	mov	edx, 'PAMS'		; 'SMAP'
+	mov	eax, 0xe820
+	mov	ecx, 24			; memory map entry struct is 24 bytes
+	int	0x15			; get first entry
+	jc	.error	
+	cmp	eax, 'PAMS'		; bios returns SMAP in eax
+	jne	.error
+	test	ebx, ebx		; if ebx=0 then list is one entry long; bail out
+	je	.error
+	jmp	.start
+.next_entry:
+	mov	edx, 'PAMS'		; some bios's trash this register
+	mov	ecx, 24			; entry is 24 bytes
+	mov	eax, 0xe820
+	int	0x15			; get next entry
+.start:
+	jcxz	.skip_entry		; if actual returned bytes is 0, skip entry
+.notext:
+	mov	ecx, [es:di + MemoryMapEntry.length]	; get length (low dword)
+	test	ecx, ecx		; if length is 0 skip it
+	jne	short .good_entry
+	mov	ecx, [es:di + MemoryMapEntry.length + 4]; get length (upper dword)
+	jecxz	.skip_entry		; if length is 0 skip it
+.good_entry:
+	inc	bp			; increment entry count
+	add	di, 24			; point di to next entry in buffer
+.skip_entry:
+	cmp	ebx, 0			; if ebx return is 0, list is done
+	jne	.next_entry		; get next entry
+	jmp	.done
+.error:
+	stc
+.done:
+	popad
+	ret</div></pre>
+            </blockquote>
+
+            <h1 data-dl-uid="208" data-dl-original="true" data-dl-translated="true">マルチブート仕様</h1>
+
+            マルチブート仕様の解説をすぐにするつもりはありません。しかし、ブートローダ内のBIOSから取得した情報をカーネルに渡す方法が必要です。これはどのような方法でも可能です。マルチブート仕様では、標準的なブートタイムの情報構造を定義していますし、私たちがマルチブート仕様を完全にサポートするかどうかは分かりません。
+            <p data-dl-uid="209" data-dl-original="true" data-dl-translated="true">
+              また、他のブートローダ(GRUBなど)を使うことにした場合、そのローダでカーネルを起動させることも可能です。
+            </p>
+            <p data-dl-uid="210" data-dl-original="true" data-dl-translated="true">
+              とにかく、仕様全体がかなり大きいので、メモリ管理に関するチュートリアルでカバーするのは良いアイデアではありません;)。そこで、必要な情報を渡すために使えるよう、十分な内容を説明します。
+            </p>
+            <h2 data-dl-uid="211" data-dl-original="true" data-dl-translated="true">概要</h2>
+
+            マルチブート仕様とは、OSカーネルをロードして実行するためのブートローダーの規格を記述するために使用される規格の一覧です。この仕様では、オペレーティングシステムが制御を開始する前にマシンが置かなければならない標準的な状態が記述されているため、複数のオペレーティングシステムを簡単に起動できるようになります。<b
+              data-dl-uid="212"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >また、ブートローダからカーネルにどのように、どのような情報を渡すかも含まれています。</b
+            >
+            <p data-dl-uid="213" data-dl-original="true" data-dl-translated="true">
+              今すぐマルチブート仕様のすべてをカバーするつもりはありません。しかし、カーネルが実行されたときにマシンの状態がどうなっていなければならないかについては見ていきます。また、ブートローダからカーネルに渡される情報を格納した<b
+                data-dl-uid="214"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >マルチブート情報</b
+              >構造体についても少し見ていきます。また、この構造体を使ってブートローダのメモリ情報も渡します。
+            </p>
+
+            <h3 data-dl-uid="215" data-dl-original="true" data-dl-translated="true">マシンの状態</h3>
+
+            マルチブート仕様では、32ビットオペレーティングシステムを起動する（つまり、カーネルを実行する）とき、マシンのレジスタを特定の状態に設定しなければならないとしています。具体的には<b
+              data-dl-uid="216"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >カーネルを実行するときに、レジスタを以下の値に設定する。</b
+            >
+
+            <ul data-dl-uid="217" data-dl-original="true" data-dl-translated="true">
+              <li data-dl-uid="218" data-dl-original="true" data-dl-translated="true">
+                EAX - マジックナンバー。<b
+                  data-dl-uid="219"
+                  data-dl-original="true"
+                  data-dl-translated="true"
+                  >0x2BADB002</b
+                >でなければならない。これは、ブートローダがマルチブート標準であることをカーネルに示すものです。
+              </li>
+              <li data-dl-uid="220" data-dl-original="true" data-dl-translated="true">
+                EBX -<b data-dl-uid="221" data-dl-original="true" data-dl-translated="true"
+                  >マルチブート情報構造</b
+                >体の物理アドレスが格納されています。
+              </li>
+              <li data-dl-uid="222" data-dl-original="true" data-dl-translated="true">
+                CS -
+                32ビットの読み取り/実行コードセグメントで、オフセットは`0'、リミットは`0xFFFFFF'でなければなりません。正確な値は未定義です。
+              </li>
+              <li data-dl-uid="223" data-dl-original="true" data-dl-translated="true">
+                DS,ES,FS,GS,SS - オフセットが `0' で、リミットが `0xFFFFFFFF'
+                の32ビット読み書き可能なデータセグメントである必要があります。正確な値はすべて未定義です。
+              </li>
+              <li data-dl-uid="224" data-dl-original="true" data-dl-translated="true">
+                A20ゲートが有効でなければなりません
+              </li>
+              <li data-dl-uid="225" data-dl-original="true" data-dl-translated="true">
+                CR0 - Bit 31 (PG) ビットはクリアされなければならず (ページング無効)、Bit 0 (PE)
+                ビットは設定されなければなりません (プロテクトモード有効)。その他のビットは未定義
+              </li>
+            </ul>
+
+            それ以外のレジスタは未定義です。このほとんどは、既存のブートローダで既に行われています。追加しなければならないのは、EAXレジスタとEBXの2つだけです。
+            <p data-dl-uid="226" data-dl-original="true" data-dl-translated="true">
+              私たちにとって最も重要なものはEBXに格納されています。これは、マルチブート情報構造体の物理アドレスが格納されます。<i
+                data-dl-uid="227"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >それでは見てみましょう。</i
+              >
+            </p>
+            <h3 data-dl-uid="228" data-dl-original="true" data-dl-translated="true">
+              マルチブート情報構造体
+            </h3>
+
+            これはおそらく、マルチブート仕様に含まれる最も重要な構造体の1つです。この構造体の情報は、EBXレジスタからカーネルに渡されます。<b
+              data-dl-uid="229"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >これにより、ブートローダがカーネルに情報を渡す標準的な方法が</b
+            >実現します。
+            <p data-dl-uid="230" data-dl-original="true" data-dl-translated="true">
+              これはかなり大きな構造体ですが、それほど悪くはありません。これらのメンバーすべてが必要なわけではありません。仕様では、オペレーティングシステムは、構造体のどのメンバーが存在し、何が存在しないかを決定するために、flagsメンバーを使用する必要があると述べています。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">struc multiboot_info
+	.flags		resd	1	; required
+	.memoryLo	resd	1	; memory size. Present if flags[0] is set
+	.memoryHi	resd	1
+	.bootDevice	resd	1	; boot device. Present if flags[1] is set
+	.cmdLine	resd	1	; kernel command line. Present if flags[2] is set
+	.mods_count	resd	1	; number of modules loaded along with kernel. present if flags[3] is set
+	.mods_addr	resd	1
+	.syms0		resd	1	; symbol table info. present if flags[4] or flags[5] is set
+	.syms1		resd	1
+	.syms2		resd	1
+	.mmap_length	resd	1	; memory map. Present if flags[6] is set
+	.mmap_addr	resd	1
+	.drives_length	resd	1	; phys address of first drive structure. present if flags[7] is set
+	.drives_addr	resd	1
+	.config_table	resd	1	; ROM configuation table. present if flags[8] is set
+	.bootloader_name resd	1	; Bootloader name. present if flags[9] is set
+	.apm_table	resd	1	; advanced power management (apm) table. present if flags[10] is set
+	.vbe_control_info resd	1	; video bios extension (vbe). present if flags[11] is set
+	.vbe_mode_info	resd	1
+	.vbe_mode	resw	1
+	.vbe_interface_seg resw	1
+	.vbe_interface_off resw	1
+	.vbe_interface_len resw	1
+endstruc</div></pre>
+            </blockquote>
+
+            この構造体には多くの情報が含まれています。<b
+              data-dl-uid="234"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >memLoと</b
+            >
+            <b data-dl-uid="235" data-dl-original="true" data-dl-translated="true">memHiは</b
+            >、BIOSから検出したメモリ量です。<b
+              data-dl-uid="236"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >mmap_lengthと</b
+            >
+            <b data-dl-uid="237" data-dl-original="true" data-dl-translated="true">mmap_addrは</b
+            >、BIOSから取得したメモリマップを指します。
+            <p data-dl-uid="238" data-dl-original="true" data-dl-translated="true">
+              これで完了です。これで、カーネルにメモリ情報(と、それ以上)を渡す良い方法ができました。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">	mov	eax, 0x2BADB002		; multiboot specs say eax should be this
+	mov	ebx, 0
+	mov	edx, [ImageSize]
+ 
+	push	dword boot_info
+	call	ebp               	; Execute Kernel
+	add	esp, 4
+ 
+    	cli
+	hlt</div></pre>
+            </blockquote>
+
+            ...そして、カーネル内部です。
+
+            <blockquote>
+              <pre><div class="code">//! kernel entry point is called by boot loader
+void __cdecl  kernel_entry (multiboot_info* bootinfo) {
+ 
+	//*snip*
+}</div></pre>
+            </blockquote>
+
+            カーネルの multiboot_info
+            構造体は上に示したものと同じですが、C言語で書かれています。この設定のおかげで、カーネルがすべきことは<b
+              data-dl-uid="245"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >bootinfo</b
+            >
+            を通してメモリ情報 (とブートローダから渡された情報)
+            にアクセスするだけになりました。クールでしょう？
+            <p data-dl-uid="246" data-dl-original="true" data-dl-translated="true">
+              これで、Biosからメモリ情報を取得してカーネルに渡したので、カーネルはそれを物理メモリマネージャに使用できるようになりました。そうです、いよいよ物理メモリマネージャの開発です。
+            </p>
+            <h1 data-dl-uid="247" data-dl-original="true" data-dl-translated="true">物理メモリ管理</h1>
+
+            私たちはすでに多くのことをカバーしていると思いませんか?BIOS
+            からメモリ情報を取得する方法と、その情報をカーネルに渡すためにマルチブート情報構造体を使う方法について見てきました。
+            これにより、カーネルはいつでもメモリ情報を取得することができるようになりました。しかし、まだ最も重要なトピックを扱っていません。このメモリを<b
+              data-dl-uid="248"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >管理</b
+            >することです。もっと詳しく見てみましょう。
+            <h2 data-dl-uid="249" data-dl-original="true" data-dl-translated="true">メモリ管理概要</h2>
+
+            さて、メモリを管理する方法が必要なことはわかりました。そのためには、もちろん、メモリがどのように使用されているかを追跡する方法が必要です。しかし、メモリ内のすべてのバイトを管理することは不可能です。メモリが足りなくなることなく、すべてのバイトの情報を記憶することは不可能です。だから、別の方法を考えなければならない。
+            <p data-dl-uid="250" data-dl-original="true" data-dl-translated="true">
+              メモリの残りを管理するデータ構造は、メモリの総容量よりも小さくする必要があります。例えば、バイトの配列を使うことができます。各バイトには、より大きなメモリブロックの情報を格納することができます。これは、メモリ不足にならないように保証する唯一の方法です。
+            </p>
+            <p data-dl-uid="251" data-dl-original="true" data-dl-translated="true">
+              メモリの「ブロック」の大きさは、実現可能で効率的な大きさでなければなりません。この方法で、物理アドレス空間を「ブロック」サイズのチャンクに分割することができます。メモリを割り当てるときは、バイト単位ではなく、ブロック単位で割り当てます。これが、<b
+                data-dl-uid="252"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >物理メモリマネージャ</b
+              >の役割です。
+            </p>
+            <p data-dl-uid="253" data-dl-original="true" data-dl-translated="true">
+              物理メモリ・マネージャの目的は、コンピュータの物理アドレス空間をブロック・サイズのメモリ・チャンクに分割し、それらを割り当てたり解放したりする方法を提供することです。
+            </p>
+            <p data-dl-uid="254" data-dl-original="true" data-dl-translated="true">
+              x86アーキテクチャでは、ページングが有効な場合、各ページは4KBのメモリブロックを表します。このため、シンプルにするために、物理メモリマネージャの各メモリブロックも4KBのサイズにします。
+            </p>
+            <h2 data-dl-uid="255" data-dl-original="true" data-dl-translated="true">設定する</h2>
+
+            さて、物理メモリ・マネージャが重要であることはわかった。物理メモリ・マネージャは物理アドレス空間を分割し、どのメモリ・ブロックが使用中か使用可能かを追跡する必要があることも分かっています。しかし、ちょっと待ってください。カーネルはメモリを管理するためのメモリ領域を必要とします。メモリを割り当てる前に、どのようにしてメモリの領域を確保すればよいのでしょうか？
+            <p data-dl-uid="256" data-dl-original="true" data-dl-translated="true">
+              私たちはできません。このため、唯一の方法は、メモリ内の場所へのポインタを使用することです。この場所は、BIOS、Bios
+              Data Area (BDA)
+              やカーネルと同じように、単に予約されたメモリだと考えてください。私たちはこれを予約されたメモリのどこかに貼り付けたいのですが、カーネルの最後ではどうでしょうか？その後、この領域（カーネル自身と一緒に）をデータ構造内で予約されたものとしてマークし、何も触れないようにすることができます。
+            </p>
+            <p data-dl-uid="257" data-dl-original="true" data-dl-translated="true">
+              素晴らしい!これで、メモリ内のある場所へのポインタができたので、メモリ内の各ブロックを追跡するために必要な情報を格納することができます。でも...<i
+                data-dl-uid="258"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >どうやって？</i
+              >つまり、ポインタしかないのです。このポインタが指すデータは、メモリの領域を有効に利用するために、何らかの利用しやすい構造になっている必要があります。では、物理メモリを管理する構造体を作るにはどうしたらよいのでしょうか？
+            </p>
+            <p data-dl-uid="259" data-dl-original="true" data-dl-translated="true">
+              これには2つの一般的な解決策がある。スタックとビットマップです。
+            </p>
+            <h3 data-dl-uid="260" data-dl-original="true" data-dl-translated="true">
+              スタックベースのアロケーション
+            </h3>
+
+            <h3 data-dl-uid="261" data-dl-original="true" data-dl-translated="true">
+              ビットマップアロケーション
+            </h3>
+
+            これは最も簡単な実装です。物理メモリ・マネージャが知る必要があるのは、メモリ・ブロックが割り当てられたかどうかだけです。割り当て済みであれば、バイナリビット1を使用することができます。割り当てられていない場合は、バイナリビット0を使用します。つまり、メモリ内のすべてのブロックに対して、割り当て済みかどうかを1つのビットで表現するのです。これが、今回使用する方法です。しかし、物理メモリマネージャは、他の方法（スタックベースのアプローチのような）も可能なように設計されています。
+            <p data-dl-uid="262" data-dl-original="true" data-dl-translated="true">
+              ビットマップ方式は、サイズ的に非常に効率的です。各ビットはメモリのブロックを表すので、このビットマップ方式では32ビットが32ブロックに相当します。32ビットは4バイトですから、4バイトのメモリで32ブロックのメモリを監視できることになります。
+            </p>
+            <p data-dl-uid="263" data-dl-original="true" data-dl-translated="true">
+              しかし、この方法では、メモリブロックを確保するたびに、ビットマップから空きブロック（最初のビットが0）を探す必要があるため、少し時間がかかります。
+            </p>
+            <h2 data-dl-uid="264" data-dl-original="true" data-dl-translated="true">
+              物理メモリマネージャ(PMM)の開発
+            </h2>
+
+            今度のデモコードでは、物理メモリマネージャー全体は<b
+              data-dl-uid="265"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >mmngr_phys.h</b
+            >と<b data-dl-uid="266" data-dl-original="true" data-dl-translated="true">mmngr_phys.cpp</b>
+            にあります。また、ブートローダからカーネルにどのようにメモリ情報が渡されるのか、カーネルがどのように
+            PMM
+            を初期化するのかを見るために、更新された第2ステージのブートローダを勉強するのにも役立つかもしれません。
+            <h3 data-dl-uid="267" data-dl-original="true" data-dl-translated="true">グローバルと定数</h3>
+
+            お気づきのように、私は「マジックナンバー」が好きではありません;)このため、これらの数値はすべて読みやすい定数の後ろに隠す傾向があります。
+
+            <blockquote>
+              <pre><div class="code">//! 8 blocks per byte
+#define PMMNGR_BLOCKS_PER_BYTE 8
+ 
+//! block size (4k)
+#define PMMNGR_BLOCK_SIZE	4096
+ 
+//! block alignment
+#define PMMNGR_BLOCK_ALIGN	PMMNGR_BLOCK_SIZE</div></pre>
+            </blockquote>
+
+            これらは単にコードの可読性を高めるためです。PMM は<b
+              data-dl-uid="271"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >メモリブロックと</b
+            >呼ばれる抽象化されたものを作成します。メモリブロックは 4096
+            バイト（4K）の大きさです。これはページングを有効にしたときのページのサイズでもあり、重要です。
+            <p data-dl-uid="272" data-dl-original="true" data-dl-translated="true">
+              また、すべてを把握するためのグローバルもいくつか定義されています。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">//! size of physical memory
+static	uint32_t	_mmngr_memory_size=0;
+ 
+//! number of blocks currently in use
+static	uint32_t	_mmngr_used_blocks=0;
+ 
+//! maximum number of available memory blocks
+static	uint32_t	_mmngr_max_blocks=0;
+ 
+//! memory map bit array. Each bit represents a memory block
+static	uint32_t*	_mmngr_memory_map= 0;</div></pre>
+            </blockquote>
+
+            これらのうち最も重要なのは<b
+              data-dl-uid="276"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >_mmngr_memory_map</b
+            >です。これは、すべての物理メモリを追跡するために使用するビットマップ構造体へのポインタです。<b
+              data-dl-uid="277"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >_mmngr_max_blocks</b
+            >には、使用可能なメモリーブロックの量が格納されています。これは、物理メモリのサイズ（ブートローダからBIOSから取得）をPMMNGR_BLOCK_SIZEで割ったものです。これは本質的に物理アドレス空間をメモリブロックに分割します（以前からこれを覚えていますか？）<b
+              data-dl-uid="278"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >_mmngr_used_blocksは</b
+            >現在使用中のブロックの量、<b
+              data-dl-uid="279"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >_mmngr_memory_sizeは</b
+            >参照用で、物理メモリの量（KB）を含んでいます。
+            <h3 data-dl-uid="280" data-dl-original="true" data-dl-translated="true">
+              メモリビットマップ
+            </h3>
+
+            それじゃ！<b data-dl-uid="281" data-dl-original="true" data-dl-translated="true"
+              >mmngr_memory_mapは</b
+            >uint32_tへのポインタですよね？もちろん、そうです。
+            むしろ、「一連のビットへのポインタ」と考えるべきでしょう。
+            各ビットは、そのブロックが未割り当て（使用可能）なら0、予約済み（使用中）なら1です。
+            この配列のビット数は<b data-dl-uid="282" data-dl-original="true" data-dl-translated="true"
+              >_mmngr_max_blocks</b
+            >です。つまり、各ビットが1つのメモリブロックを表し、それが4KBの物理メモリとなります。
+            <p data-dl-uid="283" data-dl-original="true" data-dl-translated="true">
+              これで、ビットの設定と解除、そしてビットが設定されているかどうかのテストができるようになりました。では、見てみましょう。
+            </p>
+            <p data-dl-uid="284" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="285" data-dl-original="true" data-dl-translated="true"
+                >mmap_set () - ビットマップのビットを設定する</b
+              >
+            </p>
+            <p data-dl-uid="286" data-dl-original="true" data-dl-translated="true">
+              私たちがやりたいことは、メモリマップを int
+              の配列ではなく、ビットの配列として考える方法を提供することです。これはそれほど難しいことではありません。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">inline void mmap_set (int bit) {
+ 
+  _mmngr_memory_map[bit / 32] |= (1 &lt;&lt; (bit % 32));
+}</div></pre>
+            </blockquote>
+
+            ビットは0〜xの値で、xはメモリマップに設定したいビットです。
+            ビットを32で割ると、そのビットがある_mmngr_memory_mapの整数のインデックスが得られます。
+            <p data-dl-uid="290" data-dl-original="true" data-dl-translated="true">
+              このルーチンを使用するには、設定したいビットを渡して呼び出すだけでよい。mmp_set(62)
+              は、メモリマップのビット配列の62番目のビットを設定します。
+            </p>
+            <p data-dl-uid="291" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="292" data-dl-original="true" data-dl-translated="true"
+                >mmap_unset () - ビットマップのビットをアンセットする</b
+              >
+            </p>
+            <p data-dl-uid="293" data-dl-original="true" data-dl-translated="true">
+              これは上記のルーチンに非常に似ていますが、代わりにビットをクリアします。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">inline void mmap_unset (int bit) {
+ 
+  _mmngr_memory_map[bit / 32] &amp;= ~ (1 &lt;&lt; (bit % 32));
+}</div></pre>
+            </blockquote>
+
+            <p data-dl-uid="297" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="298" data-dl-original="true" data-dl-translated="true"
+                >mmap_test () - ビットが設定されているかどうかをテストする。</b
+              >
+            </p>
+            <p data-dl-uid="299" data-dl-original="true" data-dl-translated="true">
+              このルーチンは、ビットが1であれば真を、0であれば偽を返すだけです。これは上記のルーチンと非常に似ていますが、ビットを設定する代わりに、それをマスクとして使用し、その値を返します。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">inline bool mmap_test (int bit) {
+ 
+ return _mmngr_memory_map[bit / 32] &amp;  (1 &lt;&lt; (bit % 32));
+}</div></pre>
+            </blockquote>
+
+            以上です。さて、ビットマップ内のビットをセット、アンセット、テストする方法ができたので、ビットマップ内の空きビットを検索する方法が必要です。これらは、使用可能な空きメモリブロックを見つけるために使用されます。
+            <p data-dl-uid="303" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="304" data-dl-original="true" data-dl-translated="true"
+                >mmap_first_free () - ビットマップの最初の空きビットのインデックスを返す。</b
+              >
+            </p>
+            <p data-dl-uid="305" data-dl-original="true" data-dl-translated="true">
+              このルーチンは少し複雑です。メモリビットマップ内のビットをセット、クリア、テストする方法があります。
+              メモリブロックを割り当てたいとします。どうやって空いているメモリブロックを見つけるのでしょうか？ビットマップのおかげで、セットされていないビットを探すためにビットマップを走査するだけでよいのです。これはそれほど複雑ではありません。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">int mmap_first_free () {
+ 
+	//! find the first free bit
+	for (uint32_t i=0; i&lt; pmmngr_get_block_count() / 32; i++)
+		if (_mmngr_memory_map[i] != 0xffffffff)
+			for (int j=0; j&lt;32; j++) {		//! test each bit in the dword
+ 
+				int bit = 1 &lt;&lt; j;
+				if (! (_mmngr_memory_map[i] &amp; bit) )
+					return i*4*8+j;
+			}
+ 
+	return -1;
+}</div></pre>
+            </blockquote>
+
+            <b data-dl-uid="309" data-dl-original="true" data-dl-translated="true"
+              >pmmngr_get_block_count()</b
+            >はこのシステムのメモリブロックの最大数を返します
+            (これはビット配列のビット数でもあることを覚えていますか?) これを 32 (1dword あたり 32 ビット)
+            で割ると、このビットマップ内の整数の量が得られます。つまり一番外側のループは、配列の各整数を単純にループしています。
+            <p data-dl-uid="310" data-dl-original="true" data-dl-translated="true">
+              次にドワードがすべてセットされているかどうかをテストします。ビット単位ではなくワード単位でループさせることで、より効率的かつ高速に処理することができます。0xffffffffでないことを確認してテストしています。そうでない場合は、ビットをクリアする必要があります。その後、そのドワードの各ビットを調べて空きビットを見つけ、その物理フレームアドレスを返すだけです。
+            </p>
+            <p data-dl-uid="311" data-dl-original="true" data-dl-translated="true">
+              物理メモリマネージャはこのルーチンの別のバージョンを含んでいます--<b
+                data-dl-uid="312"
+                data-dl-original="true"
+                data-dl-translated="true"
+              >
+                mmap_first_free_s()</b
+              >は、特定のサイズのフレームの最初の空き系列のインデックスを返します。これにより、単一のブロックではなく、特定の領域のメモリブロックが解放されていることを確認することができます。このルーチンは少しトリッキーです。もし読者がこのコードを理解できない場合は、このチュートリアルでより詳細に説明したいと思います。
+            </p>
+            <h3 data-dl-uid="313" data-dl-original="true" data-dl-translated="true">
+              物理メモリの割り当て
+            </h3>
+
+            これでメモリを管理する方法ができました。ちょっと、何？そうなんです。この方法は、ビットマップの各ビットが4KBの物理メモリを表していることを思い出せばいいのです。もし最初のメモリブロック（最初の4k）を割り当てたいなら、ビット0を設定するだけです。2番目の4kを割り当てたい場合は、ビット1を設定するだけです。
+            これは、メモリの終わりまで続きます。これにより、4kブロックのメモリで作業するだけでなく、どのメモリが現在使用中か、予約済みか（ビットは1）、使用可能か（ビット0）を知ることができる。これらはすべて、上記の3つのルーチンとビットマップ配列によって提供されています。かっこいいでしょう？
+            <p data-dl-uid="314" data-dl-original="true" data-dl-translated="true">
+              あとは実際のアロケーションとデアロケーションのルーチンが必要です。しかし、その前に、ビットマップ領域をBIOSメモリマップのものに初期化する必要があります。さらにその前に、カーネルが物理メモリマネージャが使用する情報を提供する方法を提供する必要があります。
+              見てみましょう...
+            </p>
+            <p data-dl-uid="315" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="316" data-dl-original="true" data-dl-translated="true"
+                >pmmngr_init () - 物理メモリマネージャを初期化する</b
+              >
+            </p>
+            <p data-dl-uid="317" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="318" data-dl-original="true" data-dl-translated="true">memSize</b>は PMM
+              がアクセスできる最大メモリ量です。これは、ブートローダからカーネルに渡されるKB単位のRAMサイズであるべきです。<b
+                data-dl-uid="319"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >bitmapは</b
+              >、PMMがそのメモリビットマップ構造体に使用する場所です。もう一つ重要なことは、memset()コールを使ってどのようにメモリビットマップのすべてのビットをセットしているかです。これには理由があり、近日中に説明します。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">void	pmmngr_init (size_t memSize, physical_addr bitmap) {
+ 
+	_mmngr_memory_size	=	memSize;
+	_mmngr_memory_map	=	(uint32_t*) bitmap;
+	_mmngr_max_blocks	=	(pmmngr_get_memory_size()*1024) / PMMNGR_BLOCK_SIZE;
+	_mmngr_used_blocks	=	pmmngr_get_block_count();
+ 
+	//! By default, all of memory is in use
+	memset (_mmngr_memory_map, 0xf, pmmngr_get_block_count() / PMMNGR_BLOCKS_PER_BYTE );
+}</div></pre>
+            </blockquote>
+
+            <p data-dl-uid="323" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="324" data-dl-original="true" data-dl-translated="true"
+                >pmmngr_init_region () - 使用するメモリ領域を初期化します。</b
+              >
+            </p>
+            <p data-dl-uid="325" data-dl-original="true" data-dl-translated="true">
+              メモリマップを覚えていますか？どのメモリ領域が安全に動作するかは、カーネルだけが知っています。このため、デフォルトでは、すべてのメモリが使用されています。カーネルはカーネルからメモリマップを取得し、このルーチンを使って私たちが使用できるメモリ領域を初期化します。
+            </p>
+            <p data-dl-uid="326" data-dl-original="true" data-dl-translated="true">
+              このルーチンは非常にシンプルです。このルーチンは、どの程度のメモリブロックを設定するかを見つけ出し、メモリビットマップ内の適切なビットをクリアしてループするだけです。これにより、アロケーションルーチンは、メモリのこれらの自由な領域を再び使用することができます。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">void	pmmngr_init_region (physical_addr base, size_t size) {
+ 
+	int align = base / PMMNGR_BLOCK_SIZE;
+	int blocks = size / PMMNGR_BLOCK_SIZE;
+ 
+	for (; blocks&gt;0; blocks--) {
+		mmap_unset (align++);
+		_mmngr_used_blocks--;
+	}
+ 
+	mmap_set (0);	//first block is always set. This insures allocs cant be 0
+}</div></pre>
+            </blockquote>
+
+            最後にmmap_set()を呼び出していることに注目してください。PMM
+            では、最初のメモリブロックは常にセットされます。 これにより、PMM
+            はアロケーションエラーに対して NULL
+            ポインタを返すことができるようになります。これはまた、割り込みベクターテーブル(IVT)とBiosデータエリア(BDA)を含む、メモリの最初の64KB内で定義されたデータ構造が上書きされたり触れられたりしないことを保証しています。
+            <p data-dl-uid="330" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="331" data-dl-original="true" data-dl-translated="true"
+                >pmmngr_deinit_region () - 使用するメモリ領域を非初期化する。</b
+              >
+            </p>
+            <p data-dl-uid="332" data-dl-original="true" data-dl-translated="true">
+              このルーチンは上記のルーチンに似ていますが、ビットをクリアするのではなく、ビットをセットします。ビットが2進数の1になるため、ビットが表す4KBのメモリ・ブロックは実質的に予約に設定され、このルーチンが呼ばれたときにメモリのその領域は決して触れないようにします。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">void	pmmngr_deinit_region (physical_addr base, size_t size) {
+ 
+	int align = base / PMMNGR_BLOCK_SIZE;
+	int blocks = size / PMMNGR_BLOCK_SIZE;
+ 
+	for (; blocks&gt;0; blocks--) {
+		mmap_set (align++);
+		_mmngr_used_blocks++;
+	}
+}</div></pre>
+            </blockquote>
+
+            うぉーーーーこれで、使用するメモリ領域を初期化および非初期化する方法と、PMM
+            を初期化する方法がわかったので、次はブロックの割り当てと割り当て解除に取りかかることができます!
+            <p data-dl-uid="336" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="337" data-dl-original="true" data-dl-translated="true"
+                >pmmngr_alloc_block () および pmmngr_alloc_blocks () -
+                物理メモリブロックを1つ割り当てる</b
+              >
+            </p>
+            <p data-dl-uid="338" data-dl-original="true" data-dl-translated="true">
+              メモリブロックを確保するのは非常に簡単です。物理メモリはすべてすでに存在しており、あとは空きメモリブロックへのポインタを返せばよいのです。<b
+                data-dl-uid="339"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >mmap_first_free()</b
+              >ルーチンを使ってビットマップを調べれば、空きメモリブロックを見つけることができます。また、<b
+                data-dl-uid="340"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >mmap_</b
+              >
+              <b data-dl-uid="341" data-dl-original="true" data-dl-translated="true">first_frame()</b
+              >から返された同じフレームを設定するために<b data-dl-uid="340" data-dl-translated="true"
+                >mmap_set</b
+              >を呼び出していることに注意してください。
+              これは、割り当てられたばかりのメモリブロックが今「使用中」であることを示すものです。このルーチンは、割り当てられたばかりの4KBの物理メモリにvoid*を返します。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">void*	pmmngr_alloc_block () {
+ 
+	if (pmmngr_get_free_block_count() &lt;= 0)
+		return 0;	//out of memory
+ 
+	int frame = mmap_first_free ();
+ 
+	if (frame == -1)
+		return 0;	//out of memory
+ 
+	mmap_set (frame);
+ 
+	physical_addr addr = frame * PMMNGR_BLOCK_SIZE;
+	_mmngr_used_blocks++;
+ 
+	return (void*)addr;
+}</div></pre>
+            </blockquote>
+
+            PMM はもうひとつの割り当てルーチンである<b
+              data-dl-uid="345"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >pmmngr_alloc_blocks()</b
+            >
+            も含んでいます。このルーチンは上記のルーチンとほとんど同じなので、このチュートリアルでは紙面の関係で割愛することにしました。このルーチンは、単一のブロックではなく、連続した量のブロックを割り当てる方法を提供します。
+            <p data-dl-uid="346" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="347" data-dl-original="true" data-dl-translated="true"
+                >pmmngr_free_block () および pmmngr_free_blocks () - 物理メモリブロックを解放する</b
+              >
+            </p>
+            <p data-dl-uid="348" data-dl-original="true" data-dl-translated="true">
+              さて、これで物理メモリブロックを確保する方法ができました。次に、メモリが不足しないように、これらのメモリブロックを解放する方法が必要です。これはあまりにも簡単です。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">void	pmmngr_free_block (void* p) {
+ 
+	physical_addr addr = (physical_addr)p;
+	int frame = addr / PMMNGR_BLOCK_SIZE;
+ 
+	mmap_unset (frame);
+ 
+	_mmngr_used_blocks--;
+}</div></pre>
+            </blockquote>
+
+            <b data-dl-uid="352" data-dl-original="true" data-dl-translated="true"
+              >pmmngr_free_blocks()</b
+            >はほとんど同じように動作しますが、<b
+              data-dl-uid="353"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >pmmngr_alloc_blocks()</b
+            >と組み合わせて使用し、単一ブロックではなく、ブロックの連続した量を解放するために使用されます。
+
+            <h1 data-dl-uid="367" data-dl-original="true" data-dl-translated="true">まとめ</h1>
+
+            このチュートリアルは、悪くないと思いませんか？
+            <p data-dl-uid="368" data-dl-original="true" data-dl-translated="true">
+              物理メモリとは何か、どのように機能するのか、物理アドレス空間とアドレッシングモードについて理解しました。また、BIOS
+              からメモリ情報を取得し、カーネルに渡す方法と、物理メモリマネージャの開発についても見てき
+              ました。
+            </p>
+            <p data-dl-uid="369" data-dl-original="true" data-dl-translated="true">
+              これで物理メモリブロックの割り当てと解放ができるようになりました。これは素晴らしいことですが、まだいくつかの問題があります。つまり、ファイルやプログラムをロードする場合、物理メモリ・マネージャを使ってファイルやプログラムに十分な大きさのメモリ領域を確保すればいいのです。しかし......もし、十分な大きさの領域がなかったらどうするか？この場合、ロードするプログラムは、カーネルがロードする特定のアドレスにリンクされていなければなりません。
+            </p>
+            <p data-dl-uid="370" data-dl-original="true" data-dl-translated="true">
+              そこで登場するのが、仮想メモリとページングです。次のチュートリアルでは、ページングと仮想メモリについて見ていきます。4GB
+              のアドレス空間全体をどのようにマッピングし、制御するかを学びます。仮想アドレッシングとは何なのか、そしてそれを使って上記の問題を解決する方法と、それ以上のことを見ていきます。それではまた。
+            </p>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </body>
+</html>
