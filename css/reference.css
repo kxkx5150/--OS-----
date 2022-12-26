@@ -93,6 +93,10 @@ DD {
   color: #000000;
   font-family: Verdana;
 }
+a {
+  text-decoration: none;
+}
+
 .tblhdr {
   font-weight: bold;
   font-size: 10pt;
@@ -147,45 +151,4 @@ H3 {
   color: #800040;
   font-family: Verdana;
   margin: 24px 4px;
-}
-A:link {
-  color: #666699;
-  text-decoration: underline;
-}
-A:visited {
-  color: #666699;
-  text-decoration: underline;
-}
-A:active {
-  color: #000000;
-  text-decoration: none;
-}
-A:hover {
-  color: #aaaadd;
-  text-decoration: none;
-}
-
-.anchor {
-  text-decoaration: none;
-}
-
-.anchor:link {
-  text-decoration: none;
-  color: ##00983e;
-  font-weight: normal;
-}
-.anchor:visited {
-  text-decoration: none;
-  color: ##00983e;
-  font-weight: normal;
-}
-.anchor:hover {
-  text-decoration: none;
-  color: ##00983e;
-  font-weight: normal;
-}
-.anchor:active {
-  text-decoration: none;
-  color: ##00983e;
-  font-weight: normal;
 }
