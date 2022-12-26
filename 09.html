@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Cache-Control" content="no-cache" />
+    <title></title>
+    <link href="css/reference.css" rel="stylesheet" />
+  </head>
+  <body>
+    <table cellspacing="0" cellpadding="3" width="80%" border="0">
+      <tbody>
+        <tr>
+          <td class="tblhdr">Operating Systems Development Series</td>
+        </tr>
+        <tr>
+          <td align="middle" colspan="2"></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <table cellspacing="0" cellpadding="5" width="100%" border="0">
+      <tbody>
+        <tr>
+          <td>
+            <!-- Title -->
+
+            <div>
+              <span class="title">Kernel: Basic Concepts Part 2</span>
+
+              <br />
+              <span class="author">by Mike, 2008, 2009</span>
+            </div>
+
+            <h1 data-dl-uid="7" data-dl-original="true" data-dl-translated="true">はじめに</h1>
+            ようこそ!:)
+            <p data-dl-uid="8" data-dl-original="true" data-dl-translated="true">
+              前回のチュートリアルで、多くの概念を取り上げました。このチュートリアルでは、これらの概念を引き続き見ていきます。
+              このチュートリアルでは、非常に重要な概念をたくさん見ていくことになります。今日のメニューは以下の通りです。
+            </p>
+            <ul data-dl-uid="9" data-dl-original="true" data-dl-translated="true">
+              <li data-dl-uid="10" data-dl-original="true" data-dl-translated="true">
+                ハードウェアの抽象化
+              </li>
+              <li data-dl-uid="11" data-dl-original="true" data-dl-translated="true">
+                カーネル新しい視点
+              </li>
+              <li data-dl-uid="12" data-dl-original="true" data-dl-translated="true">
+                カーネル設計抽象化：主要な設計モデル
+              </li>
+              <li data-dl-uid="13" data-dl-original="true" data-dl-translated="true">
+                カーネルのデザイン概要: 二次設計モデル
+              </li>
+            </ul>
+
+            このチュートリアルでは、ブートローダとカーネル設計の初歩の間の接着剤について説明します。このチュートリアルは、カーネルが本当は何なのか、そして私たちが何をする必要があるのかを理解するために、すべてをまとめる接着剤となるでしょう。
+            <p data-dl-uid="14" data-dl-original="true" data-dl-translated="true">
+              ここで挙げたすべてのコンセプトは、次の数回のチュートリアルで非常に重要なものとなります。
+            </p>
+            <p data-dl-uid="15" data-dl-original="true" data-dl-translated="true">
+              それでは、快適なシートでくつろぎながら、もうひとつの楽しいチュートリアルを見てみましょう!そうそう、このチュートリアルはそんなに大きくないのがいいところです
+              :)
+            </p>
+
+            <p data-dl-uid="19" data-dl-original="true" data-dl-translated="true">
+              <i data-dl-uid="20" data-dl-original="true" data-dl-translated="true"
+                >エキソカーネルについて説明するセクションを追加する予定です。これは本当に新しいカーネル設計の概念です。このシリーズでこの設計を実装する予定はありませんが、読者はこのカーネル設計に興味を持つかもしれないと感じています。もしかしたら、この設計を自分のOSで使うかもしれません。</i
+              >
+            </p>
+            <p data-dl-uid="21" data-dl-original="true" data-dl-translated="true">
+              <i data-dl-uid="22" data-dl-original="true" data-dl-translated="true"
+                >準備はいいですか？</i
+              >
+            </p>
+
+            <h1 data-dl-uid="23" data-dl-original="true" data-dl-translated="true">
+              ハードウェアの抽象化
+            </h1>
+
+            ハードウェアの抽象化は非常に重要です。ここまでで、ハードウェアプログラミングがいかに複雑か、そしていかにハードウェアに依存しているか、おわかりいただけたと思います。そこで登場するのが、<b
+              data-dl-uid="24"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >HAL（Hardware Abstraction Layer</b
+            >）です。
+            <p data-dl-uid="25" data-dl-original="true" data-dl-translated="true">
+              HALは、物理的なハードウェアへのインタフェースを提供するために使われるソフトウェアの抽象化レイヤーです。特定のデバイスやコントローラの詳細を知らなくても、デバイスと対話できる方法を提供する抽象化レイヤーです。
+            </p>
+            <p data-dl-uid="26" data-dl-original="true" data-dl-translated="true">
+              通常、最近のOSでは、HALは基本的な<b
+                data-dl-uid="27"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >マザーボードのチップセットドライバ</b
+              >である。これは、カーネルと、プロセッサを含むマシンのハードウェアとの間の基本的なインターフェイスを提供します。これは、カーネルがハードウェアにアクセスする必要があるときにいつでもHALと対話することができるので、素晴らしいことです。これはまた、カーネルが完全にハードウェアから独立できることを意味する。
+            </p>
+            <p data-dl-uid="28" data-dl-original="true" data-dl-translated="true">
+              また、特定のコントローラやマッピングではなく、デバイスそのもので考えることができます。これは、カーネル自体をよりクリーンにすることにもつながります。
+            </p>
+            <p data-dl-uid="29" data-dl-original="true" data-dl-translated="true">
+              もう一つの大きなメリットは、抽象化そのものにあります。もし、私たちのOSを異なるハードウェアを搭載したシステムに移植することになった場合、必要なのはそのシステム用に新しいHALを開発することだけです。これは、HALがこれを可能にするように非常にうまく設計されていることが前提です。
+            </p>
+            <p data-dl-uid="30" data-dl-original="true" data-dl-translated="true">
+              最近のOSのほとんどは、何らかの形でHALを利用しています。私たちはまた、チップセットのハードウェアとカーネルの間で、マザーボードのチップセットドライバとして機能するHALを開発する予定です。次のチュートリアルでは、HAL
+              の背後にあるプロセッサ自体を抽象化し、HAL の開発を開始する予定です。
+            </p>
+
+            <h1 data-dl-uid="31" data-dl-original="true" data-dl-translated="true">
+              カーネル新しい視点
+            </h1>
+
+            では、Kernelとはいったい何なのでしょうか。KernelはJohn N. Shutt (Serously ;)
+            によって開発されたSchemeライクなプログラミング言語です。）
+            <p data-dl-uid="32" data-dl-original="true" data-dl-translated="true">
+              ともかく、別の定義を見てみましょう。カーネル」とは、システムの中心的な構成要素です。カーネルはシステムの中核であり、システムの効率的な実行を管理するための非常に基本的な機能を提供するものです。
+            </p>
+            <p data-dl-uid="33" data-dl-original="true" data-dl-translated="true">
+              オペレーティングシステムでは、この強力なカーネルが、システムのハードウェアとリソースに対する最も基本的なインターフェースを提供し、プロセッサ管理、I/O管理、メモリ管理、プロセス管理などの最も基本的な管理機能も提供します。カーネルは、開発するシステムの複雑さに応じて、より多くの機能を含むことができます。
+            </p>
+
+            <p data-dl-uid="36" data-dl-original="true" data-dl-translated="true">
+              よりよく理解するために、もう少し詳しく見てみましょう。
+            </p>
+            <h2 data-dl-uid="37" data-dl-original="true" data-dl-translated="true">
+              カーネル。すべてを統合する
+            </h2>
+
+            <h3 data-dl-uid="38" data-dl-original="true" data-dl-translated="true">メモリ管理</h3>
+
+            <p data-dl-uid="40" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="41" data-dl-original="true" data-dl-translated="true"
+                >メモリ管理とは、以下のようなものです。</b
+              >
+            </p>
+            <ul data-dl-uid="42" data-dl-original="true" data-dl-translated="true">
+              <li data-dl-uid="43" data-dl-original="true" data-dl-translated="true">
+                メモリを要求するプログラムに対して、動的にメモリを与えたり、使ったりすること。
+              </li>
+              <li data-dl-uid="44" data-dl-original="true" data-dl-translated="true">
+                ページングや仮想メモリを実装する。
+              </li>
+              <li data-dl-uid="45" data-dl-original="true" data-dl-translated="true">
+                OSカーネルが未知のメモリや無効なメモリに読み書きしないようにすること。
+              </li>
+              <li data-dl-uid="46" data-dl-original="true" data-dl-translated="true">
+                メモリフラグメンテーションの監視と処理
+              </li>
+            </ul>
+
+            <b data-dl-uid="47" data-dl-original="true" data-dl-translated="true"
+              >メモリ保護とは、以下のようなものです。</b
+            >
+            <ul data-dl-uid="48" data-dl-original="true" data-dl-translated="true">
+              <li data-dl-uid="49" data-dl-original="true" data-dl-translated="true">
+                プロテクトモードでの無効なディスクリプタへのアクセス（あるいは無効なセグメントアドレスへのアクセス）
+              </li>
+              <li data-dl-uid="50" data-dl-original="true" data-dl-translated="true">
+                プログラム自体の上書き
+              </li>
+              <li data-dl-uid="51" data-dl-original="true" data-dl-translated="true">
+                メモリ上の他のファイルの一部または全部を書き換える。
+              </li>
+            </ul>
+
+            <p data-dl-uid="54" data-dl-original="true" data-dl-translated="true">
+              カーネルはリング0で動作しているため、メモリ内のすべてのバイトを直接制御できることを忘れないでください。
+              また、これはすべて物理メモリ上で直接動作していることを忘れないでください。もし、メモリが足りなくなったらどうなるのでしょうか？存在しないメモリに書き込んだらどうなるのでしょう？ハードウェアデバイスが使用するメモリロケーションはどうなるのか？また、メモリ上に存在する「隙間」にも触れません。
+            </p>
+            <p data-dl-uid="55" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="56" data-dl-original="true" data-dl-translated="true"
+                >警告。物理メモリにランダムに書き込むと、（書き込む場所にもよりますが）誤動作を引き起こしたり、（そのメモリ領域を使用しているハードウェアデバイスによっては）システムが起動できなくなり、全く使い物にならなくなる可能性があります。(BIOSのデータ領域に書き込むと、その領域によっては誤動作を起こす可能性があります。</b
+              >
+            </p>
+            <p data-dl-uid="57" data-dl-original="true" data-dl-translated="true">
+              このようなことを考えると、物理メモリを適切に管理することがいかに重要であるかがわかると思います。
+            </p>
+            <p data-dl-uid="58" data-dl-original="true" data-dl-translated="true">
+              物理メモリを適切に管理するKernelは、アプリケーションとメモリとの間に仮想的なインタフェースを作ることができます。これは、<b
+                data-dl-uid="59"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ユーザースペースと</b
+              >
+              <b data-dl-uid="60" data-dl-original="true" data-dl-translated="true">カーネルスペースの</b
+              >コードとデータを分離することと、<b
+                data-dl-uid="61"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >Virtual Addressingによって</b
+              >実現されます。
+            </p>
+            <p data-dl-uid="62" data-dl-original="true" data-dl-translated="true">
+              物理メモリで直接実行することには多くの問題があるため、より良い方法でメモリをエミュレートすることができます。メモリエミュレーション（仮想メモリ）は、物理RAMよりもはるかに多くのメモリを持つシステムをエミュレートすることができ、各アプリケーションは独自の仮想メモリアドレス空間を使用します。
+            </p>
+            <h3 data-dl-uid="63" data-dl-original="true" data-dl-translated="true">プロセッサー管理</h3>
+
+            これは新しいものです。ご存知のように、BIOS
+            ROMはプライマリ・プロセッサを初期化し、起動させます。シングルコアしか起動しません。
+            もし、ミューティコアプロセッサを搭載したシステム、またはマルチプロセッサを搭載したシステムでOSを起動している場合は、他のプロセッサやコアを手動で起動させる必要があります。
+            <p data-dl-uid="64" data-dl-original="true" data-dl-translated="true">
+              アプリケーションにいつでも異なるプロセッサを使わせると、システムの致命的な問題を引き起こす可能性があります。このため、アプリケーションにこのような機能を持たせてはいけません。
+            </p>
+            <h3 data-dl-uid="65" data-dl-original="true" data-dl-translated="true">I/Oデバイス管理</h3>
+
+            物理メモリと同様に、アプリケーションがコントローラのポートやレジスタに直接アクセスすると、コントローラが誤動作したり、システムがクラッシュしたりする可能性があります。このため、デバイスの複雑さによっては、プログラミングが驚くほど複雑になり、数種類のコントローラを使用するデバイスもあります。このため、デバイスを管理するための抽象的なインタフェースを提供することが重要です。
+            このインタフェースは通常、<b
+              data-dl-uid="66"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >デバイスドライバ</b
+            >または<b data-dl-uid="67" data-dl-original="true" data-dl-translated="true"
+              >ハードウェア抽象化レイヤによって</b
+            >行われます。これによって、デバイスの詳細ではなく、デバイスの観点から考えることができるようになります。
+            <p data-dl-uid="68" data-dl-original="true" data-dl-translated="true">
+              頻繁に、アプリケーションはこれらのデバイスへのアクセスを必要とします。カーネルは、何らかの方法でシステムに問い合わせることで、これらのデバイスのリストを管理しなければなりません。アプリケーションがデバイスに対する操作を要求すると（例えば、文字を表示するなど）、カーネルはこの要求を現在アクティブなビデオドライバに送信する必要があります。ビデオドライバは、この要求を実行する必要があります。これは、<b
+                data-dl-uid="69"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >プロセス間通信（IPC</b
+              >）の例です。
+            </p>
+            <h3 data-dl-uid="70" data-dl-original="true" data-dl-translated="true">プロセス管理</h3>
+
+            これが「カーネル」の最も重要な仕事であり、あらゆるコンピュータの仕事でもある。カーネルは、実行時間を割り当て、異なるアプリケーションやプロセスを実行・管理する方法を必要とします。
+
+            <p data-dl-uid="73" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="74" data-dl-original="true" data-dl-translated="true"
+                >プログラム管理は次のような役割を担っています。</b
+              >
+            </p>
+            <ul data-dl-uid="75" data-dl-original="true" data-dl-translated="true">
+              <li data-dl-uid="76" data-dl-original="true" data-dl-translated="true">
+                プログラムが他のプログラムの上に書き込まれないようにする。
+              </li>
+              <li data-dl-uid="77" data-dl-original="true" data-dl-translated="true">
+                プログラムが他のプログラムを上書きしないようにする。
+              </li>
+              <li data-dl-uid="78" data-dl-original="true" data-dl-translated="true">
+                プログラムからのタスク完了の要求（メモリの確保や解放など）を処理する。
+              </li>
+            </ul>
+
+            <b data-dl-uid="79" data-dl-original="true" data-dl-translated="true"
+              >マルチタスクとは、以下のことを指します。</b
+            >
+            <ul data-dl-uid="80" data-dl-original="true" data-dl-translated="true">
+              <li data-dl-uid="81" data-dl-original="true" data-dl-translated="true">
+                複数のプログラムを切り替えて、一定の時間枠で実行させる。
+              </li>
+              <li data-dl-uid="82" data-dl-original="true" data-dl-translated="true">
+                スイッチングを可能にするタスクマネージャを提供する（Windowsタスクマネージャなど）。
+              </li>
+              <li data-dl-uid="83" data-dl-original="true" data-dl-translated="true">
+                TSS (Task State Segment) スイッチング。これも新語
+              </li>
+              <li data-dl-uid="84" data-dl-original="true" data-dl-translated="true">
+                複数のプログラムを同時に実行すること。
+              </li>
+            </ul>
+
+            アプリケーションを実行するために、カーネルはアプリケーション独自の<b
+              data-dl-uid="85"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >仮想アドレス空間（VAS</b
+            >）を設定し、VASにファイルをロードする必要があります。カーネルは次にアプリケーションのスタックを設定し、実行を開始するためにそれにジャンプします。
+            <p data-dl-uid="86" data-dl-original="true" data-dl-translated="true">
+              Virtual Addressingによって、アプリケーションがシステムメモリの問題に直面しないようにする。
+            </p>
+            <p data-dl-uid="87" data-dl-original="true" data-dl-translated="true">
+              マルチタスクシステムでは、タスクマネージャが各プロセスに一定の時間を割り当て、その時間内にのみ実行させる。そして、実行中のアプリケーションを切り替えていきます。このとき、割り当てられる時間が短いため、タスクマネージャは実行中のプロセスをすばやく切り替えることができ、複数のプロセスが同時に動作しているように見せかけることができます。
+            </p>
+            <p data-dl-uid="88" data-dl-original="true" data-dl-translated="true">
+              これは、ハードウェアまたはソフトウェアで行うことができます。プロセッサは、<b
+                data-dl-uid="89"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >TSS（Task State Segment）</b
+              >レジスタを使用してハードウェアのタスク切り替えをサポートしています。
+            </p>
+            <h3 data-dl-uid="90" data-dl-original="true" data-dl-translated="true">システムAPI</h3>
+
+            <p data-dl-uid="92" data-dl-original="true" data-dl-translated="true">
+              アプリケーションはどのようにしてデバイスやシステムリソースへのリクエストをカーネルに要求するのでしょうか？これまでOSがアプリケーションを管理・制御する方法について見てきましたが、アプリケーションはどのようにシステムを制御するのでしょうか。
+            </p>
+            <p data-dl-uid="93" data-dl-original="true" data-dl-translated="true">
+              そこで登場するのが、システムのAPI（<b
+                data-dl-uid="94"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >Application Programming Interface</b
+              >）です。システムAPIは、アプリケーションがカーネルや他のシステムソフトウェアと対話するために使用するAPIです。
+            </p>
+            <p data-dl-uid="95" data-dl-original="true" data-dl-translated="true">
+              システムAPIを作成するための方法はたくさんあります。ほとんどのシステムは、割り込みを通じてシステムAPIルーチンをサポートしています。例えば、LinuxカーネルのシステムAPIは主にシステムルーチンのために割り込み番号0x80を使用します。
+            </p>
+            <h3 data-dl-uid="96" data-dl-original="true" data-dl-translated="true">まとめ</h3>
+
+            うわー、すごい量ですね。まだ理解できなくても心配しないでください。すぐに理解できるようになりますから
+            :)
+
+            <h1 data-dl-uid="97" data-dl-original="true" data-dl-translated="true">
+              カーネル設計 - 概要: 主な設計モデル
+            </h1>
+
+            ここまで来ると、カーネルがいかに重要か、そしてカーネルがどこに位置するのかが分かってくるかもしれません。
+            <p data-dl-uid="98" data-dl-original="true" data-dl-translated="true">
+              これまで多くのオペレーティングシステムが、多くの異なる設計とセットアップを用いて開発されてきました。これらの設計の多くは、いくつかの類似した基本的な概念を持っています。
+            </p>
+            <p data-dl-uid="99" data-dl-original="true" data-dl-translated="true">
+              カーネルを構築する方法は実にさまざまです。ここでは、より使用される設計のいくつかを見ていきます。
+            </p>
+            <h2 data-dl-uid="100" data-dl-original="true" data-dl-translated="true">
+              モノリシックカーネル設計
+            </h2>
+
+            <center>
+              <img src="./09_files/Monolithic.jpg" />
+              <p>
+                <i data-dl-uid="104" data-dl-translated="true"
+                  >Monolithic Kernelでは、すべてのシステムプロセスがRing
+                  0でKernelの一部として実行されます</i
+                >
+              </p>
+            </center>
+
+            最初の部分--「Mono」は「1つ」という意味だ。2つ目の「lithic」は「石の、石のような」という意味です。
+            <p data-dl-uid="105" data-dl-original="true" data-dl-translated="true">
+              Monolithicカーネルでは、全体のカーネルは、リング0のカーネル空間で実行されます。また、システムAPIを介して基本的なシステムコールのセットを提供します。
+            </p>
+            <p data-dl-uid="106" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="107" data-dl-original="true" data-dl-translated="true"
+                >モノリシックカーネルでは、（すべてではないにしても）ほとんどのカーネルサービスは、カーネル自体の一部です。</b
+              >これは、各サービスが互いに独立できないことを意味するものではありません。しかし、ソフトウェアはカーネルの残りの部分と非常に緊密に統合されています。このため、モノリシックカーネルは他の設計と比較して非常に高速で効率的です。
+            </p>
+            <p data-dl-uid="108" data-dl-original="true" data-dl-translated="true">
+              OSのサービスはすべてカーネルの一部として（あるいはカーネルの拡張として）カーネル空間で実行されるため、デバイスドライバやシステムサービスプログラムに問題があると、システム全体がクラッシュする可能性があります。
+            </p>
+            <p data-dl-uid="109" data-dl-original="true" data-dl-translated="true">
+              アプリケーションがシステムサービスを要求する場合、System
+              APIを通じてシステムコールを実行します。
+            </p>
+
+            <h3>Examples</h3>
+
+            いくつかの大規模なオペレーティングシステムはハイブリッドカーネルを使用していますが、これらに限定されるものではありません。
+
+            <ul>
+              <li>Unix-like kernels</li>
+              <ul>
+                <li>Linux</li>
+                <li>Syllable</li>
+                <li>Unix kernels</li>
+                <ul>
+                  <li>BSD</li>
+                  <ul>
+                    <li>FreeBSD</li>
+                    <li>NetBSD</li>
+                  </ul>
+                </ul>
+                <li>Solaris</li>
+                <li>AI</li>
+              </ul>
+              <li>DOS</li>
+              <ul>
+                <li>DR-DOS</li>
+                <li>MS-DOS</li>
+                <ul>
+                  <li>Microsoft Windows 9x series (95, 98, Windows 98SE, Me)</li>
+                </ul>
+              </ul>
+              <li>Mac OS kernel, up to Mac OS 8.6</li>
+              <li>OpenVMS</li>
+              <li>XTS-400</li>
+            </ul>
+
+            <h2 data-dl-uid="133" data-dl-original="true" data-dl-translated="true">
+              マイクロカーネルの設計
+            </h2>
+            <center>
+              <img src="./09_files/Microkernel.jpg" />
+              <p>
+                <i data-dl-uid="137" data-dl-original="true" data-dl-translated="true"
+                  >マイクロカーネル設計では、カーネルはユーザーモードシステムサービスに必要な基本的な機能のみを提供します。</i
+                >
+              </p>
+            </center>
+
+            マイクロカーネルは、OSのサービスを全く提供せず、それらのサービスを実現するために必要なメカニズムだけを提供するカーネル設計です。
+            このため、カーネル自体は通常、モノリシックカーネルと比較して非常に小さくなっています。例えば、マイクロカーネルは、低レベルのメモリ管理、スレッド管理、プロセス間通信（IPC）などを実装することができます。
+            <p data-dl-uid="138" data-dl-original="true" data-dl-translated="true">
+              上の画像は、マイクロカーネルを表示しています。このカーネルは、基本中の基本のものしか実装していないことに注意してください。この場合、基本的なプロセス管理とスケジューリング、プロセス間通信（IPC）、および基本的な仮想メモリ管理を含意しています。
+            </p>
+            <p data-dl-uid="139" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="140" data-dl-original="true" data-dl-translated="true"
+                >カーネルは、（モノリシックカーネルと同様に）カーネルの一部として実装されたすべてのものではなく、デバイスドライバやファイルシステムなどの外部のusermodeサービスを使用</b
+              >します。このため、外部サービスがクラッシュしても、システムはまだ機能している可能性があり、システムはクラッシュしません。
+            </p>
+            <p data-dl-uid="141" data-dl-original="true" data-dl-translated="true">
+              IPC（Inter Process
+              Communication）とサーバーとデバイスドライバーを理解することは、マイクロカーネルの仕組みを理解する上で重要です。
+            </p>
+
+            <h3 data-dl-uid="142" data-dl-original="true" data-dl-translated="true">
+              マイクロカーネルサーバー
+            </h3>
+
+            マイクロカーネルの「サーバー」は、通常のプログラムが持っていない特別な権限をカーネルから付与された外部プログラムです。この「特権」は、ハードウェアや物理メモリへの直接アクセスであったりする。これにより、サーバープログラムは、制御しているハードウェアデバイスと直接対話することができるようになります。待って、デバイスドライバのように聞こえるけど、そうなの？基本的にはそういうものです。
+            <p data-dl-uid="143" data-dl-original="true" data-dl-translated="true">
+              マイクロカーネルは非常に最小限のものであることを忘れないでください。彼らは外部のプログラム、つまりサーバに依存しています。
+            </p>
+            <p data-dl-uid="144" data-dl-original="true" data-dl-translated="true">
+              カーネル自身が必要とするサーバーは、通常、カーネルが実行される前にメモリにロードされます。例えば、ファイルシステムサーバは、ファイルシステムをパースするためのコードを含んでいる必要があります。カーネルはファイルシステムのコードを持たないので、ファイルシステムサーバをロードする方法がないのです!このため、カーネルが実行される<b
+                data-dl-uid="145"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >前に</b
+              >、ファイルシステムサーバをロードする必要があります。
+            </p>
+            <p data-dl-uid="146" data-dl-original="true" data-dl-translated="true">
+              どうすればいいのでしょうか？いくつかの方法があります。ひとつは、カーネルとサポートされるサーバの両方を含む完全な
+              RAM
+              イメージをその中にロードする方法です。もう一つは、起動時にブートローダで必要なサーバをロードしておき、実行時に何らかの方法でサーバ情報をカーネルに与える方法です。どちらの場合も、ブートローダはどのファイルシステムローディングコードを使うかを決めることができますが、そのコードはそもそもロードする必要がなくファイルシステムサーバと対話することができます!クールでしょう？
+            </p>
+            <p data-dl-uid="147" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="148" data-dl-original="true" data-dl-translated="true"
+                ><i data-dl-uid="149" data-dl-original="true" data-dl-translated="true"
+                  >注意: 「サーバ」は「デーモン」とも呼ばれることがあります。</i
+                ></b
+              >
+            </p>
+            <h3 data-dl-uid="150" data-dl-original="true" data-dl-translated="true">
+              プロセス間通信(IPC)
+            </h3>
+
+            IPCはマイクロカーネルで非常に重要です。IPCは、別々のプロセスが互いに通信することを可能にします。通常はメッセージを送信しますが、共有メモリを使用することによっても可能です。
+            <p data-dl-uid="151" data-dl-original="true" data-dl-translated="true">
+              あるプロセスが他のプロセスに「シグナルを送る」方法はたくさんあります。マイクロカーネル・サーバーに関して言えば、最も一般的に使われているのは、最も理解しやすい方法の一つであるメッセージパッシングです。
+            </p>
+            <p data-dl-uid="152" data-dl-original="true" data-dl-translated="true">
+              IPCは、サーバとカーネルが相互に作用することを可能にします。
+            </p>
+            <p data-dl-uid="153" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="154" data-dl-original="true" data-dl-translated="true"
+                >同期型IPC（Synchronous IPC</b
+              >
+            </p>
+            <p data-dl-uid="155" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="156" data-dl-original="true" data-dl-translated="true">Synchronous IP</b
+              >Cでは、メッセージを送信したプロセスは、相手プロセスから応答があるまで中断されます。相手プロセスが忙しい場合、メッセージはキューに格納され、そのプロセスが準備ができ次第、対応できるようにする。
+            </p>
+            <p data-dl-uid="157" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="158" data-dl-original="true" data-dl-translated="true">非同期IPC</b>
+            </p>
+            <p data-dl-uid="159" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="160" data-dl-original="true" data-dl-translated="true">Synchronous IP</b
+              >Cに似ているが、両方のプロセスが実行され続ける。つまり、プロセスは中断されない。
+            </p>
+
+            <h1 data-dl-uid="161" data-dl-original="true" data-dl-translated="true">
+              カーネル設計 - 概要：二次設計モデル
+            </h1>
+            カーネルを設計する方法は無数にあることを忘れないでください。以下は、主要な設計モデル（モノリシックカーネルとマイクロカーネル）から派生した一般的な設計モデルです。
+            <h2 data-dl-uid="162" data-dl-original="true" data-dl-translated="true">
+              ハイブリッドカーネル
+            </h2>
+
+            <center>
+              <img src="./09_files/Hybrid.jpg" />
+              <p>
+                <i data-dl-uid="166" data-dl-original="true" data-dl-translated="true"
+                  >ハイブリッドカーネルは、マイクロカーネルにモノリシックカーネルの側面を取り入れたものです</i
+                >
+              </p>
+            </center>
+
+            。
+            <p data-dl-uid="167" data-dl-original="true" data-dl-translated="true">
+              ハイブリッドカーネルは、モノリシックカーネルとマイクロカーネル設計の両方の側面を組み合わせたカーネルです。
+            </p>
+            <p data-dl-uid="168" data-dl-original="true" data-dl-translated="true">
+              ハイブリッドカーネルは、通常、マイクロカーネルに似た構造を持っていますが、モノリシックカーネルとして実装されています。より良く理解するために、これを別の方法で見てみましょう。
+            </p>
+            <p data-dl-uid="169" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="170" data-dl-original="true" data-dl-translated="true"
+                >ハイブリッドカーネルは、マイクロカーネルと同様に、ファイルシステム、デバイスドライバなどのために別々のサーバープログラムを使用します。しかし、モノリシックカーネルと同様に、これらのサーバーはユーザースペースではなく、カーネルの一部として実行されます。</b
+              >
+            </p>
+            <p data-dl-uid="171" data-dl-original="true" data-dl-translated="true">
+              ハイブリッドカーネル」という用語が何に当てはまるかについては、いくつかの論争がある。マイクロカーネル」、「マクロカーネル」、「修正マイクロカーネル」、「修正マクロカーネル」と呼ばれることもある。ハイブリッドカーネルは、独自のデザインではなく、モノリシックカーネルからいくつかの側面を持つだけの変更されたマイクロカーネルです。そのため、ハイブリッドカーネルを何と呼ぶかについては、いくつかの論争がある。
+            </p>
+            <p data-dl-uid="172" data-dl-original="true" data-dl-translated="true">
+              MicrosoftのNTアーキテクチャは、彼らのカーネルデザインモデルにハイブリッドアプローチを使用しています。Microsoftは彼らのカーネルを「Modified
+              microkernel」と表現している。
+            </p>
+
+            <h3>Examples</h3>
+
+            いくつかの大規模なオペレーティングシステムはハイブリッドカーネルを使用していますが、これらに限定されません。
+
+            <ul>
+              <li>BeOS Kernel</li>
+              <ul>
+                <li>Haiku Kernel</li>
+              </ul>
+              <li>BSD</li>
+              <ul>
+                <li>DragonFly BSD Kernel</li>
+                <li>XNU Kernel</li>
+              </ul>
+              <li>NetWare Kernel</li>
+              <li>Plan 9 Kernel</li>
+              <ul>
+                <li>Inferno Kernel</li>
+              </ul>
+              <li>Windows (NT,2000,2003,XP,Vista) NT Kernel</li>
+              <ul>
+                <li>ReactOS Kernel</li>
+              </ul>
+            </ul>
+
+            <h2 data-dl-uid="189" data-dl-original="true" data-dl-translated="true">
+              Nanokernel（ナノカーネル
+            </h2>
+            ナノカーネルは、<b data-dl-uid="190" data-dl-original="true" data-dl-translated="true"
+              >ピコカーネルとも</b
+            >呼ばれ、非常に小さなカーネルです。通常、これは最小のマイクロカーネル構造になります。
+            カーネル自体が非常に小さいため、システム内の基本的なリソースは他のソフトウェアやドライバに依存する必要があります。
+
+            <h1 data-dl-uid="191" data-dl-original="true" data-dl-translated="true">おわりに</h1>
+
+            さて、このチュートリアルはそれほど複雑ではないことを認めざるを得ません。しかし、私たちがカバーする必要があった非常に重要なトピックをたくさんカバーしています。このチュートリアルが、カーネルとその役割について、読者がより良く理解するのに役立つことを期待しています。カーネルだけでなく、そのための基本的なハードウェア抽象化レイヤ(HAL)を構築することになるのです。
+            <p data-dl-uid="192" data-dl-original="true" data-dl-translated="true">
+              このシリーズでは、修正したマイクロカーネルを開発する予定です。これは、読者がモノリシックとマイクロカーネルの両方の設計の経験と理解を得ることができ、また、ハイブリッドマイクロカーネルへのアプローチを混合することができます。
+              実際、我々のカーネルは、このチュートリアルで表示されているものと似ているように見えるでしょう。次のチュートリアルでは、カーネルの完全な設計について触れ、C++
+              を使用してプロセッサの依存関係を抽象化するための HAL
+              の基本的なビルディングブロックを開発する予定です。
+            </p>
+            <p data-dl-uid="193" data-dl-original="true" data-dl-translated="true">
+              今後は、複数のコンパイラとプラットフォームをサポートするために、いくつかのバージョンのデモを作成する予定です。また、C++とC言語の両方をサポートする予定です。どうですか？
+            </p>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </body>
+</html>
