@@ -1,0 +1,1152 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Cache-Control" content="no-cache" />
+    <title></title>
+    <link href="css/reference.css" rel="stylesheet" />
+  </head>
+  <body>
+    <table cellspacing="0" cellpadding="3" width="80%" border="0">
+      <tbody>
+        <tr>
+          <td class="tblhdr">Operating Systems Development Series</td>
+        </tr>
+        <tr>
+          <td align="middle" colspan="2"></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <table cellspacing="0" cellpadding="5" width="100%" border="0">
+      <tbody>
+        <tr>
+          <td>
+            <!-- Title -->
+
+            <div>
+              <span class="title">Enabling A20</span>
+
+              <br />
+              <span class="author">by Mike, 2008, 2009</span>
+            </div>
+
+            <h1 data-dl-uid="7" data-dl-original="true" data-dl-translated="true">はじめに</h1>
+            <p data-dl-uid="8" data-dl-original="true" data-dl-translated="true">ようこそ!:)</p>
+            <p data-dl-uid="9" data-dl-original="true" data-dl-translated="true">
+              前回のチュートリアルでは、プロセッサを 32 ビットモードに切り替える方法を説明しました。
+              また、最大 4 GB のメモリにアクセスする方法を学びました。これは素晴らしいことですが、<b
+                data-dl-uid="10"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >どうやって</b
+              >？
+            </p>
+            <p data-dl-uid="11" data-dl-original="true" data-dl-translated="true">
+              また、PCはリアルモードで起動しますが、このモードでは16ビットレジスタ、つまり16ビットセグメントアドレッシングという制約があることも覚えておいてください。このため、まだ1GBのメモリにさえアクセスできない。1MBの壁さえも越えられない。どうすればいいのか？20番目のアドレスラインを有効にする必要があります。これには直接ハードウェアプログラミングが必要なので、それについても説明します。
+            </p>
+            <p data-dl-uid="12" data-dl-original="true" data-dl-translated="true">
+              というわけで、メニューはこんな感じです。
+            </p>
+            <ul data-dl-uid="13" data-dl-original="true" data-dl-translated="true">
+              <li data-dl-uid="14" data-dl-original="true" data-dl-translated="true">
+                ダイレクトハードウェアプログラミング - 理論編
+              </li>
+              <li data-dl-uid="15" data-dl-original="true" data-dl-translated="true">
+                ダイレクトハードウェアプログラミングとコントローラー
+              </li>
+              <li data-dl-uid="16" data-dl-original="true" data-dl-translated="true">
+                キーボードコントローラプログラミング - 基礎編
+              </li>
+
+              <li data-dl-uid="17" data-dl-original="true" data-dl-translated="true">A20の有効化</li>
+            </ul>
+            <p data-dl-uid="19" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="20" data-dl-original="true" data-dl-translated="true"
+                >C言語などの高級言語を使用する場合、1MB以上のメモリにアクセスできることが重要なポイントになります。このため、A20
+                (アドレスライン20) を有効にすることが重要です!</b
+              >
+            </p>
+            <p data-dl-uid="21" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="22" data-dl-original="true" data-dl-translated="true"
+                >注意：まだ1MB以上のメモリにアクセスできないことを忘れないでください。トリプルフォールトの原因となります。</b
+              >
+            </p>
+            <p data-dl-uid="23" data-dl-original="true" data-dl-translated="true">
+              また、このチュートリアルでは、ハードウェアの直接プログラミングを行うため、これまでのチュートリアルより少し複雑になります。心配しないでください
+              -
+              この後、カーネル用のデバイスドライバを開発するときに、直接ハードウェアプログラミングをより経験することができます。
+            </p>
+            <p data-dl-uid="24" data-dl-original="true" data-dl-translated="true">
+              <i data-dl-uid="25" data-dl-original="true" data-dl-translated="true"
+                >準備はいいですか？</i
+              >
+            </p>
+
+            <h1 data-dl-uid="27" data-dl-original="true" data-dl-translated="true">準備完了</h1>
+            ここまでお付き合いいただいた方々は、OS開発がいかに大変なものであるかをご存知だと思います。しかし、私たちはまだ難しいことに手をつけていません。ここで紹介するのは、まだ基本的でありながら、かなり高度な概念ばかりです。しかし。<b
+              data-dl-uid="28"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >これからもっともっと難しくなっていくのです。</b
+            >
+
+            <p data-dl-uid="29" data-dl-original="true" data-dl-translated="true">
+              すべてのコントローラは、正しく動作するために特別な方法でプログラムされる必要があります。例えば、ハードディスクを書き込む（または読む）には、まずそれがIDEかSCSIかを判断する必要があります。そして、IDEとSCSIの接続を制御する<b
+                data-dl-uid="30"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >IDEコントローラ</b
+              >または<b data-dl-uid="31" data-dl-original="true" data-dl-translated="true"
+                >SCSIコントロー</b
+              >ラを使用して、ドライブ番号を決定し、プログラムを作成しなければなりません。この2つのコントローラはそれぞれ異なるものです。
+            </p>
+            <p data-dl-uid="32" data-dl-original="true" data-dl-translated="true">
+              さらに複雑なことに、「セクタ」は512バイトとは限りません。従って、「セクタの読み書き」は曖昧です。
+            </p>
+            <p data-dl-uid="33" data-dl-original="true" data-dl-translated="true">
+              次に、メモリ管理とフラグメンテーションがあります。ここで、<b
+                data-dl-uid="34"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ページング</b
+              >、<b data-dl-uid="35" data-dl-original="true" data-dl-translated="true"
+                >仮想アドレス空間</b
+              >、<b data-dl-uid="36" data-dl-original="true" data-dl-translated="true"
+                >メモリ管理ユニット（MMU</b
+              >）が登場します。
+            </p>
+            <p data-dl-uid="37" data-dl-original="true" data-dl-translated="true">
+              ドライブの読み書きは、他のドライブとは全く異なります。典型的なフォーマットとファイルシステムはメディアによって異なるので、FAT12フロッピーから起動するコードは、CDFSファイルシステムのCD
+              ROMを起動するためには動作<b
+                data-dl-uid="38"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >しません</b
+              >。ハードウェア固有のコード（と低レベルのコード）を抽象化することで、ほとんどのコードをこれらのデバイスで動作させることができます。
+            </p>
+            <p data-dl-uid="39" data-dl-original="true" data-dl-translated="true">
+              ハードディスクにファイルを書き込む」と言うとき、通常、「ファイル」とは何かを定義したくはないでしょう。<b
+                data-dl-uid="40"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >これが、抽象化が非常に重要な理由です。</b
+              >
+            </p>
+            <p data-dl-uid="41" data-dl-original="true" data-dl-translated="true">
+              ここにあるものはすべて保護モード（つまり32ビットコード）用のものですが、リアルモードでも同様に動作します。このため、プロテクテッドモードのルールを覚えておいてください。
+            </p>
+            <ul data-dl-uid="42" data-dl-original="true" data-dl-translated="true">
+              <li data-dl-uid="43" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="44" data-dl-original="true" data-dl-translated="true"
+                  >割り込みは禁止!割り込みの使用はトリプルフォールトを引き起こします。</b
+                >
+              </li>
+            </ul>
+            ...ですから、あなたは<b data-dl-uid="45" data-dl-original="true" data-dl-translated="true"
+              >完全に</b
+            >自分自身の力でやっているのです。
+
+            <h1 data-dl-uid="46" data-dl-original="true" data-dl-translated="true">カーネルデバッグ</h1>
+            デバッグは芸術です。デバッグは芸術であり、問題を捕捉し、深刻な事態になる前にソフトウェアのエラーを修正する方法を提供するものです。<b
+              data-dl-uid="47"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >カーネルデバッグは</b
+            >、カーネルレベルのリング0プログラムのデバッグに関係します。
+            これは決して簡単な作業ではありません。
+            <p data-dl-uid="48" data-dl-original="true" data-dl-translated="true"></p>
+            <h2 data-dl-uid="49" data-dl-original="true" data-dl-translated="true">
+              高レベル言語におけるデバッガ
+            </h2>
+
+            CやC++のような言語のデバッガは、実行時に変数名やルーチン名、その値や場所などを表示する方法を提供しています。しかし、問題は私たちのプログラムには、まだシンボリックネームがありません。まだ<b
+              data-dl-uid="50"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >バイナリ</b
+            >レベルで動いているのです。
+
+            <h1 data-dl-uid="80" data-dl-original="true" data-dl-translated="true">
+              ダイレクトハードウェアプログラミング - 理論編
+            </h1>
+            オペレーティングシステムの開発では、ここからが大変なのです。
+            <p data-dl-uid="81" data-dl-original="true" data-dl-translated="true">
+              「ハードウェアの直接プログラミング」とは、個々のチップと直接通信する(制御する)ことを指します。これらのチップが（何らかの方法で）プログラム可能である限り、我々はそれらを制御することができます。
+            </p>
+            <p data-dl-uid="82" data-dl-original="true" data-dl-translated="true">
+              <a href="05.html" data-dl-uid="83" data-dl-original="true" data-dl-translated="true"
+                >チュートリアル7では</a
+              >、システムがどのように動作するかを非常に詳細に見てきました。
+              また、ソフトウェアポートがどのように動作するか、ポートマッピング、IN命令とOUT命令について話し、x86アーキテクチャにおける一般的なポートマッピングの大きな表も示しました。
+            </p>
+            <p data-dl-uid="84" data-dl-original="true" data-dl-translated="true">
+              プロセッサが<b data-dl-uid="85" data-dl-original="true" data-dl-translated="true">IN</b
+              >命令や<b data-dl-uid="86" data-dl-original="true" data-dl-translated="true">OUT</b
+              >命令を受け取ると、<b data-dl-uid="88" data-dl-original="true" data-dl-translated="true"
+                >コントロールバスの</b
+              >
+              <b data-dl-uid="87" data-dl-original="true" data-dl-translated="true"
+                >I/Oアクセスラインが</b
+              >有効になることを覚えておいてください。システムバスは<b
+                data-dl-uid="91"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >メモリコントローラと</b
+              >
+              <b data-dl-uid="92" data-dl-original="true" data-dl-translated="true">I/Oコントローラの</b
+              >両方に接続されているため、両コントローラはコントロールバスの特定のアドレスとアクティブなラインを聞き取る。<b
+                data-dl-uid="93"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >I/Oアクセス</b
+              >ラインがセットされていれば（電気が通っている、つまりアクティブ（1））、I/Oコントローラはそのアドレスを取得する。
+            </p>
+            <p data-dl-uid="94" data-dl-original="true" data-dl-translated="true">
+              I/Oコントローラは、次に他のすべてのデバイスにポートアドレスを与え、コントローラチップからの信号を待ちます（それが何らかのデバイスに属していることを意味します
+              -
+              だから、そのデバイスにどんなデータでも与えます）。もし、コントローラチップからの応答がなく、ポートアドレスがセットバックされると、それは無視される。
+            </p>
+            <p data-dl-uid="95" data-dl-original="true" data-dl-translated="true">
+              これがポートマッピングの仕組みです。(詳しくは<a
+                href="05.html"
+                data-dl-uid="96"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >チュートリアル7を</a
+              >参照してください）。
+            </p>
+            <p data-dl-uid="97" data-dl-original="true" data-dl-translated="true">
+              また、1つのコントローラチップに複数のポートアドレスを割り当てることができることも覚えておいてください。
+              ポートアドレスは、BIOSがロードされ実行される前でも、BIOS POSTによって割り当てられます。
+              なぜでしょうか？多くのデバイスは、さまざまな種類の情報を必要とします。あるポートは「レジスタ」を表し、他のポートは「データ」または「レディ」を表すかもしれません。醜いことです、わかっています。しかし、もっと悪いことがあります。システムによって、ポートアドレスが大きく異なることがあるのです。x86アーキテクチャはバックワード互換なので、基本的なデバイス（キーボードやマウスなど）は通常、常に同じアドレスになります。しかし、より複雑なデバイスはそうではないかもしれません。
+            </p>
+
+            <h1 data-dl-uid="98" data-dl-original="true" data-dl-translated="true">
+              ハードウェアの直接プログラミングとコントローラ
+            </h1>
+            すべてがどのように動くかをよりよく理解するために、コントローラについて見てみましょう。結局のところ、私たちは、特にプロテクトモードにおいて、コントローラと頻繁に会話することになるのです。
+            <p data-dl-uid="99" data-dl-original="true" data-dl-translated="true">
+              多くのPCは、初期の<b data-dl-uid="100" data-dl-original="true" data-dl-translated="true"
+                >インテル8042マイクロコントローラ・チップを</b
+              >ベースにしています。このコントローラチップは、IC（Intergrated
+              Circuit）チップとして組み込まれているか、マザーボードに直接組み込まれています。これは通常、<b
+                data-dl-uid="101"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >サウスブリッジに</b
+              >配置されています。
+            </p>
+            <p data-dl-uid="102" data-dl-original="true" data-dl-translated="true">
+              このマイクロコントローラーは、キーボードに接続されたコードを通じて、キーボード内の別のマイクロコントローラーチップと通信を行います。
+            </p>
+            <p data-dl-uid="103" data-dl-original="true" data-dl-translated="true">
+              キーボードのキーを押すと、キーの下にあるラバードームが押されます。
+              ラバードームの下側には導電性の接点があり、押されるとキーボード回路の2つの導電性の接点と接触します。このため、電流を流すことができる。各キーは1対の電気線で接続されています。それぞれの信号が変化すると（天候によってキーが押される）、（一連のラインから）メイクコードが生成されます。このメイクコードがキーボード内部のマイコンチップに送られ、コンピュータのハードウェアポートに接続するコードを通じて送られます。これは、オンとオフの電気プッシュのシリーズとして送信されます。クロックサイクルに応じて、各パルスはビットパターンを表す一連のビットに変換することができます。
+            </p>
+            <p data-dl-uid="104" data-dl-original="true" data-dl-translated="true">
+              私たちはマザーボードの上にいます。この一連のビットは、電気信号としてサウスブリッジを通り、8042マイクロコントローラにまで届きます。このマイコンは、メイクコードをスキャンコードにデコードし、内部のレジスタに格納します。つまり、バッファです。内部レジスタはEEPROMチップなどでもよいので、好きなときに電気的にデータを上書きすることができる。
+            </p>
+            <p data-dl-uid="105" data-dl-original="true" data-dl-translated="true">
+              起動時にBIOSのPOSTが各デバイス（I/Oコントローラを通して）にポートアドレスを割り当てる。これは、デバイスを照会することによって行われる。つまり、<b
+                data-dl-uid="106"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ポート0x60を参照</b
+              >すると、この内部<b data-dl-uid="106" data-dl-translated="true">レジスタからの読み出しを</b
+              >要求していることになります。
+            </p>
+            <p data-dl-uid="107" data-dl-original="true" data-dl-translated="true">
+              ポートマッピングやIN/OUT命令については、あとはご存知の通りですので、このレジスタから読み出してみましょう。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">		in al, 0x60		; get byte from 8042 microcontroller input register</div></pre>
+            </blockquote>
+
+            おそらく推測できるように、<b
+              data-dl-uid="111"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >8042マイクロコントローラはキーボードコントローラ</b
+            >です。このチップの様々なレジスタと通信することで、キーボードからの入力を読んだり、スキャンコードをマップしたり、他にもいろいろなことができます。<b
+              data-dl-uid="112"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >A20を有効にするように。</b
+            >
+            <p data-dl-uid="113" data-dl-original="true" data-dl-translated="true">
+              A20を有効にするために、なぜキーボードコントローラと通信しなければならないのか不思議に思われるかもしれません。これについては、次に説明します。
+            </p>
+
+            <h1 data-dl-uid="114" data-dl-original="true" data-dl-translated="true">
+              ゲートA20 - 理論編
+            </h1>
+            最後に、A20について説明します。このチュートリアルのほとんどは、A20とは直接関係のない他のトピックを扱っています。しかし、A20を有効にするには、マイクロコントローラのプログラミングと一緒に、ハードウェアの直接プログラミングの基礎から始めたいと思いました。
+            <p data-dl-uid="115" data-dl-original="true" data-dl-translated="true">
+              A20ラインを有効にするには、キーボードマイクロコントローラをプログラミングする必要があるかもしれません。このため、キーボードコントローラのプログラミングについて少し取り上げますが、キーボードのプログラミングにはまだ踏み込みません。
+            </p>
+            <p data-dl-uid="116" data-dl-original="true" data-dl-translated="true"></p>
+
+            <h2 data-dl-uid="117" data-dl-original="true" data-dl-translated="true">ちょっとした歴史</h2>
+
+            <p data-dl-uid="118" data-dl-original="true" data-dl-translated="true">
+              IBMが<b data-dl-uid="119" data-dl-original="true" data-dl-translated="true">IBM PC AT</b
+              >マシンを設計したとき、新しい<b
+                data-dl-uid="120"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >Intel 80286マイクロプロセッサを</b
+              >使用しましたが、これはリアルモードでは以前のx86マイクロプロセッサと完全に互換性があるわけではありませんでした。問題点は？古いx86プロセッサには、アドレス線A20〜A31が<b
+                data-dl-uid="121"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ない</b
+              >。そのサイズのアドレスバスをまだ持っていなかったのだ。<b
+                data-dl-uid="122"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >そのため、最初の1MBを超えると、プログラムが折り返して表示されてしまうのだ。</b
+              >80286のアドレス空間では、32本のアドレス線が必要だったのだ。しかし、32本すべてがアクセス可能だと、また折り返しの問題が出てくる。
+            </p>
+            <p data-dl-uid="123" data-dl-original="true" data-dl-translated="true">
+              この問題を解決するために、Intelはプロセッサとシステムバスの間の20番目のアドレスラインにロジックゲートを設置した。
+              このロジックゲートは、有効にも無効にもできることから、<b
+                data-dl-uid="124"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >Gate A20と</b
+              >名付けられた。古いプログラムではラップラウンドに依存するため無効化され、新しいプログラムでは有効化される。
+            </p>
+            <p data-dl-uid="125" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="126" data-dl-original="true" data-dl-translated="true"
+                >起動時、BIOSはメモリのカウントとテスト時にA20を有効にし、OSに制御を委ねる前に再び無効にする。</b
+              >
+            </p>
+            <p data-dl-uid="127" data-dl-original="true" data-dl-translated="true">
+              A20を有効にする方法はたくさんあります。A20ゲートを有効にすると、アドレスバスの32本のラインすべてにアクセスできるようになり、32ビットアドレス、つまり最大0xFFFFFFF（4GB）のメモリを参照できるようになる。
+            </p>
+            <p data-dl-uid="128" data-dl-original="true" data-dl-translated="true">
+              A20ゲートは、もともと8042マイコン（キーボード・コントローラ）のP21ラインに接続されていた電子ORゲートである。このゲートは、出力ポート・データの<b
+                data-dl-uid="129"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >Bit 1として</b
+              >扱われる出力ラインである。このデータを受信するコマンドを送ったり、データを変更することも可能です。このビットをセットして、出力線のデータを書き込めば、マイコンがORゲートをセットして、A20線を有効にすることができます。この方法は、自分で直接行うことも、間接的に行うこともできます。詳しくは次のセクションで説明します。
+            </p>
+            <p data-dl-uid="130" data-dl-original="true" data-dl-translated="true">
+              起動時に、BIOSはA20ラインを有効にして、メモリをテストします。メモリテストの後、BIOSは古いプロセッサとの互換性を維持するためにA20ラインを無効にします。このため、デフォルトでは、オペレーティングシステムでは、A20
+              ラインは無効になっています。
+            </p>
+            <p data-dl-uid="131" data-dl-original="true" data-dl-translated="true">
+              マザーボードの構成によって、A20
+              ゲートを再び有効にする方法がいくつかあります。このため、ここでは、A20を有効にするための一般的な方法をいくつか取り上げます。
+            </p>
+            <p data-dl-uid="132" data-dl-original="true" data-dl-translated="true">
+              次は、この方法について見てみましょう。
+            </p>
+
+            <h1 data-dl-uid="133" data-dl-original="true" data-dl-translated="true">
+              ゲートA20の有効化
+            </h1>
+
+            A20を有効にするには、さまざまな方法があることを覚えておいてください。携帯性を重視するのであれば、複数の方法を併用する必要があるかもしれません。
+            <h2 data-dl-uid="134" data-dl-original="true" data-dl-translated="true">
+              方法1：システム制御ポートA
+            </h2>
+
+            これは、A20アドレスラインを有効にするための非常に高速な方法ですが、移植性が低いです。
+            <p data-dl-uid="135" data-dl-original="true" data-dl-translated="true">
+              MCAやEISAを含むいくつかのシステムでは、システム制御ポートI/O
+              0x92からA20を制御することができます。ポート0x92の正確な詳細と機能は、メーカーにより大きく異なります。しかし、一般的に使用されるビットがいくつかある。
+            </p>
+            <ul data-dl-uid="136" data-dl-original="true" data-dl-translated="true">
+              <li data-dl-uid="137" data-dl-original="true" data-dl-translated="true">
+                ビット<b data-dl-uid="138" data-dl-original="true" data-dl-translated="true">0</b>-
+                1に設定すると、高速リセットが発生する(リアルモードに戻るために使用)
+              </li>
+              <li data-dl-uid="139" data-dl-original="true" data-dl-translated="true">
+                ビット<b data-dl-uid="140" data-dl-original="true" data-dl-translated="true">1</b>- 0:
+                A20を無効化、1: A20を有効化
+              </li>
+              <li data-dl-uid="141" data-dl-original="true" data-dl-translated="true">
+                ビット<b data-dl-uid="142" data-dl-original="true" data-dl-translated="true">2</b>-
+                メーカー定義
+              </li>
+              <li data-dl-uid="143" data-dl-original="true" data-dl-translated="true">
+                ビット<b data-dl-uid="144" data-dl-original="true" data-dl-translated="true">3</b>-
+                パワーオンパスワードバイト（CMOSバイト0x38-0x3fまたは0x36-0x3f）。0: アクセス可能, 1:
+                アクセス不可
+              </li>
+              <li data-dl-uid="145" data-dl-original="true" data-dl-translated="true">
+                ビット<b data-dl-uid="146" data-dl-original="true" data-dl-translated="true">4-5</b>-
+                製造元定義
+              </li>
+              <li data-dl-uid="147" data-dl-original="true" data-dl-translated="true">
+                ビット<b data-dl-uid="148" data-dl-original="true" data-dl-translated="true">6-7</b>- 00:
+                HDDアクティビティLEDオフ、その他の値は "オン"
+              </li>
+            </ul>
+
+            この方法を用いてA20を有効にする例を示します。
+
+            <blockquote>
+              <pre><div class="code">mov	al, 2	; set bit 2 (enable a20)
+out	0x92, al</div></pre>
+            </blockquote>
+
+            このポートでできることは他にもたくさんあることに注意してください。
+
+            <blockquote>
+              <pre><div class="code">mov	al, 1	; set bit 1 (fast reset)
+out	0x92, al</div></pre>
+            </blockquote>
+
+            <h3 data-dl-uid="155" data-dl-original="true" data-dl-translated="true">警告!</h3>
+
+            この方法は簡単な方法の1つですが、他のハードウェアデバイスと衝突するのを見たことがあります。通常、システムが停止してしまうでしょう。もしこの方法を使いたいのであれば（そしてそれがうまくいくのであれば）、私はこの方法を使うことにこだわりますが、この点には留意してください。
+            <h3 data-dl-uid="156" data-dl-original="true" data-dl-translated="true">
+              その他のポート...
+            </h3>
+
+            システムによっては、他のI/Oポートを使用してA20を有効または無効にすることができることを述べておく必要があると思います。
+            <p data-dl-uid="157" data-dl-original="true" data-dl-translated="true">
+              最も一般的なのは、I/Oポート0xEEです。これらのシステムでI/Oポート0xEE（「FAST A20
+              GATE」）を有効にすると、このポートから読み出すとA20が有効になり、書き込むとA20が無効になる。ポート0xEF(「FAST
+              CPU RESET」)も、システムをリセットするために同様の効果があります。
+            </p>
+            <p data-dl-uid="158" data-dl-original="true" data-dl-translated="true">
+              他のシステムでは、異なるポートを使用するかもしれません(例えば、AT&amp;T
+              6300+では、A20を有効にするにはI/Oポート0x3f20に0x90を書き込み、A20を無効にするには0を書き込むことが必要です)。また、I/Oポート0x65のビット2やI/Oポート0x1f8のビット0を使ってA20を有効/無効にするシステムも存在するという噂もある(0：無効、1：有効)。
+            </p>
+            <p data-dl-uid="159" data-dl-original="true" data-dl-translated="true">
+              このように、A20を使用する場合、多くの問題があります。確実な方法は、マザーボードメーカーに問い合わせることです。
+            </p>
+            <h2 data-dl-uid="160" data-dl-original="true" data-dl-translated="true">方法2：Bios</h2>
+
+            多くのBiosは、A20の有効化と無効化のための割り込みを可能にしています。
+
+            <h3 data-dl-uid="162" data-dl-original="true" data-dl-translated="true">
+              INT 0x15 関数 2400 - A20を無効にする
+            </h3>
+
+            この機能は、A20のゲートを無効にするものです。使い方はとても簡単です。
+
+            <blockquote>
+              <pre><div class="code">mov ax, 0x2400
+int 0x15</div></pre>
+            </blockquote>
+
+            以下を返します。
+            <p data-dl-uid="166" data-dl-original="true" data-dl-translated="true"></p>
+            CF = 成功すればクリア<br
+              data-dl-uid="167"
+              data-dl-original="true"
+              data-dl-translated="true"
+            />
+            AH = 0<br data-dl-uid="168" data-dl-original="true" data-dl-translated="true" />
+            CF = エラー時に設定<br data-dl-uid="169" data-dl-original="true" data-dl-translated="true" />
+            AH = ステータス
+            (01=キーボードコントローラがセキュアモード、0x86=機能がサポートされていない)<br
+              data-dl-uid="170"
+              data-dl-original="true"
+              data-dl-translated="true"
+            />
+
+            <h3 data-dl-uid="171" data-dl-original="true" data-dl-translated="true">
+              INT 0x15 ファンクション 2401 - A20を有効にする
+            </h3>
+
+            この関数は、A20 ゲートを有効にする。
+
+            <blockquote>
+              <pre><div class="code">mov ax, 0x2401
+int 0x15</div></pre>
+            </blockquote>
+
+            戻り値。
+            <p data-dl-uid="175" data-dl-original="true" data-dl-translated="true"></p>
+            成功した場合、CF = クリア<br
+              data-dl-uid="176"
+              data-dl-original="true"
+              data-dl-translated="true"
+            />
+            AH = 0<br data-dl-uid="177" data-dl-original="true" data-dl-translated="true" />
+            CF = エラーの場合、設定される<br
+              data-dl-uid="178"
+              data-dl-original="true"
+              data-dl-translated="true"
+            />
+            AH = ステータス
+            (01=キーボードコントローラがセキュアモード、0x86=機能がサポートされていない)<br
+              data-dl-uid="179"
+              data-dl-original="true"
+              data-dl-translated="true"
+            />
+
+            <h3 data-dl-uid="180" data-dl-original="true" data-dl-translated="true">
+              INT 0x15 ファンクション 2402 - A20の状態
+            </h3>
+
+            この関数は、A20 ゲートの現在のステータスを返す。
+
+            <blockquote>
+              <pre><div class="code">mov ax, 0x2402
+int 0x15</div></pre>
+            </blockquote>
+
+            を返す。
+            <p data-dl-uid="184" data-dl-original="true" data-dl-translated="true"></p>
+            CF = 成功すればクリア<br
+              data-dl-uid="185"
+              data-dl-original="true"
+              data-dl-translated="true"
+            />
+            AH = ステータス
+            (01:キーボードコントローラはセキュアモード、0x86:機能はサポートされていません)<br
+              data-dl-uid="186"
+              data-dl-original="true"
+              data-dl-translated="true"
+            />
+            AL = 現在の状態 (00: 無効、01: 有効)<br
+              data-dl-uid="187"
+              data-dl-original="true"
+              data-dl-translated="true"
+            />
+            CX = 0xc000の読み取りでキーボードコントローラがレディでない場合、0xffffに設定される。<br
+              data-dl-uid="188"
+              data-dl-original="true"
+              data-dl-translated="true"
+            />
+            CF = エラー時に設定<br data-dl-uid="189" data-dl-original="true" data-dl-translated="true" />
+
+            <h3 data-dl-uid="190" data-dl-original="true" data-dl-translated="true">
+              INT 0x15 ファンクション 2403 - A20のサポート状況を問い合わせる
+            </h3>
+
+            この関数は、A20のサポートについてシステムに問い合わせるために使用される。
+
+            <blockquote>
+              <pre><div class="code">mov ax, 0x2403
+int 0x15</div></pre>
+            </blockquote>
+
+            戻り値
+            <p data-dl-uid="194" data-dl-original="true" data-dl-translated="true"></p>
+            CF = 成功すればクリア<br
+              data-dl-uid="195"
+              data-dl-original="true"
+              data-dl-translated="true"
+            />
+            AH = ステータス (01: キーボードコントローラはセキュアモード、0x86:
+            機能がサポートされていない)<br
+              data-dl-uid="196"
+              data-dl-original="true"
+              data-dl-translated="true"
+            />
+            BX = ステータス。
+            <p data-dl-uid="197" data-dl-original="true" data-dl-translated="true">
+              BX にはビットパターンが含まれます。
+            </p>
+            <ul data-dl-uid="198" data-dl-original="true" data-dl-translated="true">
+              <li data-dl-uid="199" data-dl-original="true" data-dl-translated="true">
+                キーボードコントローラでサポートされている場合、<b
+                  data-dl-uid="200"
+                  data-dl-original="true"
+                  data-dl-translated="true"
+                  >ビット0</b
+                >- 1
+              </li>
+              <li data-dl-uid="201" data-dl-original="true" data-dl-translated="true">
+                ビット<b data-dl-uid="202" data-dl-original="true" data-dl-translated="true">1</b>-
+                I/Oポート0x92のビット1でサポートされている場合は1
+              </li>
+              <li data-dl-uid="203" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="204" data-dl-original="true" data-dl-translated="true">ビット2-14</b>-
+                予約
+              </li>
+              <li data-dl-uid="205" data-dl-original="true" data-dl-translated="true">
+                ビット<b data-dl-uid="206" data-dl-original="true" data-dl-translated="true">15</b>-
+                追加データがある場合1
+              </li>
+            </ul>
+
+            <h2 data-dl-uid="207" data-dl-original="true" data-dl-translated="true">
+              方法3：キーボード・コントローラ
+            </h2>
+
+            これはおそらく、A20を有効にする最も一般的な方法です。非常に簡単ですが、キーボードマイクロコントローラのプログラミングの知識が必要です。この方法は、最も移植性が高いと思われるので、私が使用することになります。この方法は、キーボードマイコンのプログラミングの知識が必要なので、まず、そのことについて少し見ておく必要があります。
+            <p data-dl-uid="208" data-dl-original="true" data-dl-translated="true">
+              これは、私が最初にハードウェアプログラミングをカバーしたいと思った理由でもあります。ハードウェアの直接プログラミングとはどういうものか、初めて垣間見ることができるのです。心配しないでください、そんなに悪いことではありませんよ。でも、時にはとても複雑になることもあります。）
+            </p>
+
+            <h3 data-dl-uid="209" data-dl-original="true" data-dl-translated="true">
+              8043キーボードコントローラ - ポートマッピング
+            </h3>
+
+            このコントローラと通信するためには、コントローラがどのI/Oポートを使っているかを知っておく必要があります。
+            <p data-dl-uid="210" data-dl-original="true" data-dl-translated="true">
+              このコントローラのポートマッピングは以下の通りです。
+            </p>
+
+            <center>
+              <table border="1">
+                <tbody>
+                  <tr>
+                    <th bgcolor="#aaaaaa" colspan="3">Port Mapping</th>
+                  </tr>
+                  <tr bgcolor="#cccccc">
+                    <td>Port</td>
+                    <td>Read/Write</td>
+                    <td>Descripton</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">0x60</td>
+                    <td>Read</td>
+                    <td>Read Input Buffer</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">0x60</td>
+                    <td>Write</td>
+                    <td>Write Output Buffer</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">0x64</td>
+                    <td>Read</td>
+                    <td>Read Status Register</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">0x64</td>
+                    <td>Write</td>
+                    <td>Send Command to controller</td>
+                  </tr>
+                </tbody>
+              </table>
+            </center>
+
+            <p data-dl-uid="237" data-dl-original="true" data-dl-translated="true">
+              I/Oポート0x64にコマンドバイトを書き込むことによって、このコントローラにコマンドを送信します。コマンドがパラメータを受け取る場合、このパラメータはポート0x60に送信されます。
+              同様に、コマンドによって返された結果は、ポート0x60から読み取ることができる。
+            </p>
+            <p data-dl-uid="238" data-dl-original="true" data-dl-translated="true">
+              キーボードコントローラ自体は非常に低速であることに注意する必要があります。私たちのコードはキーボードコントローラより速く実行されるので、先に進む前にコントローラの準備ができるのを待つ方法を提供しなければなりません。
+            </p>
+            <p data-dl-uid="239" data-dl-original="true" data-dl-translated="true">
+              これは通常、コントローラのステータスを問い合わせることで行います。もし、これが混乱するようであれば、心配しないでください、全てはすぐに明らかになります。
+            </p>
+
+            <h3 data-dl-uid="240" data-dl-original="true" data-dl-translated="true">
+              8043 キーボード・コントローラ・ステータス・レジスタ
+            </h3>
+
+            では、コントローラの状態を知るにはどうしたらいいのでしょうか？上の表を見ると、I/Oポート0x64から読まなければならないことがわかります。このレジスタから読み出される値は、特定のフォーマットに従った8ビット値です。それがこちら...
+
+            <ul data-dl-uid="242" data-dl-original="true" data-dl-translated="true">
+              <li data-dl-uid="243" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="244" data-dl-original="true" data-dl-translated="true"
+                  >ビット0：出力バッファ・ステータス</b
+                >
+              </li>
+              <ul data-dl-uid="245" data-dl-original="true" data-dl-translated="true">
+                <li data-dl-uid="246" data-dl-original="true" data-dl-translated="true">
+                  0: 出力バッファは空です、まだ読みません。
+                </li>
+                <li data-dl-uid="247" data-dl-original="true" data-dl-translated="true">
+                  1: 出力バッファ満杯、読んでください :)
+                </li>
+              </ul>
+              <li data-dl-uid="248" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="249" data-dl-original="true" data-dl-translated="true"
+                  >ビット1：入力バッファ・ステータス</b
+                >
+              </li>
+              <ul data-dl-uid="250" data-dl-original="true" data-dl-translated="true">
+                <li data-dl-uid="251" data-dl-original="true" data-dl-translated="true">
+                  0: 入力バッファは空です、書き込み可能です
+                </li>
+                <li data-dl-uid="252" data-dl-original="true" data-dl-translated="true">
+                  1: 入力バッファが一杯、書き込み不可
+                </li>
+              </ul>
+
+              <li data-dl-uid="253" data-dl-original="true" data-dl-translated="true">
+                ビット<b data-dl-uid="254" data-dl-original="true" data-dl-translated="true">2:</b
+                >システム・フラグ
+              </li>
+              <ul data-dl-uid="255" data-dl-original="true" data-dl-translated="true">
+                <li data-dl-uid="256" data-dl-original="true" data-dl-translated="true">
+                  0: パワーオンリセット後に設定
+                </li>
+                <li data-dl-uid="257" data-dl-original="true" data-dl-translated="true">
+                  1: キーボードコントローラーのセルフテスト（BAT）が正常に終了した後にセットされる。
+                </li>
+              </ul>
+              <li data-dl-uid="258" data-dl-original="true" data-dl-translated="true">
+                ビット<b data-dl-uid="259" data-dl-original="true" data-dl-translated="true">3：</b
+                >コマンドデータ
+              </li>
+
+              <ul data-dl-uid="260" data-dl-original="true" data-dl-translated="true">
+                <li data-dl-uid="261" data-dl-original="true" data-dl-translated="true">
+                  0: 入力バッファへの最後の書き込みがデータ（ポート 0x60 経由）。
+                </li>
+                <li data-dl-uid="262" data-dl-original="true" data-dl-translated="true">
+                  1: 入力バッファへの最後の書き込みはコマンド（ポート0x64経由）。
+                </li>
+              </ul>
+              <li data-dl-uid="263" data-dl-original="true" data-dl-translated="true">
+                ビット<b data-dl-uid="264" data-dl-original="true" data-dl-translated="true">4：</b
+                >キーボードロック
+              </li>
+              <ul data-dl-uid="265" data-dl-original="true" data-dl-translated="true">
+                <li data-dl-uid="266" data-dl-original="true" data-dl-translated="true">
+                  0: ロックされている
+                </li>
+                <li data-dl-uid="267" data-dl-original="true" data-dl-translated="true">
+                  1: ロックされていない
+                </li>
+              </ul>
+              <li data-dl-uid="268" data-dl-original="true" data-dl-translated="true">
+                ビット<b data-dl-uid="269" data-dl-original="true" data-dl-translated="true">5：</b
+                >補助出力バッファフル
+              </li>
+              <ul data-dl-uid="270" data-dl-original="true" data-dl-translated="true">
+                <li data-dl-uid="271" data-dl-original="true" data-dl-translated="true">PS/2システム</li>
+
+                <ul data-dl-uid="272" data-dl-original="true" data-dl-translated="true">
+                  <li data-dl-uid="273" data-dl-original="true" data-dl-translated="true">
+                    0: ポート0x60からの読み出しが有効かどうかを判断 有効な場合、0=キーボード・データ
+                  </li>
+                  <li data-dl-uid="274" data-dl-original="true" data-dl-translated="true">
+                    1：マウスデータ、ポート0x60からの読み込みが可能な場合のみ
+                  </li>
+                </ul>
+                <li data-dl-uid="275" data-dl-original="true" data-dl-translated="true">ATシステム</li>
+                <ul data-dl-uid="276" data-dl-original="true" data-dl-translated="true">
+                  <li data-dl-uid="277" data-dl-original="true" data-dl-translated="true">
+                    0: OKフラグ
+                  </li>
+
+                  <li data-dl-uid="278" data-dl-original="true" data-dl-translated="true">
+                    1：キーボードコントローラからキーボードへの送信でタイムアウト。<b
+                      data-dl-uid="279"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                      >これは、キーボードが存在しないことを示す場合がある。</b
+                    >
+                  </li>
+                </ul>
+              </ul>
+
+              <li data-dl-uid="280" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="281" data-dl-original="true" data-dl-translated="true">ビット6：</b
+                >タイムアウト
+              </li>
+              <ul data-dl-uid="282" data-dl-original="true" data-dl-translated="true">
+                <li data-dl-uid="283" data-dl-original="true" data-dl-translated="true">0: OKフラグ</li>
+
+                <li data-dl-uid="284" data-dl-original="true" data-dl-translated="true">
+                  1: タイムアウト
+                </li>
+                <li data-dl-uid="285" data-dl-original="true" data-dl-translated="true">PS/2です。</li>
+                <ul data-dl-uid="286" data-dl-original="true" data-dl-translated="true">
+                  <li data-dl-uid="287" data-dl-original="true" data-dl-translated="true">
+                    一般的なタイムアウト
+                  </li>
+                </ul>
+                <li data-dl-uid="288" data-dl-original="true" data-dl-translated="true">ATです。</li>
+                <ul data-dl-uid="289" data-dl-original="true" data-dl-translated="true">
+                  <li data-dl-uid="290" data-dl-original="true" data-dl-translated="true">
+                    キーボードからキーボードコントローラへの送信でタイムアウト。<b
+                      data-dl-uid="291"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                      >パリティエラーの可能性あり（この場合、ビット6と7の両方が設定される）。</b
+                    >
+                  </li>
+                </ul>
+              </ul>
+
+              <li data-dl-uid="292" data-dl-original="true" data-dl-translated="true">
+                ビット<b data-dl-uid="293" data-dl-original="true" data-dl-translated="true">7：</b
+                >パリティエラー
+              </li>
+              <ul data-dl-uid="294" data-dl-original="true" data-dl-translated="true">
+                <li data-dl-uid="295" data-dl-original="true" data-dl-translated="true">
+                  0: OKフラグ、エラーなし
+                </li>
+                <li data-dl-uid="296" data-dl-original="true" data-dl-translated="true">
+                  1：最後のバイトでパリティエラー
+                </li>
+              </ul>
+            </ul>
+
+            <p data-dl-uid="297" data-dl-original="true" data-dl-translated="true">
+              ご覧のとおり、いろいろなことが起こっています。重要なビットは上記の太字で、コントローラの出力または入力バッファが満杯かどうかを示しています。
+            </p>
+            <p data-dl-uid="298" data-dl-original="true" data-dl-translated="true">
+              以下に例を示します。例えば、あるコマンドをコントローラに送るとします。このコマンドはコントローラの入力バッファに格納されます。つまり、このバッファがまだいっぱいであれば、コマンドはまだ実行されていることになります。次のようなコードになります。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">wait_input:
+        in      al,0x64		; read status register
+        test    al,2		; test bit 2 (Input buffer status)
+        jnz     wait_input	; jump if its not 0 (not empty) to continue waiting</div></pre>
+            </blockquote>
+
+            これは、入力バッファと出力バッファの両方に対して行う必要があります。
+            <p data-dl-uid="302" data-dl-original="true" data-dl-translated="true">
+              コントローラを待つことができるようになったので、今度は実際にコントローラに何をして欲しいかを伝えることができなければなりません。これはコマンドバイトによって行われます。それでは見てみましょう。
+            </p>
+            <h3 data-dl-uid="303" data-dl-original="true" data-dl-translated="true">
+              8043キーボード・コントローラのコマンド・レジスタ
+            </h3>
+
+            I/Oポートの表を見ると、コントローラにコマンドを送信するために、I/Oポート0x64に書き込む必要があることがわかります。
+            <p data-dl-uid="304" data-dl-original="true" data-dl-translated="true">
+              キーボードコントローラは<b
+                data-dl-uid="305"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >多くの</b
+              >コマンドを持っています。これはキーボードプログラミングのチュートリアルではないので、ここにすべてをリストアップすることはしません。しかし、より重要なものはリストアップします。
+            </p>
+
+            <center>
+              <table border="1">
+                <tbody>
+                  <tr>
+                    <th bgcolor="#aaaaaa" colspan="2">Keyboard Controller Commands</th>
+                  </tr>
+                  <tr bgcolor="#cccccc">
+                    <td>Keyboard Command</td>
+                    <td>Descripton</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">0x20</td>
+                    <td>Read Keyboard Controller Command Byte</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">0x60</td>
+                    <td>Write Keyboard Controller Command Byte</td>
+                  </tr>
+
+                  <tr>
+                    <td bgcolor="#cccccc">0xAA</td>
+                    <td>Self Test</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">0xAB</td>
+                    <td>Interface Test</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">0xAD</td>
+                    <td>Disable Keyboard</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">0xAE</td>
+                    <td>Enable Keyboard</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">0xC0</td>
+                    <td>Read Input Port</td>
+                  </tr>
+
+                  <tr>
+                    <td bgcolor="#cccccc">0xD0</td>
+                    <td>Read Output Port</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">0xD1</td>
+                    <td>Write Output Port</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">0xDD</td>
+                    <td>Enable A20 Address Line</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">0xDF</td>
+                    <td>Disable A20 Address Line</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">0xE0</td>
+                    <td>Read Test Inputs</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">0xFE</td>
+                    <td>System Reset</td>
+                  </tr>
+
+                  <tr bgcolor="#cccccc">
+                    <td>Mouse Command</td>
+                    <td>Descripton</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">0xA7</td>
+                    <td>Disable Mouse Port</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">0xA8</td>
+                    <td>Enable Mouse Port</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">0xA9</td>
+                    <td>Test Mouse Port</td>
+                  </tr>
+
+                  <tr>
+                    <td bgcolor="#cccccc">0xD4</td>
+                    <td>Write to mouse</td>
+                  </tr>
+                </tbody>
+              </table>
+            </center>
+
+            <p data-dl-uid="368" data-dl-original="true" data-dl-translated="true">
+              繰り返しますが、これ以外にも<b
+                data-dl-uid="369"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >多くの</b
+              >コマンドがあることに注意してください。 後で全部見ますので、心配しないでください :)
+            </p>
+
+            <h3 data-dl-uid="370" data-dl-original="true" data-dl-translated="true">
+              方法3.1:キーボードコントローラでA20を使用可能にする
+            </h3>
+
+            上の表のコマンドバイト<b data-dl-uid="371" data-dl-original="true" data-dl-translated="true"
+              >0xDDと</b
+            >
+            <b data-dl-uid="372" data-dl-original="true" data-dl-translated="true">0xDFに</b
+            >注目してください。 これは、キーボードコントローラーを使用してA20を有効にする1つの方法です。
+
+            <blockquote>
+              <pre><div class="code">; Method 3.1: Enables A20 through keyboard controller
+mov al, 0xdd	; command 0xdd: enable a20
+out 0x64, al	; send command to controller</div></pre>
+            </blockquote>
+
+            すべてのキーボード・コントローラーがこの機能をサポートしているわけではありません。すべてのキーボードコントローラーがこの機能をサポートしているわけではありません。
+            <h3 data-dl-uid="376" data-dl-original="true" data-dl-translated="true">
+              方法3.2：出力ポートからA20を使用可能にする
+            </h3>
+
+            A20を有効にする<i data-dl-uid="377" data-dl-original="true" data-dl-translated="true"
+              >もう一つの</i
+            >方法は、キーボードコントローラの出力ポートを使うことです。
+            これを行うには、コマンドD0とD1を使って出力ポートを読み書きする必要があります (参考までに、<b
+              data-dl-uid="378"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >キーボードコントローラのコマンド</b
+            >表をもう一度見てください)。
+            <p data-dl-uid="379" data-dl-original="true" data-dl-translated="true">
+              この方法は、他の方法より少し複雑ですが、それほど悪くありません。
+              基本的には、キーボードを無効にして、コントローラから出力ポートを読み取ります。
+              8042は、1つのポートを含んでいます。1つは入力、もう1つは出力です。そうだったのか...。3つ目はテスト用です。これらの「ポート」は、マイクロコントローラのハードウェア・ピンに過ぎません。
+            </p>
+            <p data-dl-uid="380" data-dl-original="true" data-dl-translated="true">
+              物事をシンプルにするために（そしてこれはキーボードプログラミングのチュートリアルではないので）、今は出力ポートだけを見てみましょう。
+            </p>
+            <p data-dl-uid="381" data-dl-original="true" data-dl-translated="true">
+              さて、出力ポートを読み出すには、次のような出力ポート読み出しコマンド(0xD0)をコントローラに送ります(参考までにキーボードコントローラコマンドの表をご覧ください)。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">; read output port into al
+mov     al,0xD0
+out     0x64,al</div></pre>
+            </blockquote>
+
+            これで、出力ポートのデータが取得できました。しかし、これではあまり意味がありません。
+            <p data-dl-uid="385" data-dl-original="true" data-dl-translated="true">
+              <i data-dl-uid="386" data-dl-original="true" data-dl-translated="true"
+                >では、見てみましょう。</i
+              >
+            </p>
+
+            <ul>
+              <li><b>Bit 0: System Reset</b></li>
+              <ul>
+                <li>0: Reset computer</li>
+                <li>1: Normal operation</li>
+              </ul>
+              <li><b>Bit 1: A20</b></li>
+              <ul>
+                <li>0: Disabled</li>
+                <li>1: Enabled</li>
+              </ul>
+              <li><b>Bit 2-3:</b> Undefined</li>
+              <li><b>Bit 4:</b> Input buffer full</li>
+              <li><b>Bit 5:</b> Output Buffer Empty</li>
+              <li><b>Bit 6:</b> Keyboard Clock</li>
+              <ul>
+                <li>0: High-Z</li>
+                <li>1: Pull Clock Low</li>
+              </ul>
+              <li><b>Bit 6:</b> Keyboard Data</li>
+              <ul>
+                <li>0: High-Z</li>
+                <li>1: Pull Data Low</li>
+              </ul>
+            </ul>
+
+            <p data-dl-uid="415" data-dl-original="true" data-dl-translated="true">
+              これらのビットのほとんどは、変更する必要はありません。ビット0を1に設定するとコンピュータがリセットされ、ビット1を設定するとゲートA20が有効になります。他のビットが触れないように、この値をORしてビットを設定する必要があります。ビットを設定した後は、その値を書き戻すだけです（コマンド・バイト
+              0xD1）。
+            </p>
+            <p data-dl-uid="416" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="417" data-dl-original="true" data-dl-translated="true"
+                >出力ポートの読み取りと書き込みに使用されるコマンドは、データのためにコントローラの入力と出力バッファを使用します。</b
+              >
+            </p>
+            <p data-dl-uid="418" data-dl-original="true" data-dl-translated="true">
+              つまり、出力ポートを読み出すと、読み出されたデータはコントローラの入力バッファ・レジスタに格納されます。I/Oポートの表を見ると、I/Oポート0x60から読み込んだデータを取得することになります。
+            </p>
+            <p data-dl-uid="419" data-dl-original="true" data-dl-translated="true">
+              例を見てみましょう。<b data-dl-uid="420" data-dl-original="true" data-dl-translated="true"
+                >wait_inputは</b
+              >入力バッファが空になるのを待ち、<b
+                data-dl-uid="421"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >wait_outputは</b
+              >出力バッファが空になるのを待ちます。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">; send read output port command
+mov     al,0xD0
+out     0x64,al
+call    wait_output
+ 
+; read input buffer and store on stack. This is the data read from the output port
+in      al,0x60
+push    eax
+call    wait_input
+ 
+; send write output port command
+mov     al,0xD1
+out     0x64,al
+call    wait_input
+ 
+; pop the output port data from stack and set bit 1 (A20) to enable
+pop     eax
+or      al,2		// 2 = 10 binary
+out     0x60,al		// write the data to the output port. This is done through the output buffer</div></pre>
+            </blockquote>
+
+            それだけなんです。:)この方法は、他の方法より少し複雑ですが、最も移植性があります。
+            <h2 data-dl-uid="425" data-dl-original="true" data-dl-translated="true">探すべき注意点</h2>
+
+            エミュレーションなので、これらのほとんどはBochsには適用されませんが、代わりに実際のハードウェアに適用されます。
+            <h3 data-dl-uid="426" data-dl-original="true" data-dl-translated="true">
+              コントローラが間違ったコマンドを実行した
+            </h3>
+            例えば、<b data-dl-uid="427" data-dl-original="true" data-dl-translated="true">in al</b>,<b
+              data-dl-uid="428"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >0x60の</b
+            >代わりに<b data-dl-uid="427" data-dl-translated="true">in al, 0x61を</b
+            >使うと、キーボードマイコンのステータスレジスタ（ポート0x60）ではなく、別のレジスタから読み込むことになります。
+            <h3 data-dl-uid="429" data-dl-original="true" data-dl-translated="true">
+              コントローラの未知のコマンド
+            </h3>
+
+            ほとんどのコントローラは、知らないコマンドは無視し、そのまま破棄します（コマンドレジスタがある場合はクリアします）。
+            <p data-dl-uid="430" data-dl-original="true" data-dl-translated="true">
+              ただし、コントローラによっては誤動作することがあります。詳しくは、「誤動作」の項をご覧ください。
+            </p>
+            <h3 data-dl-uid="431" data-dl-original="true" data-dl-translated="true">
+              コントローラーの誤動作
+            </h3>
+            このようなことは稀にしか起こらないが、可能性はある。2つの顕著な例はPentiumプロセッサで、悪名高いFDIVとfoofのバグがあります。FDIVバグは、CPU内部の設計上の欠陥で、プロセッサ内部のFPUが誤った結果を出すというものです。
+            <p data-dl-uid="432" data-dl-original="true" data-dl-translated="true">
+              foofの問題はよりシリーズ化されています。プロセッサにコマンドバイト0xf0 0x0f 0xc7
+              0xc8が与えられたとき、これは<b
+                data-dl-uid="433"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >HCF（Hault and Catch Fire）</b
+              >命令の一例です。(これらの<b
+                data-dl-uid="434"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >命令の</b
+              >ほとんどは、プロセッサ自体をロックしてしまい、ユーザーをハードリブートさせる可能性があります。また、これらの命令の使用により、異常な副作用が発生する場合もあります。
+            </p>
+            <p data-dl-uid="435" data-dl-original="true" data-dl-translated="true">
+              これらの起こりうる問題については、よく考えておく必要があります。実際に起こることであり、コントローラも例外ではありません（命令バイトを個々のポートに送信することを思い出してください）。例えば、ポート0x64--キーボードコントローラのコマンドレジスタ）。
+            </p>
+            <p data-dl-uid="436" data-dl-original="true" data-dl-translated="true">
+              しかし、これらの不具合のほとんどは、デバイスの「設計上の欠陥」と考えるのが妥当でしょう。
+            </p>
+            <h3 data-dl-uid="437" data-dl-original="true" data-dl-translated="true">
+              ハードウェアの物理的な故障
+            </h3>
+            また、稀ではあるが、ソフトウェアによってハードウェアの損傷を与えることも可能である。簡単な例としては、フロッピーディスクドライブがあります。フロッピー<b
+              data-dl-uid="438"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >ドライブのモーターは</b
+            >、<b data-dl-uid="439" data-dl-original="true" data-dl-translated="true"
+              >フロッピードライブコントローラ（FDC</b
+            >）を通じて直接制御する必要がある。モーターを停止させるコマンドを送り忘れると、フロッピーディスクドライブが摩耗して壊れてしまうことがあります。ご注意ください。
+            <h3 data-dl-uid="440" data-dl-original="true" data-dl-translated="true">トリプル障害</h3>
+            マイクロコントローラは、コントロールバスを介してプライマリプロセッサーに問題があることを知らせることがあります。この場合、プロセッサーは例外を通知し、もちろんコンピューターは再起動します。
+            <h3 data-dl-uid="441" data-dl-original="true" data-dl-translated="true">
+              Bochsのコントローラの問題
+            </h3>
+
+            コントローラに問題がある場合、Bochsはトリプルフォルトを発生させ、その情報（問題）をログに記録します。
+            <p data-dl-uid="442" data-dl-original="true" data-dl-translated="true">
+              例えば、キーボードコントローラに未知のコマンド(例えば0)を送ろうとした場合。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">	mov		al, 0x00		; some random command
+	out		0x64, al		; try to send command to controller</div></pre>
+            </blockquote>
+
+            Bochsはトリプルフォルトを発生させ、その情報をログに記録します。
+            <blockquote>
+              <pre><div class="code">	[KBD   ] unsupported io write to keyboard port 64, value = 0</div></pre>
+            </blockquote>
+            「KBD」は、キーボードコントローラデバイスによってログが書き込まれたことを表します。
+
+            <h1 data-dl-uid="457" data-dl-original="true" data-dl-translated="true">まとめ</h1>
+            すごい、すごい。このチュートリアルは、私が当初期待したよりも大きなものです。
+            <p data-dl-uid="458" data-dl-original="true" data-dl-translated="true">
+              新しい概念をたくさん見ることができました。また、ハードウェアプログラミングの経験もできました。
+              覚えておいてください。<b
+                data-dl-uid="459"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >プロテクトモードでのハードウェアとの通信は、この方法しかありません。</b
+              >
+              さようなら、割り込み。さようならBIOS。もう完全に自分たちでやるしかないんです。
+            </p>
+            <p data-dl-uid="460" data-dl-original="true" data-dl-translated="true">
+              これで、Windowsをもう少し評価できるようになるかもしれませんね。）結局のところ、彼らは皆、私たちのレベルから始めなければならなかったのです。
+            </p>
+            <p data-dl-uid="461" data-dl-original="true" data-dl-translated="true">
+              まだすべてを理解していなくても心配しないでください--複雑なのは分かっています。Kernelに到達したら、キーボードマイクロコントローラのプログラミングとそのドライバを書くことに特化した全体のチュートリアルを用意するつもりです。いいでしょ？
+            </p>
+            <p data-dl-uid="462" data-dl-original="true" data-dl-translated="true">
+              次のチュートリアルはもっと簡単です。プロテクトモードは一旦保留にして、リアルモードのコードに戻りましょう。FAT12
+              のロードコードを追加して、カーネルをロードします。 A20 が有効になっているので、1MB
+              でロードできます!
+            </p>
+            <p data-dl-uid="463" data-dl-original="true" data-dl-translated="true">
+              また、BIOS情報を取得したり、その他、思いついたことを何でもやっていきます :)それではまた。
+            </p>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </body>
+</html>
