@@ -1,0 +1,2791 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Cache-Control" content="no-cache" />
+    <title></title>
+    <link href="css/reference.css" rel="stylesheet" />
+  </head>
+  <body
+    text="#000000"
+    vlink="#666699"
+    alink="#000000"
+    link="#666699"
+    bgcolor="#ffffff"
+    leftmargin="0"
+    background="./en01_files/watermark.gif"
+    topmargin="0"
+    marginheight="0"
+    marginwidth="0"
+  >
+    <table cellspacing="0" cellpadding="3" width="80%" border="0">
+      <tbody>
+        <tr>
+          <td class="tblhdr">Operating Systems Development Series</td>
+        </tr>
+        <tr>
+          <td align="middle" colspan="2"></td>
+        </tr>
+      </tbody>
+    </table>
+    <table cellspacing="0" cellpadding="5" width="100%" border="0">
+      <tbody>
+        <tr>
+          <td>
+            <!-- Title -->
+
+            <div>
+              <span class="title">System Architecture</span>
+
+              <br />
+              <span class="author">by Mike, 2008, 2009</span>
+            </div>
+
+            <h1 data-dl-uid="7" data-dl-original="true" data-dl-translated="true">はじめに</h1>
+            ようこそ!:)前回のチュートリアルでは、ついにブートローダを完成させました!やったー!今のところ、とにかく
+            :)
+            <p data-dl-uid="8" data-dl-original="true" data-dl-translated="true">
+              FAT12 ファイルシステムを詳しく説明し、ステージ 2
+              の読み込み、解析、実行について見てきました。
+            </p>
+            <p data-dl-uid="9" data-dl-original="true" data-dl-translated="true">
+              このチュートリアルは、前回の続きとなります。まず、x86
+              アーキテクチャについて詳しく見ていきます。これは特にプロテクトモードにおいて重要であり、プロテクトモードがどのように機能するかを理解することができます。
+            </p>
+            <p data-dl-uid="10" data-dl-original="true" data-dl-translated="true">
+              起動時のBIOSとの関係を理解するために、他のプロセッサを「起動」させることができることを思い出してください。BIOSはメインプロセッサでこれを行い、私たちはマルチプロセッサシステムをサポートするために同じことを行うことができます。
+            </p>
+            <p data-dl-uid="11" data-dl-original="true" data-dl-translated="true">
+              これから取り上げます。
+            </p>
+            <ul data-dl-uid="12" data-dl-original="true" data-dl-translated="true">
+              <li data-dl-uid="13" data-dl-original="true" data-dl-translated="true">80x86 レジスタ</li>
+              <li data-dl-uid="14" data-dl-original="true" data-dl-translated="true">システム構成</li>
+              <li data-dl-uid="15" data-dl-original="true" data-dl-translated="true">システムバス</li>
+              <li data-dl-uid="16" data-dl-original="true" data-dl-translated="true">
+                リアルモードメモリマップ
+              </li>
+
+              <li data-dl-uid="17" data-dl-original="true" data-dl-translated="true">命令の実行方法</li>
+              <li data-dl-uid="18" data-dl-original="true" data-dl-translated="true">
+                ソフトウェアポート
+              </li>
+            </ul>
+            ある意味、これはシステムアーキテクチャのチュートリアルのようなものです。しかし、OS
+            開発の観点からアーキテクチャを見ていきます。また、アーキテクチャの<b
+              data-dl-uid="19"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >中のあらゆることをカバー</b
+            >します。
+            <p data-dl-uid="20" data-dl-original="true" data-dl-translated="true">
+              基本的な概念を理解することで、<b
+                data-dl-uid="21"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >プロテクトモードを</b
+              >より詳細に理解することができます。
+              次のチュートリアルでは、ここで学んだことをすべて使って、プロテクトモードに切り替えてみましょう。
+            </p>
+            <p data-dl-uid="22" data-dl-original="true" data-dl-translated="true">
+              <i data-dl-uid="23" data-dl-original="true" data-dl-translated="true"
+                >それでは、お楽しみに......。</i
+              >
+            </p>
+
+            <h1 data-dl-uid="24" data-dl-original="true" data-dl-translated="true">
+              プロテクトモードの世界
+            </h1>
+            この言葉は聞いたことがありますね？80286以降のプロセッサで利用可能な動作モードです。PModeは、主にシステムの安定性を高めるために設計されました。
+            <p data-dl-uid="25" data-dl-original="true" data-dl-translated="true">
+              これまでのチュートリアルでご存知のように、リアルモードにはいくつかの大きな問題があります。一つは、好きなところにバイトを書き込むことができることです。これは、ソフトウェアポートやプロセッサ、あるいは私たち自身によって使用されるかもしれないコードやデータを上書きすることができます。しかも、直接的にも間接的にも、4,000以上の異なる方法でこれを行うことができるのです。
+            </p>
+            <p data-dl-uid="26" data-dl-original="true" data-dl-translated="true">
+              リアルモードには<b data-dl-uid="27" data-dl-original="true" data-dl-translated="true"
+                >メモリープロテクトが</b
+              >ありません。すべてのデータとコードは、単一の多目的使用メモリブロックにダンプされます。
+            </p>
+            <p data-dl-uid="28" data-dl-original="true" data-dl-translated="true">
+              リアルモードでは、16ビットのレジスターに制限されます。このため、1MBのメモリに制限されます。
+            </p>
+            <p data-dl-uid="29" data-dl-original="true" data-dl-translated="true">
+              ハードウェアレベルの<b data-dl-uid="30" data-dl-original="true" data-dl-translated="true"
+                >Memory Protectionや</b
+              >
+              <b data-dl-uid="31" data-dl-original="true" data-dl-translated="true">Multitaskingは</b
+              >サポートされていない。
+            </p>
+            <p data-dl-uid="32" data-dl-original="true" data-dl-translated="true">
+              最大の問題点は、「リング」というものが存在しないことだ。すべてのプログラムはリング0レベルで実行され、すべてのプログラムがシステムを完全に制御できる。つまり、シングルタスク環境では、気をつけないとたった1つの命令（<b
+                data-dl-uid="33"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >cli/hltなど</b
+              >）でOS全体がクラッシュする可能性があるのです。
+            </p>
+            <p data-dl-uid="34" data-dl-original="true" data-dl-translated="true">
+              このあたりは、リアルモードについて詳しく説明したときと同じように思えるかもしれません。Protected
+              Modeは、これらの問題をすべて解決してくれます。
+            </p>
+            <p data-dl-uid="35" data-dl-original="true" data-dl-translated="true">プロテクトモード</p>
+            <ul data-dl-uid="36" data-dl-original="true" data-dl-translated="true">
+              <li data-dl-uid="37" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="38" data-dl-original="true" data-dl-translated="true">メモリ保護</b>機能
+              </li>
+              <li data-dl-uid="39" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="40" data-dl-original="true" data-dl-translated="true">仮想メモリと</b>
+                <b data-dl-uid="41" data-dl-original="true" data-dl-translated="true"
+                  >タスクステートスイッチング(TSS)</b
+                >のハードウェアサポート
+              </li>
+              <li data-dl-uid="42" data-dl-original="true" data-dl-translated="true">
+                プログラムの相互実行をハードウェアでサポートしている
+              </li>
+
+              <li data-dl-uid="43" data-dl-original="true" data-dl-translated="true">
+                4つの動作モード。<b data-dl-uid="44" data-dl-original="true" data-dl-translated="true"
+                  >リング0、リング1、リング2、リング3</b
+                >
+              </li>
+              <li data-dl-uid="45" data-dl-original="true" data-dl-translated="true">
+                32ビットレジスタへのアクセス
+              </li>
+              <li data-dl-uid="46" data-dl-original="true" data-dl-translated="true">
+                最大4GBのメモリへのアクセス
+              </li>
+            </ul>
+            以前のチュートリアルで、アセンブリ言語のリングを取り上げました。<b
+              data-dl-uid="47"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >通常のアプリケーションはRing3（Useually）ですが、私たちはRing0に</b
+            >いることを覚えておいてください。通常のアプリケーションにはない特別な命令やレジスタにアクセスすることができます。このチュートリアルでは、<b
+              data-dl-uid="48"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >LGDT</b
+            >命令、独自に定義したセグメントを使用した<b
+              data-dl-uid="49"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >ファージャンプ</b
+            >、<b data-dl-uid="50" data-dl-original="true" data-dl-translated="true"
+              >プロセッサ制御レジスタの</b
+            >使用について説明します。 このようなことは、通常のプログラムではできません。
+            <p data-dl-uid="51" data-dl-original="true" data-dl-translated="true">
+              システム・アーキテクチャとプロセッサの仕組みを理解することで、このOSの理解が深まります。
+            </p>
+
+            <h1 data-dl-uid="52" data-dl-original="true" data-dl-translated="true">
+              システム・アーキテクチャ
+            </h1>
+            x86ファミリーのコンピュータは、<i
+              data-dl-uid="53"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >ヴァン・ノイマン・アーキテクチャーに</i
+            >準拠しています。ヴァンニューマンアーキテクチャとは、典型的なコンピュータシステムが3つの主要な構成要素を持っているという設計仕様である。
+            <ul data-dl-uid="54" data-dl-original="true" data-dl-translated="true">
+              <li data-dl-uid="55" data-dl-original="true" data-dl-translated="true">
+                中央処理装置(CPU)
+              </li>
+              <li data-dl-uid="56" data-dl-original="true" data-dl-translated="true">メモリ</li>
+
+              <li data-dl-uid="57" data-dl-original="true" data-dl-translated="true">入力/出力(IO)</li>
+            </ul>
+            例えば、以下のようなものです。
+
+            <center><img src="./05_files/Arch.jpg" /></center>
+
+            <p data-dl-uid="60" data-dl-original="true" data-dl-translated="true">
+              重要なことが2つあります。ご存知のように、CPU
+              はメモリからデータや命令を取り込みます。メモリコントローラは、それが存在する正確なRAMチップとメモリセルを計算する役割を担っています。このため、<b
+                data-dl-uid="61"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >The CPUはMemory Controllerと通信を</b
+              >行います。
+            </p>
+            <p data-dl-uid="62" data-dl-original="true" data-dl-translated="true">
+              また、「I/Oデバイス」にもご注目ください。これらはシステムバスに接続されている。<b
+                data-dl-uid="63"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >すべてのI/Oポートは、所定のメモリ位置にマッピングされています。これにより、IN命令とOUT命令を使うことができるのです。</b
+              >
+            </p>
+            <p data-dl-uid="64" data-dl-original="true" data-dl-translated="true">
+              ハードウェアデバイスは、システムバスを介してメモリにアクセスすることができます。また、何かが起こったときにデバイスに通知することもできる。例えば、<b
+                data-dl-uid="65"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ハードウェアデバイスコントローラが</b
+              >読み出すために、あるメモリ位置にバイトを書き込むと、<b
+                data-dl-uid="66"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >プロセッサはそのアドレスにデータがあることをデバイスに通知</b
+              >することができます。これは、<b
+                data-dl-uid="68"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >システムバス</b
+              >全体のうち、<b data-dl-uid="67" data-dl-original="true" data-dl-translated="true"
+                >コントロールバスの</b
+              >部分を通じて行われます。これが、ソフトウェアがハードウェアデバイスとやりとりする基本的な方法です。後ほど詳しく説明しますが、プロテクトモードのデバイスと通信する<b
+                data-dl-uid="69"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >唯一の</b
+              >方法であり、重要なポイントです。
+            </p>
+            <p data-dl-uid="70" data-dl-original="true" data-dl-translated="true">
+              まず、すべてを詳しく説明します。次に、ハードウェアレベルで命令が実行されるのを見ながら、それらを組み合わせて、どのように動作するかを学びます。ここからは、I/Oポートについて、また、ソフトウェアがハードウェアとどのように相互作用するかについて説明します。
+            </p>
+            <p data-dl-uid="71" data-dl-original="true" data-dl-translated="true">
+              x86アセンブリの経験をお持ちの方なら、一部、あるいは大部分を知っているはずです。しかし、ほとんどのアセンブリの本では詳しく説明されていないことをたくさん取り上げるつもりです。具体的には、Ring
+              0のプログラムに特化した内容です。
+            </p>
+
+            <h1 data-dl-uid="72" data-dl-original="true" data-dl-translated="true">システムバス</h1>
+            <b data-dl-uid="73" data-dl-original="true" data-dl-translated="true">システムバスは</b>
+            <b data-dl-uid="74" data-dl-original="true" data-dl-translated="true"
+              >フロントサイドバスとも</b
+            >呼ばれ、CPUをマザーボード上の<b
+              data-dl-uid="75"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >ノースブリッジに</b
+            >接続します。
+            <p data-dl-uid="76" data-dl-original="true" data-dl-translated="true">
+              システムバスは、<b data-dl-uid="77" data-dl-original="true" data-dl-translated="true"
+                >データバス</b
+              >、<b data-dl-uid="78" data-dl-original="true" data-dl-translated="true">アドレスバス</b
+              >、<b data-dl-uid="79" data-dl-original="true" data-dl-translated="true"
+                >コントロールバスを</b
+              >組み合わせたもので、<b data-dl-uid="80" data-dl-original="true" data-dl-translated="true"
+                >このバスの各電子線が1つのビットを</b
+              >表します。0」と「1」を表す電圧レベルは、<b
+                data-dl-uid="81"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >TTL（Standard Transistor-Transistor Logic）レベルを</b
+              >ベースにしている。しかし、このことを知る必要はありません。TTLは、コンピュータを構成する<b
+                data-dl-uid="82"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >デジタル・ロジック・エレクトロニクスの</b
+              >一部である。
+            </p>
+            <p data-dl-uid="83" data-dl-original="true" data-dl-translated="true">
+              ご存知のように、システムバスは3つのバスで構成されています。それでは詳しく見ていきましょう。
+            </p>
+            <h2 data-dl-uid="84" data-dl-original="true" data-dl-translated="true">データバス</h2>
+
+            データバスは、データを伝送することができる一連の電子線である。データバスのサイズは、16本/ビット、32本/ビット、64本/ビット。電子線と1ビットが直接関係していることに注意してください。
+            <p data-dl-uid="85" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="86" data-dl-original="true" data-dl-translated="true"
+                >32ビットプロセッサは、32ビットのデータバスを持ち、使用</b
+              >します。つまり、4バイトのデータを同時に扱うことができるのです。これを知っていれば、プログラムのデータサイズに気を配ることができ、高速化につながります。
+            </p>
+            <p data-dl-uid="87" data-dl-original="true" data-dl-translated="true">
+              どのように？プロセッサは、1、2、4、8、16ビットのデータをデータバスのサイズに合わせて0を詰める必要があります。大きなデータピースは、プロセッサがデータバス上で正しくバイトを送信できるように分割（およびパディング）する必要があります。<b
+                data-dl-uid="88"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >データバスの大きさのデータ片を送信すると、余分な処理がないため、より高速になります。</b
+              >
+            </p>
+            <p data-dl-uid="89" data-dl-original="true" data-dl-translated="true">
+              たとえば、64ビットのデータ型があり、32ビットのデータバスがあるとします。最初の<b
+                data-dl-uid="90"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >クロック</b
+              >サイクルでは、最初の32ビットだけがデータバスを介してメモリコントローラに送信されます。2番目の<b
+                data-dl-uid="91"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >クロック</b
+              >サイクルでは、プロセッサは最後の32ビットを参照します。<b
+                data-dl-uid="92"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >注：データ型が大きくなればなるほど、より多くのクロックサイクルを要することに注意してください</b
+              >
+            </p>
+            <p data-dl-uid="93" data-dl-original="true" data-dl-translated="true">
+              一般に、「32ビットプロセッサ」、「16ビットプロセッサ」などの用語は、データバスの大きさを指しています。つまり、「32ビットプロセッサー」は32ビットのデータバスを使用します。
+            </p>
+            <h2 data-dl-uid="94" data-dl-original="true" data-dl-translated="true">アドレスバス</h2>
+
+            プロセッサやI/Oデバイスがメモリを参照する必要がある場合、アドレスバスにそのアドレスを置きます。
+            さて、<b data-dl-uid="95" data-dl-original="true" data-dl-translated="true"
+              >メモリアドレスが</b
+            >メモリ内の位置を表すことは、誰もが知っていることです。しかし、これは抽象的な表現です。
+            <p data-dl-uid="96" data-dl-original="true" data-dl-translated="true">
+              メモリーアドレスとは、<b data-dl-uid="97" data-dl-original="true" data-dl-translated="true"
+                >メモリーコントローラーが使用する番号の</b
+              >ことです。それだけです。メモリコントローラは、このバスから数字を取り出し、それをメモリの場所として解釈します。<b
+                data-dl-uid="98"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >各RAMチップの大きさを知っていれば、メモリコントローラは簡単に正確なRAMチップとその中のバイトオフセットを参照することができます。</b
+              >メモリコントローラは、<b
+                data-dl-uid="99"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >メモリセル0を</b
+              >起点に、このオフセットを、<b
+                data-dl-uid="100"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >目的のアドレスとして</b
+              >積分する。
+            </p>
+            <p data-dl-uid="101" data-dl-original="true" data-dl-translated="true">
+              アドレスバスは、<b data-dl-uid="102" data-dl-original="true" data-dl-translated="true"
+                >コントロールユニット（CU）</b
+              >、<b data-dl-uid="103" data-dl-original="true" data-dl-translated="true">I/Oコントロー</b
+              >ラを介してプロセッサに接続されている。<b
+                data-dl-uid="104"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >コントロール</b
+              >ユニットはプロセッサ内部にあるので、後で見ていくことにする。<b
+                data-dl-uid="105"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >I/O</b
+              >コントローラは、ハードウェアデバイスとのインターフェイスを制御する。これについても後ほど見ていきます。
+            </p>
+            <p data-dl-uid="106" data-dl-original="true" data-dl-translated="true">
+              データバスと同様に、<b data-dl-uid="107" data-dl-original="true" data-dl-translated="true"
+                >各電子ラインは1つのビットを</b
+              >表します。1ビットに含まれる値は2つだけなので、<b
+                data-dl-uid="108"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >CPUがアクセスできるアドレスは厳密に2^n</b
+              >個となります。したがって、<b
+                data-dl-uid="109"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >アドレスバスのビット数/ライン数は、CPUがアクセスできる最大メモリ</b
+              >数を表しています。
+            </p>
+            <p data-dl-uid="110" data-dl-original="true" data-dl-translated="true">
+              8080から80186までのプロセッサでは、それぞれ<b
+                data-dl-uid="111"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >20ライン/ビットのアドレスバスを備えて</b
+              >いた。80286と80386は24本/ビット、80386+は32本/ビットである。
+            </p>
+            <p data-dl-uid="112" data-dl-original="true" data-dl-translated="true">
+              x86ファミリ全体が、古いプロセッサとも移植できるように設計されていることを忘れてはならない。そのため、Real
+              Modeでスタートする。<b data-dl-uid="113" data-dl-original="true" data-dl-translated="true"
+                >そのため、x86ファミリーのプロセッサは、0番から19番までの20本のアドレスラインしか利用できず、1MBに制限されていました。</b
+              >
+            </p>
+            <p data-dl-uid="114" data-dl-original="true" data-dl-translated="true">
+              この制限は、今でも私たちに適用さ<b
+                data-dl-uid="115"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >れるから</b
+              >です。そこで、20本<b data-dl-uid="116" data-dl-original="true" data-dl-translated="true"
+                >目の</b
+              >アドレスからアクセスできるようにするのです。<b data-dl-uid="116" data-dl-translated="true"
+                >これでOSは4GB以上のメモリにアクセスできるようになります。</b
+              >詳しくは後述します。
+            </p>
+            <h2 data-dl-uid="117" data-dl-original="true" data-dl-translated="true">コントロールバス</h2>
+
+            では、Data Busにデータを載せて、Address Busでメモリアドレスを参照する。
+            しかし、このデータをどう扱うのか？メモリから読み出すのか？それともデータを書き込むのか？
+            <p data-dl-uid="118" data-dl-original="true" data-dl-translated="true">
+              コントロールバスは、デバイスが何をしようとしているかを表す一連のライン/ビットです。例えば、プロセッサはREADビットやWRITEビットを設定して、アドレスバスに格納されたメモリ位置からデータバスのデータを読み取りまたは書き込みたいことをメモリコントローラーに知らせます。
+            </p>
+            <p data-dl-uid="119" data-dl-original="true" data-dl-translated="true">
+              また、Control
+              Busは、プロセッサがデバイスに信号を送るためのものです。これは、デバイスに注意を促すためのものです。例えば、アドレスバスのメモリ位置から読み出すようにデバイスに要求することもできます。このように、デバイスに必要なことを知らせることができます。<b
+                data-dl-uid="120"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >これは、I/Oソフトウェアポートで重要なことです。</b
+              >
+            </p>
+            <p data-dl-uid="121" data-dl-original="true" data-dl-translated="true">
+              もちろん、システムバスはハードウェアデバイスに直接接続されているわけではないことを忘れてはならない。代わりに、それは中央のコントローラに接続されている
+              -<b data-dl-uid="122" data-dl-original="true" data-dl-translated="true"
+                >I / Oコントローラ</b
+              >、順番に、デバイスに信号を送信します。
+            </p>
+            <h2 data-dl-uid="123" data-dl-original="true" data-dl-translated="true">それはすべて</h2>
+
+            システムバスは以上である。システムバスは、プロセッサ（<b
+              data-dl-uid="124"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >CU</b
+            >）とI/Oデバイス<b data-dl-uid="125" data-dl-original="true" data-dl-translated="true"
+              >（I/Oコントローラ</b
+            >）から、<b data-dl-uid="126" data-dl-original="true" data-dl-translated="true"
+              >メモリコントローラ</b
+            >（RAMチップを正確に計算し、アクセスしたいメモリセルを見つける役割）へ、メモリにアクセスしたり読み出すための経路となっています。
+            <p data-dl-uid="127" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="128" data-dl-original="true" data-dl-translated="true">「コントローラ」</b
+              >...あなたは私がこの用語alotを言うのを聞くことができます。その理由は後ほど説明します。
+            </p>
+
+            <h1 data-dl-uid="129" data-dl-original="true" data-dl-translated="true">
+              メモリコントローラ
+            </h1>
+            メモリコントローラは、マザーボード上のシステムバス（フロントサイドバス、FSB）と物理的なRAMチップの間の主要なインターフェイスです。
+            <p data-dl-uid="130" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="131" data-dl-original="true" data-dl-translated="true"
+                >コントローラという</b
+              >言葉はよく耳にしますよね。コントローラとはいったい何なのでしょうか？
+            </p>
+            <p data-dl-uid="132" data-dl-original="true" data-dl-translated="true"></p>
+            <h2 data-dl-uid="133" data-dl-original="true" data-dl-translated="true">コントローラ</h2>
+            コントローラは、基本的なハードウェア制御機能を提供します。<b
+              data-dl-uid="134"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >また、ハードウェアとソフトウェアの間の基本的なインターフェイスを提供します。</b
+            >これは私たちにとって重要なことです。保護モードでは、<b
+              data-dl-uid="135"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >割り込みが</b
+            >使えないことを忘れないでください。ブートローダでは、ハードウェアと通信するためにいくつかの割り込みを使用しました。<b
+              data-dl-uid="136"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >これらの割り込みをプロテクトモードで使用すると、トリプルフォールトが発生します。</b
+            >
+
+            どうすればいいのでしょう？
+            <p data-dl-uid="137" data-dl-original="true" data-dl-translated="true">
+              私たちはハードウェアと直接通信する必要があります。これはコントローラを通して行います（コントローラの仕組みについては、後ほどI/Oサブシステムを取り上げる際に詳しく説明します）。
+            </p>
+            <h2 data-dl-uid="138" data-dl-original="true" data-dl-translated="true">
+              メモリコントローラ
+            </h2>
+            メモリコントローラは、ソフトウェアでメモリの位置を読み書きする方法を提供します。
+            メモリコントローラは、RAMチップが情報を保持できるように、常にリフレッシュする役割も担っています。
+            <p data-dl-uid="139" data-dl-original="true" data-dl-translated="true">
+              メモリコントローラには、<b
+                data-dl-uid="140"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >マルチプレクサと</b
+              >
+              <b data-dl-uid="141" data-dl-original="true" data-dl-translated="true">デマルチプレクサ</b
+              >回路があり、アドレスバスのアドレスを参照する正確なRAMチップと位置を選択します。
+            </p>
+            <h3 data-dl-uid="142" data-dl-original="true" data-dl-translated="true">
+              ダブルデータレート（DDR）コントローラ
+            </h3>
+
+            DDRコントローラはDDR SDRAMのリフレッシュに使用され、<b
+              data-dl-uid="143"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >システムクロックパルスを</b
+            >使用してメモリの読み取りと書き込みを可能にします。
+            <h3 data-dl-uid="144" data-dl-original="true" data-dl-translated="true">
+              デュアルチャネルコントローラ
+            </h3>
+            デュアルチャネルコントローラは、DRAMデバイスを2つの小さなバスに分離し、一度に2つのメモリロケーションの読み取りと書き込みを可能にするために使用されます。これにより、RAMへのアクセスが高速化されます。
+            <h3 data-dl-uid="145" data-dl-original="true" data-dl-translated="true">
+              メモリコントローラ まとめ
+            </h3>
+
+            メモリコントローラは、私たちがアドレスバスに入力したアドレスを受け取ります。でも、どうやってメモリコントローラにメモリの読み書きを指示するのでしょうか？メモリを読み出す場合、<b
+              data-dl-uid="146"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >プロセッサはControl BusにReadビットをセット</b
+            >します。同様に、プロセッサはControl Bus<b
+              data-dl-uid="147"
+              data-dl-original="true"
+              data-dl-translated="true"
+            >
+              にメモリを書き込むときにWrite</b
+            >ビットをセットします。
+            <p data-dl-uid="148" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="149" data-dl-original="true" data-dl-translated="true"
+                >コントロールバスは</b
+              >、プロセッサが他のデバイスのバスの使い方を制御するためのものであることを忘れないでください。
+            </p>
+            <p data-dl-uid="150" data-dl-original="true" data-dl-translated="true">
+              メモリコントローラが使用するデータはData Busの中にある。使用するAddressはAddress
+              Busの中にある。
+            </p>
+            <p data-dl-uid="151" data-dl-original="true" data-dl-translated="true"></p>
+            <h4 data-dl-uid="152" data-dl-original="true" data-dl-translated="true">メモリの読み出し</h4>
+            メモリを読み出す場合、プロセッサは読み出す絶対アドレスをアドレス・バスに置きます。
+            その後、プロセッサはREADコントロール・ラインをセットします。
+            <p data-dl-uid="153" data-dl-original="true" data-dl-translated="true">
+              メモリコントローラが制御します。コントローラは、<b
+                data-dl-uid="154"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >マルチプレクサ</b
+              >回路を使用して絶対アドレスを物理的なRAM位置に変換し、データをデータバスに格納します。その後、READビットを0にリセットし、READYビットを設定します。
+            </p>
+            <p data-dl-uid="155" data-dl-original="true" data-dl-translated="true">
+              プロセッサは、データがデータ・バスにあることを認識します。このデータをコピーして、残りの命令を実行し、BXに格納するのでしょうか。
+            </p>
+            <p data-dl-uid="156" data-dl-original="true" data-dl-translated="true"></p>
+            <h4 data-dl-uid="157" data-dl-original="true" data-dl-translated="true">メモリの書き込み</h4>
+            メモリを書き込むプロセスも同様です。
+            <p data-dl-uid="158" data-dl-original="true" data-dl-translated="true">
+              まず、プロセッサはメモリのアドレスをアドレスバスに格納します。次に、書き込むデータをデータバスに格納する。そして、コントロールバスにWRITEビットをセットする。
+            </p>
+            <p data-dl-uid="159" data-dl-original="true" data-dl-translated="true">
+              これにより、メモリコントローラは、データバスのデータをアドレスバスの絶対アドレスに書き込むことを知ることができる。書き込みが完了すると、メモリコントローラはWRITEビットをリセットし、Control
+              BusにREADYビットを設定します。
+            </p>
+            <p data-dl-uid="160" data-dl-original="true" data-dl-translated="true"></p>
+            <h4 data-dl-uid="161" data-dl-original="true" data-dl-translated="true">まとめ</h4>
+            ソフトウェアで直接メモリコントローラと通信するのではなく、間接的に通信する。<b
+              data-dl-uid="162"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >メモリの読み書きをするときは、必ずメモリコントローラを使用します。これが、ソフトウェアとメモリコントローラ/RAMチップのハードウェアのインターフェースです。</b
+            >
+            <p data-dl-uid="163" data-dl-original="true" data-dl-translated="true">
+              さて、I/Oサブシステムを見てみましょう。あ、そうだ。1337<b
+                data-dl-uid="164"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >マルチプレクサの</b
+              >回路はどうなっているのでしょうか？あれはメモリコントローラの中にある物理的な電子回路です。その仕組みを理解するには、<b
+                data-dl-uid="165"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >デジタルロジックの</b
+              >知識が必要だ。しかし、これは私たちには理解しがたいことなので、ここでは説明しません。もっと知りたい方は、Google!
+            </p>
+
+            <h1 data-dl-uid="166" data-dl-original="true" data-dl-translated="true">I/Oサブシステム</h1>
+
+            I/Oサブシステムは、簡単に言うと<b
+              data-dl-uid="167"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >ポートI/Oを表して</b
+            >います。<b data-dl-uid="168" data-dl-original="true" data-dl-translated="true"
+              >ソフトウェアとハードウェア・コントローラの間のインターフェイスを提供する基本的なシステムです。</b
+            >
+            <p data-dl-uid="169" data-dl-original="true" data-dl-translated="true">
+              もっと詳しく見てみましょう。
+            </p>
+            <h2 data-dl-uid="170" data-dl-original="true" data-dl-translated="true">ポート</h2>
+            <b data-dl-uid="171" data-dl-original="true" data-dl-translated="true">ポートとは</b
+            >、簡単に言えば、2つのデバイス間のインターフェイスを提供するものです。ポートには、<b
+              data-dl-uid="172"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >ハードウェア</b
+            >ポートと<b data-dl-uid="173" data-dl-original="true" data-dl-translated="true"
+              >ソフトウェアポ</b
+            >ートの2種類がある。
+            <h3 data-dl-uid="174" data-dl-original="true" data-dl-translated="true">
+              ハードウェア・ポート
+            </h3>
+
+            ハードウェアポートは、2つの物理デバイス間のインターフェイスを提供します。このポートは、通常、一種の接続デバイスです。これには、以下のものが含まれますが、これらに限定されるものではありません。<b
+              data-dl-uid="175"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >シリアルポート、パラレルポート、PS/2ポート、1394、FireWire、USBポートなど。</b
+            >
+            <p data-dl-uid="176" data-dl-original="true" data-dl-translated="true">
+              これらのポートは、通常、一般的なコンピュータシステムの側面/背面/前面にあります。
+            </p>
+            <p data-dl-uid="177" data-dl-original="true" data-dl-translated="true">
+              さて...あなたがポートを見たい場合は、ちょうどあなたのコンピュータに接続されている任意の行をたどってください。どうか、ジーヴスのために、これらが何をするものなのか私に聞かないでください。マジで！？
+            </p>
+            <p data-dl-uid="178" data-dl-original="true" data-dl-translated="true">
+              一般的な電子機器では、これらのポートのピンは、ハードウェアデバイスによって異なることを表す信号を伝達します。これらのピンは、システムバスと同じように......ちょっと待てよ。ビットです。各ピンは1つのビットを表します。そう、それです。
+            </p>
+            <p data-dl-uid="179" data-dl-original="true" data-dl-translated="true">
+              ハードウェアのポートには、「オス」と「メス」の2つの分類があります。オス型は、ピンがコネクタから出ている接続です。ハードウェアポートには、コントローラからアクセスします。詳しくは後ほど...
+            </p>
+            <h3 data-dl-uid="180" data-dl-original="true" data-dl-translated="true">
+              ソフトウェアのポート
+            </h3>
+
+            これは私たちにとって非常に重要なものです。これは、ハードウェアとのインターフェイスです。<b
+              data-dl-uid="181"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >ソフトウェア・ポートとは</b
+            >番号です。それだけです。この番号はハードウェアのコントローラーを表している...という感じです。
+            <p data-dl-uid="182" data-dl-original="true" data-dl-translated="true">
+              複数のポート番号が同じコントローラを表すことがあるのはご存知でしょう。その理由は？<b
+                data-dl-uid="183"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >メモリマップドI/O</b
+              >です。基本的な考え方は、特定のメモリアドレスを指定してハードウェアと通信する。<b
+                data-dl-uid="184"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ポート番号はこの</b
+              >アドレスを表す...もう一回、ちょっとだけ。アドレスの意味は、デバイスの特定のレジスタを表したり、制御レジスタを表したりします。
+            </p>
+            <p data-dl-uid="185" data-dl-original="true" data-dl-translated="true">
+              後でもっと詳しく見ていきます。
+            </p>
+            <h2 data-dl-uid="186" data-dl-original="true" data-dl-translated="true">メモリマッピング</h2>
+
+            x86アーキテクチャでは、プロセッサは特定のメモリ・ロケーションを使用して特定のものを表します。
+            <p data-dl-uid="187" data-dl-original="true" data-dl-translated="true">
+              例えば、<b data-dl-uid="188" data-dl-original="true" data-dl-translated="true"
+                >0xA000:0というアドレスは、ビデオカード内のVRAMの先頭を表して</b
+              >います。この場所にバイトを書き込むことで、現在ビデオメモリにあるものを実質的に変更し、画面に表示されるものを実質的に変更することができます。
+            </p>
+            <p data-dl-uid="189" data-dl-original="true" data-dl-translated="true">
+              他のメモリアドレスは、例えばフロッピーディスクドライブコントローラ（FDC）用のレジスタなど、他のものを表すことができます。
+            </p>
+            <p data-dl-uid="190" data-dl-original="true" data-dl-translated="true">
+              どのアドレスが何であるかを理解することは、私たちにとって非常に重要です。
+            </p>
+
+            <h3>x86 Real Mode Memory Map</h3>
+
+            一般的なx86のリアルモードメモリマップ。
+
+            <ul>
+              <li><b>0x00000000 - 0x000003FF</b> - Real Mode Interrupt Vector Table</li>
+              <li><b>0x00000400 - 0x000004FF</b> - BIOS Data Area</li>
+              <li><b>0x00000500 - 0x00007BFF</b> - Unused</li>
+
+              <li><b>0x00007C00 - 0x00007DFF</b> - Our Bootloader</li>
+              <li><b>0x00007E00 - 0x0009FFFF</b> - Unused</li>
+              <li><b>0x000A0000 - 0x000BFFFF</b> - Video RAM (VRAM) Memory</li>
+              <li><b>0x000B0000 - 0x000B7777</b> - Monochrome Video Memory</li>
+
+              <li><b>0x000B8000 - 0x000BFFFF</b> - Color Video Memory</li>
+              <li><b>0x000C0000 - 0x000C7FFF</b> - Video ROM BIOS</li>
+              <li><b>0x000C8000 - 0x000EFFFF</b> - BIOS Shadow Area</li>
+              <li><b>0x000F0000 - 0x000FFFFF</b> - System BIOS</li>
+            </ul>
+
+            <p data-dl-uid="215" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="216" data-dl-original="true" data-dl-translated="true"
+                >注：上記のデバイスをすべて再マップして、メモリの異なる領域を使用することが可能です。</b
+              >これは、BIOS POSTがデバイスを上の表にマップするために行うものです。
+            </p>
+            <p data-dl-uid="217" data-dl-original="true" data-dl-translated="true">
+              さて、これはクールですべてです。これらのアドレスは異なるものを表しているので、特定のアドレスを読み（書き）出すことで、コンピュータのさまざまな部分から簡単に情報を入手（変更）することができます。
+            </p>
+            <p data-dl-uid="218" data-dl-original="true" data-dl-translated="true">
+              例えば、<b data-dl-uid="219" data-dl-original="true" data-dl-translated="true"
+                >INT 0x19の</b
+              >話をしましたね。0x0040:0x0072に0x1234という値を書き込み、0xFFFF:0にジャンプすると、実質的にコンピュータをウォームリブートさせることができると説明しました。(Windowsのctrl+alt+delと同じです。)
+              セグ：オフセットアドレッシングモードと絶対アドレスの変換を思い出して、<b
+                data-dl-uid="220"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >0x0040:0x0072を</b
+              >絶対アドレス<b data-dl-uid="221" data-dl-original="true" data-dl-translated="true"
+                >0x000000472</b
+              >、BIOSデータエリア内の1バイトに変換できます。
+            </p>
+            <p data-dl-uid="222" data-dl-original="true" data-dl-translated="true">
+              もう一つの例は、テキスト出力です。0<b
+                data-dl-uid="223"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >x000B8000に</b
+              >2バイト書き込めば、テキストモードメモリの内容を実質的に変更することができます。これは表示時に常にリフレッシュされるため、実質的に画面に文字を表示することになります。どうです？
+            </p>
+            <p data-dl-uid="224" data-dl-original="true" data-dl-translated="true">
+              ポートマッピングに戻りましょう。この表は後でもっとたくさん見返すことになります。
+            </p>
+
+            <h3 data-dl-uid="225" data-dl-original="true" data-dl-translated="true">
+              ポートマッピング - メモリマップドI/O
+            </h3>
+
+            ポートアドレス」は、各コントローラがリッスンする特別な番号です。<b
+              data-dl-uid="226"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >起動時に、ROM BIOSはこれらのコントローラデバイスに異なる番号を割り当てます。</b
+            >プライマリプロセッサーを起動し、BIOSプログラムを0xFFFF:0にロードします<b
+              data-dl-uid="227"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >（これを覚えていますか？ 前のセクションの表と比較してみて</b
+            >ください）。
+            <p data-dl-uid="228" data-dl-original="true" data-dl-translated="true">
+              ROM
+              BIOSは、これらの番号を異なるコントローラに割り当て、コントローラは自分自身を識別する方法を持っています。これは、BIOSは、この特別な番号を使用してハードウェアに通信する割り込みベクターテーブルをセットアップすることができます。
+            </p>
+            <p data-dl-uid="229" data-dl-original="true" data-dl-translated="true">
+              プロセッサは、I/Oコントローラと連携する際に、同じシステムバスを使用します。プロセッサは、あたかもメモリを読み込むかのように、<b
+                data-dl-uid="230"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >特別なポート番号をアドレスバスに</b
+              >入力します。また、同様にコントロールバスのREADまたはWRITEラインを設定します。しかし、プロセッサはメモリの書き込みとコントローラへのアクセスをどのように区別しているのでしょうか？
+            </p>
+            <p data-dl-uid="231" data-dl-original="true" data-dl-translated="true">
+              プロセッサは、コントロールバス上にもう1本、I/O ACCESSラインを設定します。<b
+                data-dl-uid="232"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >このラインが設定されると、I/Oサブシステム内のI/Oコントローラは、アドレスバスを監視します。アドレス・バスがデバイスに割り当てられた番号に反応した場合、そのデバイスはデータ・バスからその値を受け取って動作する。</b
+              >
+              メモリコントローラは、このラインが設定されている場合、いかなるリクエストも無視します。したがって、ポート番号が割り当てられていない場合は、まったく何も起こりません。どのコントローラも動作せず、メモリコントローラはそれを無視します。
+            </p>
+            <p data-dl-uid="233" data-dl-original="true" data-dl-translated="true">
+              では、このポート番号について見てみましょう。<b
+                data-dl-uid="234"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >これは非常に重要です。</b
+              >これは、<b data-dl-uid="234" data-dl-translated="true"
+                >プロテクトモードのハードウェアと通信するための*唯一の*方法です！</b
+              >:
+            </p>
+            <p data-dl-uid="235" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="236" data-dl-original="true" data-dl-translated="true"
+                >警告。この表は大きいです。</b
+              >
+            </p>
+
+            <center>
+              <table border="1" bgcolor="dddddd">
+                <tbody>
+                  <tr>
+                    <th colspan="5" bgcolor="FFFFFF">Default x86 Port Address Assignments</th>
+                  </tr>
+                  <tr bgcolor="AAAAAA">
+                    <td>Address Range</td>
+                    <td>First QWORD</td>
+                    <td>Second QWORD</td>
+                    <td>Third QWORD</td>
+                    <td>Fourth QWORD</td>
+                  </tr>
+
+                  <tr>
+                    <td bgcolor="ffffff">0x000-0x00F</td>
+                    <td colspan="4">DMA Controller Channels 0-3</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="ffffff">0x010-0x01F</td>
+                    <td colspan="4">System Use</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="FFFFFF">0x020-0x02F</td>
+                    <td>Interrupt Controller 1</td>
+                    <td colspan="3">System Use</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="FFFFFF">0x030-0x03F</td>
+                    <td colspan="4">System Use</td>
+                  </tr>
+
+                  <tr>
+                    <td bgcolor="FFFFFF">0x040-0x04F</td>
+                    <td>System Timers</td>
+                    <td colspan="3">System Use</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="FFFFFF">0x050-0x05F</td>
+                    <td colspan="4">System Use</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="FFFFFF">0x060-0x06F</td>
+                    <td>Keyboard/PS2 Moude (Port 0x60)<br />Speaker (0x61)</td>
+                    <td>Keyboard/PS2 Mouse (0x64)</td>
+                    <td colspan="2">System Use</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="FFFFFF">0x070-0x07F</td>
+                    <td>RTC/CMOS/NMI (0x70, 0x71)</td>
+                    <td colspan="3">DMA Controller Channels 0-3</td>
+                  </tr>
+
+                  <tr>
+                    <td bgcolor="FFFFFF">0x080-0x08F</td>
+                    <td>DMA Page Register 0-2 (0x81 - 0x83)</td>
+                    <td>DMA Page Register 3 (0x87)</td>
+                    <td>DMA Page Register 4-6 (0x89-0x8B)</td>
+                    <td>DMA Page Register 7 (0x8F)</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="FFFFFF">0x090-0x09F</td>
+                    <td colspan="4">System Use</td>
+                  </tr>
+
+                  <tr>
+                    <td bgcolor="FFFFFF">0x0A0-0x0AF</td>
+                    <td>Interrupt Controller 2 (0xA0-0xA1)</td>
+                    <td colspan="3">System Use</td>
+                  </tr>
+
+                  <tr>
+                    <td bgcolor="FFFFFF">0x0B0-0x0BF</td>
+                    <td colspan="4">System Use</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="FFFFFF">0x0C0-0x0CF</td>
+                    <td colspan="4">DMA Controller Channels 4-7 (0x0C0-0x0DF), bytes 1-16</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="FFFFFF">0x0D0-0x0DF</td>
+                    <td colspan="4">DMA Controller Channels 4-7 (0x0C0-0x0DF), bytes 16-32</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="FFFFFF">0x0E0-0x0EF</td>
+                    <td colspan="4">System Use</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="FFFFFF">0x0F0-0x0FF</td>
+                    <td colspan="4">Floating Point Unit (FPU/NPU/Mah Copprocessor)</td>
+                  </tr>
+
+                  <tr>
+                    <td bgcolor="FFFFFF">0x100-0x10F</td>
+                    <td colspan="4">System Use</td>
+                  </tr>
+
+                  <tr>
+                    <td bgcolor="FFFFFF">0x110-0x11F</td>
+                    <td colspan="4">System Use</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="FFFFFF">0x120-0x12F</td>
+                    <td colspan="4">System Use</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="FFFFFF">0x130-0x13F</td>
+                    <td colspan="4">SCSI Host Adapter (0x130-0x14F), bytes 1-16</td>
+                  </tr>
+
+                  <tr>
+                    <td bgcolor="ffffff">0x140-0x14F</td>
+                    <td colspan="2">SCSI Host Adapter (0x130-0x14F), bytes 17-32</td>
+                    <td colspan="2">SCSI Host Adapter (0x140-0x15F), bytes 1-16</td>
+                  </tr>
+
+                  <tr>
+                    <td bgcolor="ffffff">0x150-0x15F</td>
+                    <td colspan="4">SCSI Host Adapter (0x140-0x15F), bytes 17-32</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="FFFFFF">0x160-0x16F</td>
+                    <td colspan="2">System Use</td>
+                    <td colspan="2">Quaternary IDE Controller, master slave</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="FFFFFF">0x170-0x17F</td>
+                    <td colspan="2">Secondary IDE Controller, Master drive</td>
+                    <td colspan="2">System Use</td>
+                  </tr>
+
+                  <tr>
+                    <td bgcolor="FFFFFF">0x180-0x18F</td>
+                    <td colspan="4">System Use</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="FFFFFF">0x190-0x19F</td>
+                    <td colspan="4">System Use</td>
+                  </tr>
+
+                  <tr>
+                    <td bgcolor="FFFFFF">0x1A0-0x1AF</td>
+                    <td colspan="4">System Use</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="FFFFFF">0x1B0-0x1BF</td>
+                    <td colspan="4">System Use</td>
+                  </tr>
+
+                  <tr>
+                    <td bgcolor="FFFFFF">0x1C0-0x1CF</td>
+                    <td colspan="4">System Use</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="FFFFFF">0x1D0-0x1DF</td>
+                    <td colspan="4">System Use</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="FFFFFF">0x1E0-0x1EF</td>
+                    <td colspan="2">System Use</td>
+                    <td colspan="2">Tertiary IDE Controller, master slave</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="FFFFFF">0x1F0-0x1FF</td>
+                    <td colspan="2">Primary IDE Controller, master slave</td>
+                    <td colspan="2">System Use</td>
+                  </tr>
+
+                  <tr>
+                    <td bgcolor="FFFFFF">0x200-0x20F</td>
+                    <td colspan="2">Joystick Port</td>
+                    <td colspan="2">System Use</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="FFFFFF">0x210-0x21F</td>
+                    <td colspan="4">System Use</td>
+                  </tr>
+                  <tr>
+                    <td rowspan="3" bgcolor="FFFFFF">0x220-0x22F</td>
+                  </tr>
+                  <tr>
+                    <td colspan="4">Sound Card</td>
+                  </tr>
+
+                  <tr>
+                    <td>Non-NE2000 Network Card</td>
+                    <td colspan="3">System Use</td>
+                  </tr>
+
+                  <tr>
+                    <td bgcolor="FFFFFF">0x230-0x23F</td>
+                    <td colspan="4">SCSI Host Adapter (0x220-0x23F), bytes 17-32)</td>
+                  </tr>
+                  <tr>
+                    <td rowspan="4" bgcolor="FFFFFF">0x240-0x24F</td>
+                    <td colspan="4"></td>
+                  </tr>
+                  <tr>
+                    <td colspan="4">Sound Card</td>
+                  </tr>
+                  <tr>
+                    <td>Non-NE2000 Network Card</td>
+                    <td colspan="3">System Use</td>
+                  </tr>
+                  <tr>
+                    <td colspan="4">NE2000 Network Card (0x240-0x25F) Bytes 1-16</td>
+                  </tr>
+
+                  <tr>
+                    <td bgcolor="FFFFFF">0x250-0x25F</td>
+                    <td colspan="4">NE2000 Network Card (0x240-0x25F) Bytes 17-32</td>
+                  </tr>
+
+                  <tr>
+                    <td rowspan="4" bgcolor="FFFFFF">0x260-0x26F</td>
+                    <td colspan="4"></td>
+                  </tr>
+                  <tr>
+                    <td colspan="4">Sound Card</td>
+                  </tr>
+                  <tr>
+                    <td>Non-NE2000 Network Card</td>
+                    <td colspan="3">System Use</td>
+                  </tr>
+                  <tr>
+                    <td colspan="4">NE2000 Network Card (0x240-0x27F) Bytes 1-16</td>
+                  </tr>
+
+                  <tr>
+                    <td rowspan="4" bgcolor="FFFFFF">0x270-0x27F</td>
+                    <td colspan="4"></td>
+                  </tr>
+                  <tr>
+                    <td>System Use</td>
+                    <td>Plug and Play System Devices</td>
+                    <td colspan="2">LPT2 - Second Parallel Port</td>
+                  </tr>
+                  <tr>
+                    <td colspan="2">System Use</td>
+                    <td colspan="2">LPT3 - Third Parallel Port (Monochrome Systems)</td>
+                  </tr>
+                  <tr>
+                    <td colspan="4">NE2000 Network Card (0x260-0x27F) Bytes 17-32</td>
+                  </tr>
+
+                  <tr>
+                    <td rowspan="4" bgcolor="FFFFFF">0x280-0x28F</td>
+                    <td colspan="4"></td>
+                  </tr>
+                  <tr>
+                    <td colspan="4">Sound Card</td>
+                  </tr>
+                  <tr>
+                    <td>Non NE2000 Network Card</td>
+                    <td colspan="3">System Use</td>
+                  </tr>
+                  <tr>
+                    <td colspan="4">NE2000 Network Card (0x280-0x29F) Bytes 1-16</td>
+                  </tr>
+
+                  <tr>
+                    <td bgcolor="FFFFFF">0x290-0x29F</td>
+                    <td colspan="4">NE2000 Network Card (0x280-0x29F) Bytes 17-32</td>
+                  </tr>
+
+                  <tr>
+                    <td rowspan="3" bgcolor="FFFFFF">0x2A0-0x2AF</td>
+                    <td colspan="4"></td>
+                  </tr>
+                  <tr>
+                    <td>Non NE2000 Network Card</td>
+                    <td colspan="3">System Use</td>
+                  </tr>
+                  <tr>
+                    <td colspan="4">NE2000 Network Card (0x280-0x29F) Bytes 1-16</td>
+                  </tr>
+
+                  <tr>
+                    <td bgcolor="FFFFFF">0x2B0-0x2BF</td>
+                    <td colspan="4">NE2000 Network Card (0x280-0x29F) Bytes 17-32</td>
+                  </tr>
+
+                  <tr>
+                    <td bgcolor="FFFFFF">0x2C0-0x2CF</td>
+                    <td colspan="4">System Use</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="FFFFFF">0x2D0-0x2DF</td>
+                    <td colspan="4">System Use</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="FFFFFF">0x2E0-0x2EF</td>
+                    <td colspan="2">System Use</td>
+                    <td colspan="2">COM4 - Fourth Serial Port</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="FFFFFF">0x2F0-0x2FF</td>
+                    <td colspan="2">System Use</td>
+                    <td colspan="2">COM2 - Second Serial Port</td>
+                  </tr>
+
+                  <tr>
+                    <td rowspan="4" bgcolor="FFFFFF">0x300-0x30F</td>
+                    <td colspan="4"></td>
+                  </tr>
+                  <tr>
+                    <td>Sound Card / MIDI Port</td>
+                    <td colspan="3">System Use</td>
+                  </tr>
+                  <tr>
+                    <td>Non NE2000 Network Card</td>
+                    <td colspan="3">System Use</td>
+                  </tr>
+                  <tr>
+                    <td colspan="4">NE2000 Network Card (0x300-0x31F) Bytes 1-16</td>
+                  </tr>
+
+                  <tr>
+                    <td bgcolor="FFFFFF">0x310-0x31F</td>
+                    <td colspan="4">NE2000 Network Card (0x300-0x32F) Bytes 17-32</td>
+                  </tr>
+                  <tr>
+                    <td rowspan="4" bgcolor="FFFFFF">0x320-0x32F</td>
+                    <td colspan="4"></td>
+                  </tr>
+                  <tr>
+                    <td>Sound Card / MIDI Port (0x330, 0x331)</td>
+                    <td colspan="3">System Use</td>
+                  </tr>
+                  <tr>
+                    <td colspan="4">NE2000 Network Card (0x300-0x31F) Bytes 17-32</td>
+                  </tr>
+                  <tr>
+                    <td colspan="4">SCSI Host Adapter (0x330-0x34F) Bytes 1-16</td>
+                  </tr>
+                  <tr>
+                    <td rowspan="4" bgcolor="FFFFFF">0x330-0x33F</td>
+                    <td colspan="4"></td>
+                  </tr>
+                  <tr>
+                    <td>Sound Card / MIDI Port</td>
+                    <td colspan="3">System Use</td>
+                  </tr>
+                  <tr>
+                    <td>Non NE2000 Network Card</td>
+                    <td colspan="3">System Use</td>
+                  </tr>
+                  <tr>
+                    <td colspan="4">NE2000 Network Card (0x300-0x31F) Bytes 1-16</td>
+                  </tr>
+
+                  <tr>
+                    <td rowspan="5" bgcolor="FFFFFF">0x340-0x34F</td>
+                    <td colspan="4"></td>
+                  </tr>
+                  <tr>
+                    <td colspan="4">SCSI Host Adapter (0x330-0x34F) Bytes 17-32</td>
+                  </tr>
+                  <tr>
+                    <td colspan="4">SCSI Host Adapter (0x340-0x35F) Bytes 1-16</td>
+                  </tr>
+                  <tr>
+                    <td>Non NE2000 Network Card</td>
+                    <td colspan="3">System Use</td>
+                  </tr>
+
+                  <tr>
+                    <td colspan="4">NE2000 Network Card (0x340-0x35F) Bytes 1-16</td>
+                  </tr>
+
+                  <tr>
+                    <td rowspan="3" bgcolor="FFFFFF">0x350-0x35F</td>
+                    <td colspan="4"></td>
+                  </tr>
+                  <tr>
+                    <td colspan="4">SCSI Host Adapter (0x340-0x35F) Bytes 17-32</td>
+                  </tr>
+                  <tr>
+                    <td colspan="4">NE2000 Network Card (0x300-0x31F) Bytes 1-16</td>
+                  </tr>
+
+                  <tr>
+                    <td rowspan="4" bgcolor="FFFFFF">0x360-0x36F</td>
+                    <td colspan="4"></td>
+                  </tr>
+                  <tr>
+                    <td>Tape Accelerator Card (0x360)</td>
+                    <td colspan="2">System Use</td>
+                    <td>Quaternary IDE Controller (Slave Drive)(0x36E-0x36F)</td>
+                  </tr>
+                  <tr>
+                    <td>Non NE2000 Network Card</td>
+                    <td colspan="3">System Use</td>
+                  </tr>
+                  <tr>
+                    <td colspan="4">NE2000 Network Card (0x300-0x31F) Bytes 1-16</td>
+                  </tr>
+
+                  <tr>
+                    <td rowspan="4" bgcolor="FFFFFF">0x370-0x37F</td>
+                    <td colspan="4"></td>
+                  </tr>
+                  <tr>
+                    <td>Tape Accelerator Card (0x370)</td>
+                    <td>Secondary IDE Controller (Slave Drive)</td>
+                    <td colspan="2">LPT1 - First Parallel Port (Color systems)</td>
+                  </tr>
+                  <tr>
+                    <td colspan="2">System Use</td>
+                    <td colspan="2">LPT2 - Second Parallel Port (Monochrome Systems)</td>
+                  </tr>
+
+                  <tr>
+                    <td colspan="4">NE2000 Network Card (0x360-0x37F) Bytes 1-16</td>
+                  </tr>
+
+                  <tr>
+                    <td bgcolor="FFFFFF">0x380-0x38F</td>
+                    <td colspan="2">System Use</td>
+                    <td>Sound Card (FM Synthesizer)</td>
+                    <td>System Use</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="FFFFFF">0x390-0x39F</td>
+                    <td colspan="4">System Use</td>
+                  </tr>
+
+                  <tr>
+                    <td bgcolor="FFFFFF">0x3A0-0x3AF</td>
+                    <td colspan="4">System Use</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="FFFFFF">0x3B0-0x3BF</td>
+                    <td colspan="3">VGA/Monochrome Video</td>
+                    <td>LPT1 - First Parallel Port (Monochrome Systems)</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="FFFFFF">0x3C0-0x3CF</td>
+                    <td colspan="4">VGA/CGA Video</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="FFFFFF">0x3D0-0x3DF</td>
+                    <td colspan="4">VGA/CGA Video</td>
+                  </tr>
+
+                  <tr>
+                    <td rowspan="3" bgcolor="FFFFFF">0x3E0-0x3EF</td>
+                    <td colspan="4"></td>
+                  </tr>
+                  <tr>
+                    <td>Tape Accelerator Card (0x370)</td>
+                    <td>System Use</td>
+                    <td colspan="2">COM3 - Third Serial Port</td>
+                  </tr>
+                  <tr>
+                    <td colspan="3">System Use</td>
+                    <td>Tertiary IDE Controller (Slave Drive)(0x3EE-0x3EF)</td>
+                  </tr>
+
+                  <tr>
+                    <td rowspan="3" bgcolor="FFFFFF">0x3F0-0x3FF</td>
+                    <td colspan="4"></td>
+                  </tr>
+                  <tr>
+                    <td colspan="2">Floppy Disk Controller</td>
+                    <td colspan="2">COM1 - First Serial Port</td>
+                  </tr>
+                  <tr>
+                    <td>Tape Accelerator Card (0x3F0)</td>
+                    <td>Primary IDE Controller (Slave Drive)(0x3F6-0x3F7)</td>
+                    <td colspan="2">System Use</td>
+                  </tr>
+                </tbody>
+              </table>
+            </center>
+
+            <p data-dl-uid="569" data-dl-original="true" data-dl-translated="true">
+              この表は完全ではありませんが、間違いがないことを祈ります。時間が経過し、より多くのデバイスが開発されたら、この表を追加する予定です。
+            </p>
+            <p data-dl-uid="570" data-dl-original="true" data-dl-translated="true">
+              上の表にあるように、これらのメモリ範囲はすべて、特定のコントローラで使用されます。ポートアドレスの正確な意味は、コントローラによって異なります。コントロールレジスタ、ステートレジスタ、その他何でもありです。これは不愉快なことです。
+            </p>
+            <p data-dl-uid="571" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="572" data-dl-original="true" data-dl-translated="true"
+                >上の表をプリントアウトしておくことを強くお勧めします。ハードウェアと通信するたびに、この表を参照する必要があります。</b
+              >
+            </p>
+            <p data-dl-uid="573" data-dl-original="true" data-dl-translated="true">
+              この表を更新した場合は、チュートリアルの最初のほうで更新します。そうすれば、この表を再度印刷することができ、誰もが最新のコピーを手にすることができます。
+            </p>
+            <p data-dl-uid="574" data-dl-original="true" data-dl-translated="true">
+              これらのことを念頭に置きながら、すべてをまとめてみましょう...
+            </p>
+
+            <h3 data-dl-uid="575" data-dl-original="true" data-dl-translated="true">IN命令とOUT命令</h3>
+
+            x86プロセッサは、ポートI/Oに使用する2つの命令を持っています。<b
+              data-dl-uid="576"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >INと</b
+            >
+            <b data-dl-uid="577" data-dl-original="true" data-dl-translated="true">OUT</b>です。
+            <p data-dl-uid="578" data-dl-original="true" data-dl-translated="true">
+              デバイスと通信することをプロセッサに伝える命令です。これは、プロセッサがコントロールバスのI/O
+              DEVICEラインを設定することを保証するものです。
+            </p>
+            <p data-dl-uid="579" data-dl-original="true" data-dl-translated="true">
+              キーボードコントローラのインプットバッファから読み出すことができるかどうか、試してみましょう。
+            </p>
+            <p data-dl-uid="580" data-dl-original="true" data-dl-translated="true">
+              上のポート表を見ると、キーボードコントローラはポートアドレス<b
+                data-dl-uid="581"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >0x60から0x6Fに</b
+              >あることがわかります。この表から、最初のQWORDと2番目のQWORD（ポートアドレス0x60から始まる）は、キーボードとPS/2マウス用であることがわかります。最後の2つのQWORDはシステム用なので、無視することにします。
+            </p>
+            <p data-dl-uid="582" data-dl-original="true" data-dl-translated="true">
+              さて、キーボードコントローラはポート0x60から、厳密にはポート0x68にマッピングされています。これは素晴らしいことですが、私たちにとってどういう意味があるのでしょうか？これはデバイス固有のものです。
+            </p>
+            <p data-dl-uid="583" data-dl-original="true" data-dl-translated="true">
+              キーボードの場合、<b data-dl-uid="584" data-dl-original="true" data-dl-translated="true"
+                >ポート0x60はコントロールレジスタ、ポート0x64はステータスレジスタ</b
+              >です。前にも言いましたが、この用語はもっといろいろな文脈で使われます。<b
+                data-dl-uid="585"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ステータス・レジスタのビット1がセットされていれば、データは入力バッファの中にある。</b
+              >つまり、...CONTROLレジスタをREADに設定すれば、入力バッファの内容をどこかにコピーすることができます。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">WaitLoop:    in     al, 64h    			 ; Get status register value
+             and    al, 10b    			 ; Test bit 1 of status register
+             jz     WaitLoop   			 ; If status register bit not set, no data is in buffer
+             in     al, 60h    			 ; Its set--Get the byte from the buffer (Port 0x60), and store it</div></pre>
+            </blockquote>
+
+            これが、ハードウェアプログラミングとデバイスドライバの基本です。
+            <p data-dl-uid="589" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="590" data-dl-original="true" data-dl-translated="true">IN</b
+              >命令では、プロセッサはポートアドレス（0x64など）をアドレスバスに入れ、コントロールバスにI/O
+              DEVICEライン、それに続いてREADラインを設定します。ROM
+              BIOSで0x60に割り当てられたデバイス（この場合、キーボードコントローラのステータスレジスタ）は、READラインが設定されているので、読み取り操作であることを認識します。そこで、キーボード・レジスタ内のある場所からデータをデータ・バスにコピーし、コントロール・バスのREADラインとI/O
+              DEVICEラインをリセットして、READYラインをセットします。これで、プロセッサは読み込んだデータバスのデータを手に入れることができます。
+            </p>
+            <p data-dl-uid="591" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="592" data-dl-original="true" data-dl-translated="true">OUT</b
+              >命令も同様です。プロセッサは、書き込むバイトをデータバスにコピーします（データバス幅にゼロ拡張します）。次に、コントロールバスのWRITEラインとI/O
+              DEVICEラインをセットする。そして、ポートアドレス（仮に0x60とする）をAddress
+              Busにコピーする。<b data-dl-uid="593" data-dl-original="true" data-dl-translated="true"
+                >I/O
+                DEVICEラインが設定されているのは、すべてのコントローラにアドレスバスを監視するように伝える信号である。もし、アドレス・バス上の数字が、割り当てられた数字と一致すれば、そのデバイスはそのデータに対して動作する。</b
+              >この場合、キーボード・コントローラは、コントロール・バスにWRITEラインが設定されているので、WRITE操作であることがわかる。
+              そこで、データ・バス上の値を、ポート・アドレス0x60が割り当てられた制御レジスタにコピーする。
+              キーボード・コントローラは、WRITEとI/O
+              DEVICEラインをリセットしてコントロール・バスにREADYラインを設定して、プロセッサを再び制御状態にする。
+            </p>
+            <p data-dl-uid="594" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="595" data-dl-original="true" data-dl-translated="true"
+                >ポートマッピングとポートI/Oは、非常に重要です。これは、プロテクトモードのハードウェアと通信するための唯一の方法です。割り込みは、書き込まないと使えません。入力や出力のようなハードウェアルーチンとともに、割り込みを書き込むには、ドライバを書く必要があります。そのためには、ハードウェアに直接アクセスする必要があります。もし、あなたが慣れないうちは、まず少し練習してから、このセクションを読み直してください。何か質問があれば、私に知らせてください。</b
+              >
+            </p>
+
+            <h1 data-dl-uid="596" data-dl-original="true" data-dl-translated="true">プロセッサー</h1>
+
+            <h2 data-dl-uid="597" data-dl-original="true" data-dl-translated="true">特別な指示</h2>
+            80x86の命令のほとんどは、どんなプログラムでも実行することができる。しかし、Kernelレベルのソフトウェアだけがアクセスできる命令もある。このため、読者の皆さんには馴染みのない命令もあるかもしれません。これらの命令のほとんどを使用する必要がありますので、理解することが重要です。
+
+            <center>
+              <table border="1" bgcolor="CCCCCC">
+                <tbody>
+                  <tr>
+                    <th colspan="5" bgcolor="FFFFFF">Privileged Level (Ring 0) Instructions</th>
+                  </tr>
+                  <tr bgcolor="AAAAAA">
+                    <td>Instruction</td>
+                    <td>Description</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="ffffff">LGDT</td>
+                    <td>Loads an address of a GDT into GDTR</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="ffffff">LLDT</td>
+                    <td>Loads an address of a LDT into LDTR</td>
+                  </tr>
+
+                  <tr>
+                    <td bgcolor="ffffff">LTR</td>
+                    <td>Loads a Task Register into TR</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="ffffff">MOV <i>Control Register</i></td>
+                    <td>Copy data and store in Control Registers</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="ffffff">LMSW</td>
+                    <td>Load a new Machine Status WORD</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="ffffff">CLTS</td>
+                    <td>Clear Task Switch Flag in Control Register CR0</td>
+                  </tr>
+
+                  <tr>
+                    <td bgcolor="ffffff">MOV <i>Debug Register</i></td>
+                    <td>Copy data and store in debug registers</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="ffffff">INVD</td>
+                    <td>Invalidate Cache without writeback</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="ffffff">INVLPG</td>
+                    <td>Invalidate TLB Entry</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="ffffff">WBINVD</td>
+                    <td>Invalidate Cache with writeback</td>
+                  </tr>
+
+                  <tr>
+                    <td bgcolor="ffffff">HLT</td>
+                    <td>Halt Processor</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="ffffff">RDMSR</td>
+                    <td>Read Model Specific Registers (MSR)</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="ffffff">WRMSR</td>
+                    <td>Write Model Specific Registers (MSR)</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="ffffff">RDPMC</td>
+                    <td>Read Performance Monitoring Counter</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="ffffff">RDTSC</td>
+                    <td>Read time Stamp Counter</td>
+                  </tr>
+                </tbody>
+              </table>
+            </center>
+
+            <p data-dl-uid="654" data-dl-original="true" data-dl-translated="true">
+              上記の命令をカーネルモードアクセス（リング0）でない他のプログラムが実行すると、<b
+                data-dl-uid="655"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >General Protection Fault</b
+              >、または<b data-dl-uid="656" data-dl-original="true" data-dl-translated="true"
+                >Triple Faultが</b
+              >発生します。
+            </p>
+            <p data-dl-uid="657" data-dl-original="true" data-dl-translated="true">
+              これらの命令が分からなくても心配しないでください。このシリーズを通して、必要に応じてそれぞれを解説していきます。
+            </p>
+
+            <h2 data-dl-uid="658" data-dl-original="true" data-dl-translated="true">80x86のレジスタ</h2>
+
+            x86プロセッサは、現在の状態を保存するために多くの異なる<b
+              data-dl-uid="659"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >レジスタを持って</b
+            >います。ほとんどのアプリケーションは、<b
+              data-dl-uid="660"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >一般フラグ、セグメントフラグ、およびEフラグにのみ</b
+            >アクセスできます。その他のレジスタは、KernelのようなRing 0プログラム専用です。
+            <p data-dl-uid="661" data-dl-original="true" data-dl-translated="true">
+              x86ファミリには、次のようなレジスタがあります。<b
+                data-dl-uid="662"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >RAX（EAX（AX/AH/AL））、RBX（EBX（BX/BH/BL））、RCX（EXX（CX/CH/CL））、RDX（EXX（DH/DL））、CS、SS、ES、DS、FS、GS、RSI（ESI（Si））、RDI（EDI（DI））、RBP（EBP（BP））、RSP（ESP（SP））。RSP（ESP（SP））、RIP（EIP（IP））、RFLAG（EFLAG（フラグ））、DR0、DR1、DR2、DR3、DR4、DR5、DR6、DR7、TR1、TR2、TR3、TR4、TR5、TR6、TR7、CR0、CR1,CR2、CR3、CR4、CR8、ST、mm0、mm1、mm2、mm3、mm4、mm5、mm6、mm7、xmm0、xmm1、xmm2、xmm3、xmm4、xmm5、xmm6、xmm7、GDTR、LDTR、IDTR、MSRおよびTR</b
+              >です。これらのレジスタはすべて、プロセッサ内部の<b
+                data-dl-uid="663"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >レジスタ</b
+              >ファイルと呼ばれる特別なメモリ領域に格納されています。詳しくは、<b
+                data-dl-uid="664"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >プロセッサ・アーキテクチャの</b
+              >セクションを参照してください。その他のレジスタには、<b
+                data-dl-uid="665"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >レジスター</b
+              >ファイルにないものもありますが、次のようなものがあります。<b
+                data-dl-uid="666"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >PC、IR、ベクターレジスター、ハードウェアレジスターなどです。</b
+              >
+            </p>
+            <p data-dl-uid="667" data-dl-original="true" data-dl-translated="true">
+              これらのレジスタの多くは、リアルモードリング0<b
+                data-dl-uid="668"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >プログラムでのみ</b
+              >使用可能です。これには非常に大きな理由があります。これらのレジスタのほとんどは、プロセッサ内の多くの状態に影響を与えます。これらのレジスタの設定を誤ると、CPUは簡単にトリプルフォールトを起こすことができます。また、CPUの誤動作を引き起こす可能性もあります。(特にTR4,TR5,TR6,TR7を使用した場合）。
+            </p>
+            <p data-dl-uid="669" data-dl-original="true" data-dl-translated="true">
+              その他のレジスタの中には、<b
+                data-dl-uid="670"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >CPUの内部に</b
+              >あり、通常の方法ではアクセス<b
+                data-dl-uid="671"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >できない</b
+              >ものがあります。
+              これらにアクセスするためには、プロセッサ自体を再プログラムする必要があります。最も顕著なのは、IRと呼ばれるベクターレジスタです。
+            </p>
+            <p data-dl-uid="672" data-dl-original="true" data-dl-translated="true">
+              これらの特殊なレジスタを知る必要があるので、詳しく見ていきましょう。
+            </p>
+            <p data-dl-uid="673" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="674" data-dl-original="true" data-dl-translated="true"
+                >注：CPUを通常のデバイスと同じように考え、通信を行う必要があります。コントロールレジスタの概念（およびレジスタ自体）は、後ほど他のデバイスと通信する際に重要になります。</b
+              >
+            </p>
+            <p data-dl-uid="675" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="676" data-dl-original="true" data-dl-translated="true"
+                >また、いくつかのレジスタは文書化されていないことに注意してください。このため、リストアップされたものよりも多くのレジスタが存在する可能性があります。</b
+              >もし知っているのであれば、追加できる<a
+                href="mailto:neon6000@aol.com"
+                target="_blank"
+                data-dl-uid="677"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ように教えて</a
+              >ください。
+            </p>
+            <p data-dl-uid="678" data-dl-original="true" data-dl-translated="true"></p>
+
+            <h2 data-dl-uid="679" data-dl-original="true" data-dl-translated="true">汎用レジスタ</h2>
+            これらのレジスタは32ビットで、ほとんどすべての目的に使用できます。しかし、これらのレジスタはそれぞれ特別な目的も持っています。
+            <ul data-dl-uid="680" data-dl-original="true" data-dl-translated="true">
+              <li data-dl-uid="681" data-dl-original="true" data-dl-translated="true">
+                EAX - アキュムレータレジスタ。主な目的：数学の計算
+              </li>
+              <li data-dl-uid="682" data-dl-original="true" data-dl-translated="true">
+                EBX -
+                ベースアドレスレジスタ。主な用途：ベースアドレスを介してメモリに間接的にアクセスする。
+              </li>
+              <li data-dl-uid="683" data-dl-original="true" data-dl-translated="true">
+                ECX - カウンター・レジスタ。主な用途：カウント、ループ処理
+              </li>
+              <li data-dl-uid="684" data-dl-original="true" data-dl-translated="true">
+                EDX - データレジスタ。主な用途：データを格納する。はい、そんなところです(笑)。
+              </li>
+            </ul>
+            <p data-dl-uid="685" data-dl-original="true" data-dl-translated="true">
+              これらの32ビットレジスタは、それぞれ2つの部分から構成されています。高次<b
+                data-dl-uid="686"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ワードと</b
+              >
+              <b data-dl-uid="687" data-dl-original="true" data-dl-translated="true">低次ワード</b>です。
+              高次ワードは上位16ビットです。<b
+                data-dl-uid="688"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >低位ワードとは下位16ビットのことです。</b
+              >
+            </p>
+            <p data-dl-uid="689" data-dl-original="true" data-dl-translated="true">
+              64ビットプロセッサの場合、これらのレジスタは64ビット幅で、<b
+                data-dl-uid="690"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >RAX, RBX, RCX, RDXという</b
+              >名前になります。下位32ビットは32ビット<b
+                data-dl-uid="691"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >EAX</b
+              >レジスタです。
+            </p>
+            <p data-dl-uid="692" data-dl-original="true" data-dl-translated="true">
+              上位16ビットには特別な名称はありません。<b
+                data-dl-uid="693"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >これらの名称は、上位8ビットの場合はH、下位8ビットの場合はLが</b
+              >付加されています。
+            </p>
+            <p data-dl-uid="694" data-dl-original="true" data-dl-translated="true">例えばRAXでは</p>
+
+            <blockquote>
+              <pre><div class="code">					       +--- AH ----+--- AL ---+
+					       |           |          |
+	+-------------------------------------------------------------+
+	|		      |     	       |                      |
+	+-------------------------------------------------------------+
+	|		      |					      |
+	|		      +--------EAX lower 32 bits--------------| -- Available only on 32 bit processors.
+	|							      |
+	|------------------ RAX Complete 64 bits----------------------| -- Available only on 64 bit processors.</div></pre>
+            </blockquote>
+
+            これはどういうことかというと<b
+              data-dl-uid="698"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >AHとALはAXの一部であり、AXはEAXの一部です。したがって、これらの名前のいずれかを変更すると、実質的に同じレジスタ
+              - EAXを変更します。</b
+            >
+            <p data-dl-uid="699" data-dl-original="true" data-dl-translated="true">
+              これは、順番に、64ビットマシン上でRAXを変更する。
+            </p>
+            <p data-dl-uid="700" data-dl-original="true" data-dl-translated="true">
+              上記はBX、CX、DXにも当てはまります。
+            </p>
+            <p data-dl-uid="701" data-dl-original="true" data-dl-translated="true">
+              汎用レジスタは、Ring0からRing4まで、どのプログラム内でも使用することができます。基本的なアセンブリ言語なので、どのように動作するかはすでにご存じであると仮定します。
+            </p>
+
+            <h2 data-dl-uid="702" data-dl-original="true" data-dl-translated="true">
+              セグメントレジスタ
+            </h2>
+            セグメントレジスタは、リアルモードでの現在のセグメントアドレスを変更します。これらはすべて16ビットです。
+            <ul>
+              <li>CS - Segment address of code segment</li>
+              <li>DS - Segment address of data segment</li>
+              <li>ES - Segment address of extra segment</li>
+              <li>SS - Segment address of stack segment</li>
+              <li>FS - Far Segment address</li>
+              <li>GS - General Purpose Register</li>
+            </ul>
+
+            覚えておいてください。<b data-dl-uid="710" data-dl-original="true" data-dl-translated="true"
+              >リアルモードは、セグメント：オフセットメモリーアドレッシングモデルを使用します。</b
+            >
+            <b data-dl-uid="711" data-dl-original="true" data-dl-translated="true"
+              >セグメントアドレスは</b
+            >、セグメントレジスタ内に格納されます。<b
+              data-dl-uid="712"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >BP、SP、BXなどの</b
+            >別のレジスタには、<b data-dl-uid="713" data-dl-original="true" data-dl-translated="true"
+              >オフセット</b
+            >アドレスを格納することができます。
+            <p data-dl-uid="714" data-dl-original="true" data-dl-translated="true">
+              通常、次のように参照されます。<b
+                data-dl-uid="715"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >DS:SI</b
+              >、DSはセグメントアドレス、SIはオフセットアドレスです。
+            </p>
+            <p data-dl-uid="716" data-dl-original="true" data-dl-translated="true">
+              セグメントレジスタは、Ring 0からRing
+              4まで、どのようなプログラムでも使用することができます。セグメントレジスタは基本的なアセンブリ言語であるため、その仕組みはすでにご存知だと思います。
+            </p>
+
+            <h2 data-dl-uid="717" data-dl-original="true" data-dl-translated="true">
+              インデックスレジスタ
+            </h2>
+            x86は、メモリにアクセスする際に役立つレジスタをいくつか使用しています。
+
+            <ul>
+              <li>SI - Source Index</li>
+              <li>DI - Destination Index</li>
+
+              <li>BP - Base Pointer</li>
+              <li>SP - Stack Pointer</li>
+            </ul>
+
+            これらのレジスタは、それぞれ16ビットのベースアドレス（オフセットアドレスとしても使用可能）を格納している。
+            <p data-dl-uid="723" data-dl-original="true" data-dl-translated="true">
+              32ビットプロセッサの場合、これらのレジスタは<b
+                data-dl-uid="724"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >32ビット</b
+              >で、<b data-dl-uid="725" data-dl-original="true" data-dl-translated="true"
+                >ESI、EDI、EBP、ESPという</b
+              >名前が付いています。
+            </p>
+            <p data-dl-uid="726" data-dl-original="true" data-dl-translated="true">
+              64ビットプロセッサの場合、各レジスタは64ビットで、<b
+                data-dl-uid="727"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >RSI、RDI、RBP、RSPという</b
+              >名前になります。
+            </p>
+            <p data-dl-uid="728" data-dl-original="true" data-dl-translated="true">
+              16ビットレジスタは32ビットレジスタのサブセットで、それは64ビットレジスタのサブセットです。
+            </p>
+            <p data-dl-uid="729" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="730" data-dl-original="true" data-dl-translated="true"
+                >スタックポインターは</b
+              >、特定の命令に遭遇するたびに、自動的に一定量のバイトをインクリメント、デクリメントします。このような命令には、<b
+                data-dl-uid="731"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >push*、pop*命令、ret/iret、call、syscallなどが</b
+              >ある。
+            </p>
+            <p data-dl-uid="732" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="733" data-dl-original="true" data-dl-translated="true"
+                >C 言語は、ほとんどの言語で、スタックを定期的に使用します。C
+                言語が正しく動作するように、スタックを適切なアドレスに設定する必要があります。また、覚えておいてください。スタックは下に向かって成長します。</b
+              >
+            </p>
+
+            <h2 data-dl-uid="734" data-dl-original="true" data-dl-translated="true">
+              命令ポインタ / プログラムカウンタ
+            </h2>
+            命令ポインタ（IP）レジスタは、現在実行中の命令の現在のオフセット・アドレスを格納します。
+            覚えておいてください。<b data-dl-uid="735" data-dl-original="true" data-dl-translated="true"
+              >これはオフセット・アドレスであり、絶対的なアドレスではありません。</b
+            >
+            <p data-dl-uid="736" data-dl-original="true" data-dl-translated="true">
+              命令ポインタ（IP）は、プログラムカウンタ（PC）とも呼ばれることがあります。
+            </p>
+            <p data-dl-uid="737" data-dl-original="true" data-dl-translated="true">
+              32ビットマシンでは、IPは32ビットサイズで、<b
+                data-dl-uid="738"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >EIPと</b
+              >呼ばれます。
+            </p>
+            <p data-dl-uid="739" data-dl-original="true" data-dl-translated="true">
+              64ビット機では、IPは64ビットで、<b
+                data-dl-uid="740"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >RIPという</b
+              >名称が使われます。
+            </p>
+
+            <h2 data-dl-uid="741" data-dl-original="true" data-dl-translated="true">命令レジスタ</h2>
+            これは、通常の手段ではアクセスできないプロセッサ内部のレジスタです。これは、<b
+              data-dl-uid="743"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >命令キャッシュ</b
+            >内のプロセッサの<b data-dl-uid="742" data-dl-original="true" data-dl-translated="true"
+              >制御ユニット（CU）</b
+            >内に格納されています。プロセッサが内部で使用するために<b
+              data-dl-uid="744"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >マイクロ</b
+            >命令に変換されている現在の命令が格納されます。詳しくは、<b
+              data-dl-uid="745"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >プロセッサ・アーキテクチャを</b
+            >参照してください。
+
+            <h2 data-dl-uid="746" data-dl-original="true" data-dl-translated="true">EFlagsレジスタ</h2>
+
+            EFLAGSレジスタは、x86プロセッサのステータスレジスタです。このレジスタは、現在の状態を判断するために使用されます。
+            これまで、実際にたくさん使ってきました。簡単な例：<b
+              data-dl-uid="747"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >jc, jnc, jb, jnb命令</b
+            >
+            <p data-dl-uid="748" data-dl-original="true" data-dl-translated="true">
+              ほとんどの命令では、EFLAGSレジスタを操作して、その値が他の値より低いか高いかといった条件を調べることができます。
+            </p>
+            <p data-dl-uid="749" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="750" data-dl-original="true" data-dl-translated="true">EFLAGSは</b>
+              <b data-dl-uid="751" data-dl-original="true" data-dl-translated="true">FLAGS</b
+              >レジスタで構成されています。同様に、<b
+                data-dl-uid="752"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >RFLAGSは</b
+              >
+              <b data-dl-uid="753" data-dl-original="true" data-dl-translated="true">EFLAGSと</b>
+              <b data-dl-uid="754" data-dl-original="true" data-dl-translated="true">FLAGSで</b
+              >構成されています。
+            </p>
+            <p data-dl-uid="755" data-dl-original="true" data-dl-translated="true"></p>
+
+            <blockquote>
+              <pre><div class="code"> +---------- EFLAGS (32 Bits) ----+
+ |                                |
+ |-- FLAGS (16 bits)-             |
+ |                  |             |
+ ====================================================================  &lt; Register Bits
+ |                                                                  |
+ +------------------------- RFLAGS (64 Bits) -----------------------+
+ |                                                                  |
+Bit 0                                                              Bit 63</div></pre>
+            </blockquote>
+            <p></p>
+
+            <center>
+              <table border="1">
+                <tbody>
+                  <tr>
+                    <th bgcolor="AAAAAA" colspan="3">FLAGS Register Status Bits</th>
+                  </tr>
+                  <tr bgcolor="CCCCCC">
+                    <td>Bit Number</td>
+                    <td>Abbrivation</td>
+                    <td>Description</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="CCCCCC">0</td>
+                    <td>CF</td>
+                    <td>Carry Flag - Status bit</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="CCCCCC">1</td>
+                    <td></td>
+                    <td>Reserved</td>
+                  </tr>
+
+                  <tr>
+                    <td bgcolor="CCCCCC">PF</td>
+                    <td>CF</td>
+                    <td>Parity Flag</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="CCCCCC">3</td>
+                    <td></td>
+                    <td>Reserved</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="CCCCCC">4</td>
+                    <td>AF</td>
+                    <td>Adjust Flag - Status bit</td>
+                  </tr>
+
+                  <tr>
+                    <td bgcolor="CCCCCC">5</td>
+                    <td></td>
+                    <td>Reserved</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="CCCCCC">6</td>
+                    <td>ZF</td>
+                    <td>Zero Flag - Status bit</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="CCCCCC">7</td>
+                    <td>SF</td>
+                    <td>Sign Flag - Status bit</td>
+                  </tr>
+
+                  <tr>
+                    <td bgcolor="CCCCCC">8</td>
+                    <td>TF</td>
+                    <td>Trap Flag (Single Step) - System Flag</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="CCCCCC">9</td>
+                    <td>IF</td>
+                    <td>Interrupt Enabled Flag - System Flag</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="CCCCCC">10</td>
+                    <td>DF</td>
+                    <td>Direction Flag - Control Flag</td>
+                  </tr>
+
+                  <tr>
+                    <td bgcolor="CCCCCC">11</td>
+                    <td>OF</td>
+                    <td>Overflow Flag - Status bit</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="CCCCCC">12-13</td>
+                    <td>IOPL</td>
+                    <td>I/O Priviledge Level (286+ Only) - Control Flag</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="CCCCCC">14</td>
+                    <td>NT</td>
+                    <td>Nested Task Flag (286+ Only) - Control Flag</td>
+                  </tr>
+
+                  <tr>
+                    <td bgcolor="CCCCCC">15</td>
+                    <td></td>
+                    <td>Reserved</td>
+                  </tr>
+
+                  <tr>
+                    <th bgcolor="AAAAAA" colspan="3">EFLAGS Register Status Bits</th>
+                  </tr>
+                  <tr bgcolor="CCCCCC">
+                    <td>Bit Number</td>
+                    <td>Abbrivation</td>
+                    <td>Description</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="CCCCCC">16</td>
+                    <td>RF</td>
+                    <td>Resume Flag (386+ Only) - Control Flag</td>
+                  </tr>
+
+                  <tr>
+                    <td bgcolor="CCCCCC">17</td>
+                    <td>VM</td>
+                    <td>v8086 Mode Flag (386+ Only) - Control Flag</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="CCCCCC">18</td>
+                    <td>AC</td>
+                    <td>Alignment Check (486SX+ Only) - Control Flag</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="CCCCCC">19</td>
+                    <td>VIF</td>
+                    <td>Virtual Interrupt Flag (Pentium+ Only) - Control Flag</td>
+                  </tr>
+
+                  <tr>
+                    <td bgcolor="CCCCCC">20</td>
+                    <td>VIP</td>
+                    <td>Virtual Interrupt Pending (Pentium+ Only) - Control Flag</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="CCCCCC">21</td>
+                    <td>ID</td>
+                    <td>Identification (Pentium+ Only) - Control Flag</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="CCCCCC">22-31</td>
+                    <td></td>
+                    <td>Reserved</td>
+                  </tr>
+
+                  <tr>
+                    <th bgcolor="AAAAAA" colspan="3">RFLAGS Register Status Bits</th>
+                  </tr>
+                  <tr bgcolor="CCCCCC">
+                    <td>Bit Number</td>
+                    <td>Abbrivation</td>
+                    <td>Description</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="CCCCCC">32-63</td>
+                    <td></td>
+                    <td>Reserved</td>
+                  </tr>
+                </tbody>
+              </table>
+            </center>
+
+            <p data-dl-uid="873" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="874" data-dl-original="true" data-dl-translated="true"
+                >IO特権レベル（IOPL</b
+              >）は、特定の命令を使用するために必要な現在のリングレベルを制御します。 例えば、<b
+                data-dl-uid="875"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >CLI、STI、INおよびOUT</b
+              >命令は、現在の特権レベルがIOPLと同じかそれ以上の場合にのみ実行されます。そうでない場合は、プロセッサによって<b
+                data-dl-uid="876"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >GPF（General Protection Fault</b
+              >）が生成されます。
+            </p>
+            <p data-dl-uid="877" data-dl-original="true" data-dl-translated="true">
+              ほとんどのオペレーティングシステムでは、IOPFは0または1に設定されています。これは、カーネルレベルのソフトウェアだけがこれらの命令を使用できることを意味します。
+              これは非常に良いことです。結局のところ、アプリケーションがCLIを発行すれば、実質的にKernelの実行を停止させることができるのです。
+            </p>
+            <p data-dl-uid="878" data-dl-original="true" data-dl-translated="true">
+              ほとんどの操作では、FLAGSレジスタを使うだけでよいのです。RFLAGSレジスタの最後の32ビットは、nill、null、non
+              existant、見る楽しみのために存在することに注意してください。つまり...そうです。もちろんスピードアップのためですが、多くのバイトが無駄になっています...
+              ...そうです。
+            </p>
+            <p data-dl-uid="879" data-dl-original="true" data-dl-translated="true">
+              この表はサイズが大きいので、後で参照するためにプリントアウトすることをお勧めします。
+            </p>
+
+            <h2 data-dl-uid="880" data-dl-original="true" data-dl-translated="true">テストレジスタ</h2>
+            x86ファミリーはテスト用にいくつかのレジスタを使用しています。これらのレジスタの多くは、文書化されていません。x86シリーズでは、<b
+              data-dl-uid="881"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >TR4,TR5,TR6,TR7が</b
+            >これにあたります。
+            <p data-dl-uid="882" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="883" data-dl-original="true" data-dl-translated="true">TR</b
+              >6はコマンドテストに、<b
+                data-dl-uid="884"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >TR7は</b
+              >テストデータ用レジスタとして最もよく使われます。<b
+                data-dl-uid="885"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >MOV</b
+              >命令でアクセスできます。<b
+                data-dl-uid="886"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >このレジスタは、pmモードとリアルモードの両方において、リング0でのみ使用可能です。他の方法でアクセスすると、GPF（General
+                Protection Fault）が発生し、トリプルフォルトになります。</b
+              >
+            </p>
+
+            <h2 data-dl-uid="887" data-dl-original="true" data-dl-translated="true">デバッグレジスタ</h2>
+            これらのレジスタはプログラムのデバッグに使用されます。<b
+              data-dl-uid="888"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >DR0、DR1、DR2、DR3、DR4、DR5、DR6、DR</b
+            >7です。テスト・レジスタと同様に、<b
+              data-dl-uid="889"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >MOV</b
+            >命令でアクセスすることができます。
+            <p data-dl-uid="891" data-dl-original="true" data-dl-translated="true"></p>
+
+            <h3 data-dl-uid="892" data-dl-original="true" data-dl-translated="true">
+              ブレークポイント レジスタ
+            </h3>
+
+            <b data-dl-uid="893" data-dl-original="true" data-dl-translated="true">DR0、DR1、DR2、DR3</b
+            >レジスタには、ブレークポイント条件の<b
+              data-dl-uid="894"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >絶対アドレス</b
+            >が格納されます。<b data-dl-uid="895" data-dl-original="true" data-dl-translated="true"
+              >ページングが</b
+            >有効な場合、アドレスは絶対アドレスに変換されます。
+            これらのブレークポイント条件は、DR7でさらに定義されています。
+
+            <h3>Debug Control Register</h3>
+            DR7は32ビット・レジスタで、ビット・パターンを使用して現在のデバッグ・タスクを識別します。
+            ここにそれがあります。
+            <ul>
+              <li><b>Bit 0...7</b> - Enable the four debug registers (See below)</li>
+
+              <li><b>Bit 8...14</b> - ?</li>
+              <li>
+                <b>Bit 15...23</b> - When the breakpoints will trigger. Each 2 bits represents a single
+                Debug Register. This can be one of the following:
+              </li>
+              <ul>
+                <li><b>00</b> - Break on execution</li>
+
+                <li><b>01</b> - Break on data write</li>
+                <li><b>10</b> - Break on IO read or write. No hardware currently supports this.</li>
+                <li><b>11</b> - Break on data read or write</li>
+              </ul>
+
+              <li>
+                <b>Bit 24...31</b> - Defines how large of memory to watch. Each 2 bits represents a
+                single Debug Register. This can be one of the following:
+              </li>
+              <ul>
+                <li><b>00</b> - One bytes</li>
+                <li><b>01</b> - Two bytes</li>
+
+                <li><b>10</b> - Eight bytes</li>
+                <li><b>11</b> - Four bytes</li>
+              </ul>
+            </ul>
+
+            デバッグ・レジスタは、2つの方法で有効にします。これは、<b
+              data-dl-uid="924"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >Local</b
+            >レベルと<b data-dl-uid="925" data-dl-original="true" data-dl-translated="true">Global</b
+            >レベルです。異なる<b data-dl-uid="926" data-dl-original="true" data-dl-translated="true"
+              >タスク</b
+            >（<b data-dl-uid="927" data-dl-original="true" data-dl-translated="true">ページングなど</b
+            >）を使用している場合、すべての<b
+              data-dl-uid="928"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >ローカルデバッグの変更は、そのタスクにのみ影響</b
+            >します。プロセッサは、タスク間の切り替え時に、すべてのローカルな変更を自動的にクリアします。しかし、Globalタスクは、そうではありません。
+            <p data-dl-uid="929" data-dl-original="true" data-dl-translated="true">
+              上記リストのビット0...7では，以下のようになります。
+            </p>
+            <ul>
+              <li><b>Bit 0:</b> Enable local DR0 register</li>
+              <li><b>Bit 1:</b> Enable global DR0 register</li>
+              <li><b>Bit 2:</b> Enable local DR1 register</li>
+
+              <li><b>Bit 3:</b> Enable global DR1 register</li>
+              <li><b>Bit 4:</b> Enable local DR2 register</li>
+              <li><b>Bit 5:</b> Enable global DR2 register</li>
+              <li><b>Bit 6:</b> Enable local DR3 register</li>
+
+              <li><b>Bit 7:</b> Enable global DR3 register</li>
+            </ul>
+
+            <h3 data-dl-uid="947" data-dl-original="true" data-dl-translated="true">
+              デバッグステータスレジスタ
+            </h3>
+            これは、エラーが発生したときに何が起こったかを判断するためにデバッガで使用されます。<b
+              data-dl-uid="948"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >プロセッサは、有効な例外エラーに遭遇すると、このレジスタの下位4ビットを設定し、例外ハンドラを実行します。</b
+            >
+            <p data-dl-uid="949" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="950" data-dl-original="true" data-dl-translated="true"
+                >警告デバッグ・ステータス・レジスタ（DR6）は決してクリアされません。プログラムを続行させる場合は、このレジスタを必ずクリアしてください。</b
+              >
+            </p>
+            <h2 data-dl-uid="951" data-dl-original="true" data-dl-translated="true">
+              モデル固有レジスタ
+            </h2>
+            これは、他のプロセッサにはないような、プロセッサ固有の機能を提供する特別な制御レジスタです。これらはシステムレベルであるため、リング0プログラムのみがこのレジスタにアクセスすることができます。
+            <p data-dl-uid="952" data-dl-original="true" data-dl-translated="true">
+              これらのレジスタは各プロセッサに固有であるため、実際のレジスタは変更される可能性があります。
+            </p>
+            <p data-dl-uid="953" data-dl-original="true" data-dl-translated="true">
+              x86には、このレジスタにアクセスするための特別な命令が2つあります。
+            </p>
+            <p data-dl-uid="954" data-dl-original="true" data-dl-translated="true"></p>
+            <ul data-dl-uid="955" data-dl-original="true" data-dl-translated="true">
+              <li data-dl-uid="956" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="957" data-dl-original="true" data-dl-translated="true">RDMSR</b>-
+                MSRから読み出し
+              </li>
+
+              <li data-dl-uid="958" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="959" data-dl-original="true" data-dl-translated="true">WRMSR</b>-
+                MSRからの書き込み
+              </li>
+            </ul>
+            <p data-dl-uid="960" data-dl-original="true" data-dl-translated="true">
+              このレジスタは非常にプロセッサに依存するものです。このため、それらを使用する前にCPUID命令を使用するのが賢明です。
+            </p>
+            <p data-dl-uid="961" data-dl-original="true" data-dl-translated="true">
+              あるレジスタにアクセスするには、アクセスしたいレジスタを表す<b
+                data-dl-uid="962"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >Addressを</b
+              >命令に渡さなければなりません。
+            </p>
+            <p data-dl-uid="963" data-dl-original="true" data-dl-translated="true">
+              インテルは長年にわたり、マシン固有ではないMSRをいくつか使用してきました。これらのMSRは、x86アーキテクチャでは一般的なものです。
+            </p>
+            <p data-dl-uid="964" data-dl-original="true" data-dl-translated="true"></p>
+
+            <center>
+              <table border="1">
+                <tbody>
+                  <tr>
+                    <th bgcolor="AAAAAA" colspan="3">Model Specific Registers (MSRs)</th>
+                  </tr>
+                  <tr bgcolor="CCCCCC">
+                    <td>Register Address</td>
+                    <td>Register Name</td>
+                    <td>IA-32 Processor Family</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="CCCCCC">0x0</td>
+                    <td>IA32_PS_MC_ADDR</td>
+                    <td>Pentium Processors</td>
+                  </tr>
+
+                  <tr>
+                    <td bgcolor="CCCCCC">0x1</td>
+                    <td>IA32_PS_MC_TYPE</td>
+                    <td>Pentium 4 Processors</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="CCCCCC">0x6</td>
+                    <td>IA32_PS_MONITOR_FILTER_SIZE</td>
+                    <td>Pentium Processors</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="CCCCCC">0x10</td>
+                    <td>IA32_TIME_STAMP_COUNTER</td>
+                    <td>Pentium Processors</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="CCCCCC">0x17</td>
+                    <td>IA32_PLATFORM_ID</td>
+                    <td>P6 Processors</td>
+                  </tr>
+
+                  <tr>
+                    <td bgcolor="CCCCCC">0x1B</td>
+                    <td>IA32_APIC_BASE</td>
+                    <td>P6 Processors</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="CCCCCC">0x3A</td>
+                    <td>IA32_FEATURE_CONTROL</td>
+                    <td>Pentium 4 / Processor 673</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="CCCCCC">0x79</td>
+                    <td>IA32_BIOS_UPDT_TRIG</td>
+                    <td>P6 Processors</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="CCCCCC">0x8B</td>
+                    <td>IA32_BIOS_SIGN_ID</td>
+                    <td>P6 Processors</td>
+                  </tr>
+
+                  <tr>
+                    <td bgcolor="CCCCCC">0x9B</td>
+                    <td>IA32_SMM_MONITOR_CTL</td>
+                    <td>Pentium 4 / Processor 672</td>
+                  </tr>
+
+                  <tr>
+                    <td bgcolor="CCCCCC">0xC1</td>
+                    <td>IA32_PMC0</td>
+                    <td>Intel Core Duo</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="CCCCCC">0xC2</td>
+                    <td>IA32_PMC1</td>
+                    <td>Intel Core Duo</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="CCCCCC">0xE7</td>
+                    <td>IA32_MPERF</td>
+                    <td>Intel Core Duo</td>
+                  </tr>
+
+                  <tr>
+                    <td bgcolor="CCCCCC">0xE8</td>
+                    <td>IA32_APERF</td>
+                    <td>Intel Core Duo</td>
+                  </tr>
+
+                  <tr>
+                    <td bgcolor="CCCCCC">0xFE</td>
+                    <td>IA32_MTRRCAP</td>
+                    <td>P6 Processors</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="CCCCCC">0x174</td>
+                    <td>IA32_SYSENTER_CS</td>
+                    <td>P6 Processors</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="CCCCCC">0x175</td>
+                    <td>IA32_SYSENTER_ESP</td>
+                    <td>P6 Processors</td>
+                  </tr>
+
+                  <tr>
+                    <td bgcolor="CCCCCC">0x176</td>
+                    <td>IA32_SYSENTER_IP</td>
+                    <td>P6 Processors</td>
+                  </tr>
+                </tbody>
+              </table>
+            </center>
+            <p data-dl-uid="1046" data-dl-original="true" data-dl-translated="true">
+              ここに挙げた以外にも、MSRはたくさんあります。完全なリストは、<a
+                href="http://developer.intel.com/design/processor/manuals/253669.pdf"
+                target="_blank"
+                data-dl-uid="1047"
+                data-dl-original="true"
+                data-dl-translated="true"
+              >
+                インテル開発マニュアルの付録Bを</a
+              >参照してください。
+            </p>
+            <p data-dl-uid="1048" data-dl-original="true" data-dl-translated="true">
+              このシリーズはまだ開発中なので、どのMSRを参照するかはわかりません。必要に応じて、このリストに追加していく予定です。
+            </p>
+
+            <h3 data-dl-uid="1049" data-dl-original="true" data-dl-translated="true">RDMSR命令</h3>
+
+            この命令では、CXで指定されたMSRをEDX:EAXにロードします。
+            <p data-dl-uid="1050" data-dl-original="true" data-dl-translated="true">
+              この命令は<b data-dl-uid="1051" data-dl-original="true" data-dl-translated="true"
+                >特権的な</b
+              >命令で、<b data-dl-uid="1052" data-dl-original="true" data-dl-translated="true"
+                >Ring 0 (Kernel Level)</b
+              >でしか実行することができません。特権のないアプリケーションがこの命令を実行しようとした場合、またはCSの値が有効なMSRアドレスを表していない場合、<b
+                data-dl-uid="1053"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >一般保護フォールト</b
+              >または<b data-dl-uid="1054" data-dl-original="true" data-dl-translated="true"
+                >トリプル・フォールトが</b
+              >発生します。
+            </p>
+            <p data-dl-uid="1055" data-dl-original="true" data-dl-translated="true">
+              この命令は、いかなるフラグにも影響を与えません。
+            </p>
+            <p data-dl-uid="1056" data-dl-original="true" data-dl-translated="true">
+              この命令の使用例です（チュートリアルの後半で再び登場します）。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">	; This reads from the IA32_SYSENTER_CS MSR
+ 
+	mov	cx, 0x174			; Register 0x174: IA32_SYSENTER_CS
+	rdmsr					; Read in the MSR
+ 
+	; Now EDX:EAX contains the lower and upper 32 bits of the 64 bit register</div></pre>
+            </blockquote>
+
+            <h3 data-dl-uid="1060" data-dl-original="true" data-dl-translated="true">WRMSR命令</h3>
+
+            EDX:EAX に格納されている 64 ビット値を CX で指定された MSR に書き込みます。
+            <p data-dl-uid="1061" data-dl-original="true" data-dl-translated="true">
+              この命令は<b data-dl-uid="1062" data-dl-original="true" data-dl-translated="true">特権</b
+              >命令であり、<b data-dl-uid="1063" data-dl-original="true" data-dl-translated="true"
+                >Ring0（Kernel Level）</b
+              >でのみ実行可能です。特権のないアプリケーションがこの命令を実行しようとした場合、またはCSの値が有効なMSRアドレスを表していない場合、<b
+                data-dl-uid="1064"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >一般保護フォールト</b
+              >または<b data-dl-uid="1065" data-dl-original="true" data-dl-translated="true"
+                >トリプル・フォールトが</b
+              >発生します。
+            </p>
+            <p data-dl-uid="1066" data-dl-original="true" data-dl-translated="true">
+              この命令は、いかなるフラグにも影響を与えません。
+            </p>
+            <p data-dl-uid="1067" data-dl-original="true" data-dl-translated="true">
+              以下は、その使用例です。
+            </p>
+            <p data-dl-uid="1068" data-dl-original="true" data-dl-translated="true"></p>
+
+            <blockquote>
+              <pre><div class="code">	; This writes to the IA32_SYSENTER_CS MSR
+ 
+	mov	cx, 0x174			; Register 0x174: IA32_SYSENTER_CS
+	wrmsr					; Write EDX:EAX into the MSR</div></pre>
+            </blockquote>
+
+            <h2 data-dl-uid="1072" data-dl-original="true" data-dl-translated="true">制御レジスタ</h2>
+            ここが重要なポイントになりそうです。
+            <p data-dl-uid="1073" data-dl-original="true" data-dl-translated="true">
+              コントロール・レジスタは、プロセッサの動作を変更するためのものです。それらは<b
+                data-dl-uid="1074"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >CR0、CR1、CR2、CR3、CR4</b
+              >です。
+            </p>
+            <h3 data-dl-uid="1075" data-dl-original="true" data-dl-translated="true">
+              CR0 コントロール・レジスタ
+            </h3>
+
+            CR0は主制御レジスタです。32ビットで、次のように定義されています。
+
+            <ul>
+              <li><b>Bit 0 (PE) : Puts the system into protected mode</b></li>
+              <li>
+                <b>Bit 1 (MP) : Monitor Coprocessor Flag</b> This controls the operation of the
+                <b>WAIT</b> instruction.
+              </li>
+              <li>
+                <b>Bit 2 (EM) : Emulate Flag</b>. When set,
+                <b>coprocessor instructions will generate an exception</b>
+              </li>
+
+              <li>
+                <b>Bit 3 (TS) : Task Switched Flag</b> This will be set when the processor switches to
+                another <b>task</b>.
+              </li>
+              <li>
+                <b
+                  >Bit 4 (ET) : ExtensionType Flag. This tells us what type of coprocesor is
+                  installed.</b
+                >
+              </li>
+              <ul>
+                <li>0 - 80287 is installed</li>
+                <li>1 - 80387 is installed.</li>
+              </ul>
+              <li><b>Bit 5 (NE): </b> Numeric Error</li>
+              <ul>
+                <li>0 - Enable standard error reporting</li>
+                <li>1 - Enable internal x87 FPU error reporting</li>
+              </ul>
+              <li><b>Bits 6-15 : </b> Unused</li>
+              <li><b>Bit 16 (WP):</b> Write Protect</li>
+              <li><b>Bit 17:</b> Unused</li>
+
+              <li><b>Bit 18 (AM):</b> Alignment Mask</li>
+              <ul>
+                <li>0 - Alignment Check Disable</li>
+                <li>1 - Alignment Check Enabled (Also requires AC flag set in EFLAGS and ring 3)</li>
+              </ul>
+              <li><b>Bits 19-28:</b> Unused</li>
+
+              <li><b>Bit 29 (NW):</b> Not Write-Through</li>
+              <li><b>Bit 30 (CD):</b> Cache Disable</li>
+              <li><b>Bit 31 (PG) : Enables Memory Paging.</b></li>
+              <ul>
+                <li>0 - Disable</li>
+
+                <li>1 - Enabled and use CR3 register</li>
+              </ul>
+            </ul>
+
+            わあ...新しいものがたくさんあるね？Bit 0は、<b
+              data-dl-uid="1120"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >システムをプロテクト</b
+            >モードにします。つまり、CR0レジスタの<b
+              data-dl-uid="1121"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >Bit 0を設定することで、実質的にプロテクトモードに</b
+            >入ることになります。
+            <p data-dl-uid="1122" data-dl-original="true" data-dl-translated="true">
+              例えば、以下のようになります。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">		mov	ax, cr0			; get value in CR0
+		or	ax, 1			; set bit 0--enter protected mode
+		mov	cr0, ax			; Bit 0 now set, we are in 32 bit mode!</div></pre>
+            </blockquote>
+
+            すごい、簡単ですね。そうでもないですよ。
+            <p data-dl-uid="1126" data-dl-original="true" data-dl-translated="true">
+              このコードをブートローダにダンプすると、ほぼ確実にトリプルフォールトになります。プロテクトモードは、リアルモードとは異なるメモリアドレシングシステムを使用します。また、<b
+                data-dl-uid="1127"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >pmodeには割り込みが</b
+              >ないので、1回のタイマ割り込みでトリプルフォルトになります。また、異なるアドレッシングモデルを使用しているため、<b
+                data-dl-uid="1128"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >CSは無効</b
+              >です。32ビットコードに移行するためには、CSを更新する必要があります。さらに、<b
+                data-dl-uid="1129"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >メモリマップの特権レベルは</b
+              >設定されていません。
+            </p>
+            <p data-dl-uid="1130" data-dl-original="true" data-dl-translated="true">
+              詳しくは後ほど説明します。
+            </p>
+            <h3 data-dl-uid="1131" data-dl-original="true" data-dl-translated="true">
+              CR1コントロール・レジスタ
+            </h3>
+
+            インテルが予約したもので、使用しないでください。
+            <h3 data-dl-uid="1132" data-dl-original="true" data-dl-translated="true">
+              CR2コントロール・レジスタ
+            </h3>
+
+            Page Fault Linear Address (ページフォルトリニアアドレス)。Page Fault
+            Exceptionが発生した場合，CR2にはアクセスしようとしたアドレスが格納されます．
+            <h3 data-dl-uid="1133" data-dl-original="true" data-dl-translated="true">
+              CR3コントロールレジスタ
+            </h3>
+
+            CR0のPGビットがセットされている場合に使用されます．下位20ビットにページディレクトリ・ベース・レジスタ（PDBR）が格納されています．
+            <h3 data-dl-uid="1134" data-dl-original="true" data-dl-translated="true">
+              CR4コントロールレジスタ
+            </h3>
+
+            プロテクトモードにおいて、v8086モード、I/Oブレークポイントの有効化、ページサイズ拡張、マシンチェック例外などの動作を制御するために使用されます。
+            <p data-dl-uid="1135" data-dl-original="true" data-dl-translated="true">
+              これらのフラグを使用するかどうかはわかりません。これらのフラグが何であるか理解できなくても、あまり気にしないでください。
+            </p>
+
+            <ul>
+              <li><b>Bit 0 (VME) :</b> Enables Virtual 8086 Mode Extensions</li>
+              <li><b>Bit 1 (PVI) :</b> Enables Protected Mode Virtual Interrupts</li>
+              <li><b>Bit 2 (TSD) :</b> Time Stamp Enable</li>
+
+              <ul>
+                <li>0 - RDTSC instruction can be used in any privilege level</li>
+                <li>1 - RDTSC instruction can only be used in ring 0</li>
+              </ul>
+              <li><b>Bit 3 (DE) :</b> Enable Debugging Extensions</li>
+              <li><b>Bit 4 (PSE) :</b> Page Size Extension</li>
+
+              <ul>
+                <li>0 - Page size is 4KB</li>
+                <li>1 - Page size is 4MB. With PAE, it is 2MB.</li>
+              </ul>
+              <li><b>Bit 5 (PAE) : </b> Physical Address Extension</li>
+              <li><b>Bits 6 (MCE) : </b> Machine Check Exception</li>
+
+              <li><b>Bits 7 (PGE) : </b> Page Global Enable</li>
+              <li><b>Bits 8 (PCE) : </b> Performance Monitoring Counter Enable</li>
+              <ul>
+                <li>0 - RDPMC instruction can be used in any privilege level</li>
+                <li>1 - RDPMC instruction can only be used in ring 0</li>
+              </ul>
+              <li><b>Bits 9 (OSFXSR) : </b> OS Support for FXSAVE and FXSTOR instructions (SSE)</li>
+              <li><b>Bits 10 (OSXMMEXCPT) : </b> OS Support for unmasked SIMD FPU exceptions</li>
+              <li><b>Bits 11-12 : </b> Unused</li>
+
+              <li><b>Bits 13 (VMXE) : </b> VMX Enable</li>
+            </ul>
+
+            <h3 data-dl-uid="1172" data-dl-original="true" data-dl-translated="true">CR8制御レジスタ</h3>
+
+            <b data-dl-uid="1173" data-dl-original="true" data-dl-translated="true"
+              >タスクプライオリティレジスタ(TPR</b
+            >)へのリード/ライトアクセスを提供します。
+            <h2 data-dl-uid="1174" data-dl-original="true" data-dl-translated="true">
+              PModeセグメンテーションレジスタ
+            </h2>
+            x86ファミリーは、<b data-dl-uid="1175" data-dl-original="true" data-dl-translated="true"
+              >各セグメントディスクリプタの</b
+            >現在のリニアアドレスを格納するために、いくつかのレジスタを使用します。
+            これについては後で詳しく説明します。
+            <p data-dl-uid="1176" data-dl-original="true" data-dl-translated="true">
+              これらのレジスタは
+            </p>
+            <ul>
+              <li><b>GDTR -</b> Global Descriptor Table Register</li>
+              <li><b>IDTR -</b> Interrupt Descriptor Table Register</li>
+
+              <li><b>GDTR -</b> Local Descriptor Table Register</li>
+              <li><b>TR -</b> Task Register</li>
+            </ul>
+            これらのレジスタについては、次のセクションで詳しく見ていきます。
+
+            <h1 data-dl-uid="1186" data-dl-original="true" data-dl-translated="true">
+              プロセッサ・アーキテクチャ
+            </h1>
+
+            このシリーズを読んでいると、プロセッサとマイクロコントローラの間に多くの類似点があることに気づきます。
+            つまり、マイクロコントローラにはレジスタがあり、プロセッサと同じように命令を実行することができるのです。CPU自体は<b
+              data-dl-uid="1187"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >特殊なコントローラチップに</b
+            >過ぎません。
+            <p data-dl-uid="1188" data-dl-original="true" data-dl-translated="true">
+              ブートプロセスについては、もう少し後で、非常に低レベルの観点から、再度見ていきます。これは、BIOS
+              POSTが実際にどのように開始され、POSTを実行し、プライマリプロセッサを開始し、BIOSをロードするかに関する多くの質問に答えるものです。<b
+                data-dl-uid="1189"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >何をするかは</b
+              >説明しましたが、<b data-dl-uid="1190" data-dl-original="true" data-dl-translated="true"
+                >どのようにするかは</b
+              >まだ説明していません。
+            </p>
+            <p data-dl-uid="1191" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="1192" data-dl-original="true" data-dl-translated="true"
+                >注意：このセクションはかなり技術的です。もし、すべてを理解できなくても、心配しないでください。このセクションは、どんなコンピューターシステムにも必要な主要コンポーネントであり、私たちのコードを実行する役割を担っているものに飛び込むためです。</b
+              >機械語はどのように私たちのコードを実行するのでしょうか？機械語は何がそんなに特別なのか？これらについては、ここですべてお答えします。
+            </p>
+            <p data-dl-uid="1193" data-dl-original="true" data-dl-translated="true">
+              この後、<b data-dl-uid="1194" data-dl-original="true" data-dl-translated="true"
+                >カーネルと</b
+              >
+              <b data-dl-uid="1195" data-dl-original="true" data-dl-translated="true"
+                >デバイスドライバの</b
+              >開発に入りますが、基本的なハードウェアコントローラのコンポーネントを理解することは、素晴らしい学習体験になるだけでなく、そのコントローラのプログラミング方法を理解するために<b
+                data-dl-uid="1196"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >必要な</b
+              >場合もあることを学ぶことができます。
+            </p>
+            <p data-dl-uid="1197" data-dl-original="true" data-dl-translated="true"></p>
+
+
+
+
+
+
+
+            <h2 data-dl-uid="1198" data-dl-original="true" data-dl-translated="true">
+				プロセッサを分解する
+			  </h2>
+			  ここでは、説明のためにPentium
+			  IIIプロセッサを取り上げます。まず、このプロセッサを開いて、個々の部品に分解してみましょう。
+
+            <center><img src="./05_files/P3chiplarg.jpg" /></center>
+
+
+
+            <p>
+              Alot of things in the processor, huh? Notice how complex this is. We are not going to learn
+              much from this picture alone, so lets look at each component.
+            </p>
+            <p></p>
+            <ul>
+              <li><b>L2:</b> Level 2 Cache</li>
+
+              <li><b>CLK:</b> Clock</li>
+              <li><b>PIC: Programmable Interrupt Controller</b></li>
+              <li><b>EBL:</b> Front Bus Logic</li>
+              <li><b>BBL:</b> Back Bus Logic</li>
+
+              <li><b>IEU:</b> Integer Execution Unit</li>
+              <li><b>FEU:</b> Floating Point Execution Unit</li>
+              <li><b>MOB:</b> Memory Order Buffer</li>
+              <li><b>MIU / MMU:</b> Memory Interface Unit / Memory Management Unit</li>
+
+              <li><b>DCU:</b> Data Cach Unit</li>
+              <li><b>IFU:</b> Instruction Fetch Unit</li>
+              <li><b>ID:</b> Instruction Decoder</li>
+              <li><b>ROB:</b> Re-Order Buffer</li>
+
+              <li><b>MS:</b> <b>Microinstruction</b> Sequencer</li>
+              <li><b>BTB:</b> Branch Target Buffer</li>
+              <li><b>BAC:</b> Branch Allocater Buffer</li>
+
+              <li><b>RAT:</b> Register Alias Table</li>
+              <li><b>SIMD:</b> Packed floating point</li>
+              <li><b>DTLB:</b> Data TLB</li>
+              <li><b>RS:</b> Reservation Station</li>
+              <li><b>PMH:</b> Page Miss Handler</li>
+
+              <li><b>PFU:</b> Pre-Fetch Unit</li>
+              <li><b>TAP: </b> Test Access Port</li>
+            </ul>
+ 
+
+            <h1 data-dl-uid="1254" data-dl-original="true" data-dl-translated="true">命令の実行方法</h1>
+            <b data-dl-uid="1255" data-dl-original="true" data-dl-translated="true"
+              >IPレジスタには現在実行中の命令のオフセット・アドレスが格納され、CSにはセグメント・アドレス</b
+            >が格納されていることを思い出してください。
+            <p data-dl-uid="1256" data-dl-original="true" data-dl-translated="true">
+              では、プロセッサが命令を実行する場合、具体的にはどのようなことが起こるのでしょうか。
+            </p>
+            <p data-dl-uid="1257" data-dl-original="true" data-dl-translated="true">
+              まず、読み出すべき絶対アドレスが計算されます。<b
+                data-dl-uid="1258"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >セグメント：オフセットモデルでは、絶対アドレス＝セグメント×16＋オフセット</b
+              >であることを思い出してください。あるいは、本質的には、絶対<b
+                data-dl-uid="1259"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >アドレス = CS * 16 + IP</b
+              >です。
+            </p>
+            <p data-dl-uid="1260" data-dl-original="true" data-dl-translated="true">
+              プロセッサは、このアドレスをアドレスバスにコピーします。<b
+                data-dl-uid="1261"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >アドレスバイトは、それぞれが1つのビットを表す一連の電子線であることを忘れないでください。このビットパターンは、次の命令の絶対アドレスのバイナリ形式を表しています。</b
+              >
+            </p>
+            <p data-dl-uid="1262" data-dl-original="true" data-dl-translated="true">
+              この後、プロセッサは「Read
+              Memory」ラインを有効にします（そのビットを1に設定することで）。これは、<b
+                data-dl-uid="1263"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >メモリコントローラに対して</b
+              >、メモリからの読み出しが必要であることを伝えるものです。
+            </p>
+            <p data-dl-uid="1264" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="1265" data-dl-original="true" data-dl-translated="true">メモリコントロー</b
+              >ラは制御を行う。メモリコントローラは、アドレスバスからアドレスをコピーし、パリキュラーRAMチップの正確な位置を計算します。メモリコントローラは、この位置を参照し、データバスにコピーする。これは、Control
+              Busに "Read Memory "ラインが設定されているためです。
+            </p>
+            <p data-dl-uid="1266" data-dl-original="true" data-dl-translated="true">
+              メモリコントローラはコントロールバスをリセットし、プロセッサが実行を終了したことを認識できるようにします。プロセッサはデータバスの値を受け取り、デジタル・ロジック・ゲートで「実行」します。この「値」は機械命令のバイナリ表現に過ぎず、一連の電子パルスとしてエンコードされています。
+            </p>
+            <p data-dl-uid="1267" data-dl-original="true" data-dl-translated="true">
+              例えば、<b data-dl-uid="1268" data-dl-original="true" data-dl-translated="true"
+                >mov ax, 0x4c00という</b
+              >命令があった場合、プロセッサのデータバスには<b
+                data-dl-uid="1269"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >0xB8004Cという</b
+              >値が格納されます。0xB8004Cは、<b
+                data-dl-uid="1270"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >オペレーションコード（OPCode</b
+              >）と呼ばれるものです。すべての命令には、それに関連するオペコードがあります。i86アーキテクチャの場合、この命令はオペコード0xB8004Cと評価されます。
+              この数字を2進数に変換すると、電子線としてパターンを見ることができ、1がハイ（アクティブ）、0がローを意味します。
+            </p>
+
+
+
+
+            <blockquote>
+              <pre><div class="code">101110000000000001001100</div></pre>
+            </blockquote>
+
+
+
+
+            プロセッサは、CPUのデジタル論理回路に組み込まれた一連の個別命令に従います。
+            これらの命令は、プロセッサに一連のビットをどのように符号化するかを指示します。すべてのx86プロセッサは、このビットパターンを<b
+              data-dl-uid="1274"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >mov ax, 0x4c00</b
+            >命令としてエンコードします。
+            <p data-dl-uid="1275" data-dl-original="true" data-dl-translated="true">
+              命令が複雑化したため、新しいプロセッサのほとんどは、実際に独自の内部命令セットに従っています。マイクロコントローラの多くは、電子回路の複雑さを軽減するために、複数の内部命令セットを使用しています。通常、これらは<b
+                data-dl-uid="1276"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >マクロコードと</b
+              >
+              <b data-dl-uid="1277" data-dl-original="true" data-dl-translated="true">マイクロコード</b
+              >である。
+            </p>
+            <p data-dl-uid="1278" data-dl-original="true" data-dl-translated="true">
+              マクロコードは、プロセッサが命令をマイクロコードにデコードするために使用する抽象的な命令セットである。マクロコードは通常、電子技術者が開発した特殊なマクロ言語で記述され、コントローラ内部のROMチップに格納され、マクロアセンブラでコンパイルされる。マクロアセンブラは、マクロコードをさらに低レベルの言語（コントローラの言語）にアセンブルする。これがコントローラの言語である「マイクロコード」である。
+            </p>
+            <p data-dl-uid="1279" data-dl-original="true" data-dl-translated="true">
+              マイクロコードは、電子技術者が開発した非常に低レベルな言語である。マイクロコードは、コントローラやプロセッサが命令（例えば、0xB8004C（mov
+              ax, 0x4c00）命令）をデコードするために使用される。
+            </p>
+            <p data-dl-uid="1280" data-dl-original="true" data-dl-translated="true">
+              CPUは<b data-dl-uid="1281" data-dl-original="true" data-dl-translated="true"
+                >ALU（Arithmitic Logic Unit</b
+              >）を使って、0x4C00という数字を得ることができます。そして、それをAXにコピーします（単純なビットコピー）。
+            </p>
+            <p data-dl-uid="1282" data-dl-original="true" data-dl-translated="true">
+              この例は、すべてがどのように組み合わされるかを示しています。CPUはシステムバスを使用し、<b
+                data-dl-uid="1283"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >メモリコントローラがメモリロケーションをデコードし、コントロールバスをフォロー</b
+              >する仕組みになっています。
+            </p>
+            <p data-dl-uid="1284" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="1285" data-dl-original="true" data-dl-translated="true"
+                >これは重要なコンセプトです。Software
+                Portsも同じようにメモリコントローラに依存しています。</b
+              >
+            </p>
+
+
+
+
+
+
+			
+
+            <h1 data-dl-uid="1286" data-dl-original="true" data-dl-translated="true">
+				プロテクトモード - 理論
+			  </h1>
+  
+			  さて、ではなぜアーキテクチャの話をしたのでしょうか。実は、プロテクトモードでは割り込みが発生しないのです。つまり...割り込みがない。システムコールもない。標準ライブラリもないすべて自分でやらなければならないのです。そのため、私たちを導いてくれる助けの手はありません。
+			  一つの間違いでシステムがクラッシュしたり、気をつけないとハードウェアが壊れたりします。
+			  フロッピーディスクだけでなく、ハードディスク、外部（および内部）デバイスなどです。
+			  <p data-dl-uid="1287" data-dl-original="true" data-dl-translated="true">
+				システムアーキテクチャを理解することは、私たちが多くの間違いを犯さないように、すべてをより良く理解するのに役立ちます。また、直接ハードウェアプログラミングの入門にもなりますし、私たちができるのはこれだけですから。
+			  </p>
+			  <p data-dl-uid="1288" data-dl-original="true" data-dl-translated="true">
+				あなたはこう思うかもしれません。待ってください、あなたが約束した超高性能の1337
+				Cカーネルはどうなっているんですか!そうですね...C言語はある意味、低レベルの言語であることを思い出してください。インライン・アセンブルによって、ハードウェアとのインターフェイスを作ることができたのです。そしてCは、C++と同じように、プロセッサが直接実行できるx86マシン命令しか生成しない。<b
+				  data-dl-uid="1289"
+				  data-dl-original="true"
+				  data-dl-translated="true"
+				  >ただし、標準ライブラリがないことだけは覚えておいてほしい。そして、たとえ高級言語を使っていても、非常に低レベルな環境でプログラミングをしていることになる。</b
+				>
+			  </p>
+			  <p data-dl-uid="1290" data-dl-original="true" data-dl-translated="true">
+				この点については、カーネルを開始するときに説明します。
+			  </p>
+
+
+
+			  <h1 data-dl-uid="1291" data-dl-original="true" data-dl-translated="true">まとめ</h1>
+
+			  <p data-dl-uid="1292" data-dl-original="true" data-dl-translated="true">
+				私はこの種のチュートリアルを書くのが好きではありません。チュートリアルは、膨大な量の情報を詰め込み、コードは少なく、理解しやすいようにコンセプトを具体的に表示します。単純に書くのが大変なんです、わかりますか？
+			  </p>
+			  <p data-dl-uid="1293" data-dl-original="true" data-dl-translated="true">
+				私は、すべてを十分に説明できたと思います。メモリマッピング、ポートマッピング、x86のポートアドレス、x86の全レジスタ、x86メモリマップ、システムアーキテクチャ、IN/OUTキーワードとその実行方法、そして命令の実行方法について、順を追って見ていきました。また、基本的なハードウェアのプログラミングについても取り上げました。
+			  </p>
+			  <p data-dl-uid="1294" data-dl-original="true" data-dl-translated="true">
+				次回のチュートリアルでは、<b
+				  data-dl-uid="1295"
+				  data-dl-original="true"
+				  data-dl-translated="true"
+				  >32ビットの世界へ</b
+				>ようこそ！ということで、32ビットへの移行を行います。また、<b
+				  data-dl-uid="1296"
+				  data-dl-original="true"
+				  data-dl-translated="true"
+				  >GDTについても</b
+				>詳しく見ていきますが、これは切り替えの際に必要となるものです。
+				また、各ステップごとに、よくあるエラーに対する警告を出すつもりです。前にも言いましたが、プロテクトモードに入るときにちょっとしたミスをすると<b
+				  data-dl-uid="1297"
+				  data-dl-original="true"
+				  data-dl-translated="true"
+				  >、</b
+				>プログラムがクラッシュしてしまいます。
+			  </p>
+			  <p data-dl-uid="1298" data-dl-original="true" data-dl-translated="true">
+				楽しくなりそうです... :)
+			  </p>
+            </p>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </body>
+</html>
