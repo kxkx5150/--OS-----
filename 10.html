@@ -1,0 +1,1288 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Cache-Control" content="no-cache" />
+    <title></title>
+    <link href="css/reference.css" rel="stylesheet" />
+  </head>
+  <body>
+    <table cellspacing="0" cellpadding="3" width="80%" border="0">
+      <tbody>
+        <tr>
+          <td class="tblhdr">Operating Systems Development Series</td>
+        </tr>
+        <tr>
+          <td align="middle" colspan="2"></td>
+        </tr>
+      </tbody>
+    </table>
+    <table cellspacing="0" cellpadding="5" width="100%" border="0">
+      <tbody>
+        <tr>
+          <td>
+            <!-- Title -->
+
+            <div>
+              <span class="title">Kernel: Basic Concepts Part 1</span>
+
+              <br />
+              <span class="author">by Mike, 2008, 2009</span>
+            </div>
+
+            <h1 data-dl-uid="7" data-dl-original="true" data-dl-translated="true">はじめに</h1>
+            ようこそ!:)
+            <p data-dl-uid="8" data-dl-original="true" data-dl-translated="true">
+              さて...ついにオペレーティングシステムの最も重要な部分までたどり着きました。<b
+                data-dl-uid="9"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >カーネル</b
+              >です。
+            </p>
+            <p data-dl-uid="10" data-dl-original="true" data-dl-translated="true">
+              この用語は、このシリーズを通して、これまで何度も耳にしてきました。その理由は、この用語がいかに重要であるかということです。
+            </p>
+            <p data-dl-uid="11" data-dl-original="true" data-dl-translated="true">
+              カーネルは、すべてのオペレーティングシステムの中核をなすものです。カーネルが何であるか、そしてそれがオペレーティングシステムにどのような影響を与えるかを理解することは重要です。
+            </p>
+            <p data-dl-uid="12" data-dl-original="true" data-dl-translated="true">
+              このチュートリアルでは、カーネルの背後にあるもの、カーネルとは何か、そしてカーネルが何を担っているのかを見ていきます。
+              これらの概念を理解することは、良い設計を考え出す上で不可欠です。
+            </p>
+            <p data-dl-uid="13" data-dl-original="true" data-dl-translated="true">
+              <i data-dl-uid="14" data-dl-original="true" data-dl-translated="true"
+                >準備はいいですか？</i
+              >
+            </p>
+            <h1 data-dl-uid="15" data-dl-original="true" data-dl-translated="true">
+              カーネル基本的な定義
+            </h1>
+            OSの<b data-dl-uid="16" data-dl-original="true" data-dl-translated="true">カーネルとは</b
+            >何かを理解するために、まず<b
+              data-dl-uid="17"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >「カーネル</b
+            >」とは何か、その基本的な定義を理解する必要があります。辞書では、「カーネル」は「核心」、「本質的な部分」、あるいは「何かの本体」と定義されています。この定義をオペレーティング・システムの環境に適用すると、次のように簡単に述べることができます。
+            <p data-dl-uid="18" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="19" data-dl-original="true" data-dl-translated="true"
+                >カーネルは、オペレーティング システムの中核となるコンポーネントです。</b
+              >
+            </p>
+            <p data-dl-uid="20" data-dl-original="true" data-dl-translated="true">
+              しかし、これは私たちにとってどのような意味を持つのでしょうか。OSのカーネルとは一体何なのか、なぜ気にする必要があるのか。
+            </p>
+            <p data-dl-uid="21" data-dl-original="true" data-dl-translated="true">
+              カーネルが必須であるという決まりはありません。カーネル」がなくても、特定のアドレスにプログラムをロードして実行することは簡単にできる。実際、初期のコンピュータシステムはすべてこの方法で始まっています。現代のシステムでも、この方法を採用しているものがあります。この顕著な例は、初期のカウンタゲームシステムで、そのゲーム機用に設計されたゲームの<b
+                data-dl-uid="23"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >1つを</b
+              >実行するために、システムを<b
+                data-dl-uid="22"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >再起動する</b
+              >必要がありました。
+            </p>
+            <p data-dl-uid="24" data-dl-original="true" data-dl-translated="true">
+              では、カーネルは何のためにあるのでしょうか？コンピュータ環境では、プログラムを実行するたびに再起動するのは非現実的です。ということは、各プログラム自体にブートローダが必要になり、ハードウェアを直接制御することになる。結局のところ、起動時にプログラムを実行する必要があるのなら、オペレーティングシステムというものは存在しないことになります。
+            </p>
+            <p data-dl-uid="25" data-dl-original="true" data-dl-translated="true">
+              必要なのは、複数のプログラムを実行する機能を提供し、そのメモリ割り当てを管理する抽象化レイヤです。また、OSなしで起動時に各プログラムを起動しなければならない場合、ハードウェアに対する抽象化を提供することができます。結局のところ、ソフトウェアは生のハードウェアの上で動いているのです。
+            </p>
+            <p data-dl-uid="26" data-dl-original="true" data-dl-translated="true">
+              キーワードは「<b data-dl-uid="27" data-dl-original="true" data-dl-translated="true"
+                >抽象化</b
+              >」です。
+            </p>
+            <h1 data-dl-uid="28" data-dl-original="true" data-dl-translated="true">カーネルの必要性</h1>
+
+            カーネルは、ハードウェア自体に対する主要な抽象化レイヤーを提供します。<b
+              data-dl-uid="29"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >カーネルが</b
+            >通常Ring 0にあるのは、まさにこの理由からです。私たちはまだRing
+            0にいるので、すでにこのことを経験しています。
+            <p data-dl-uid="30" data-dl-original="true" data-dl-translated="true">
+              これはいいとして、他のソフトはどうするんだ？私たちは<b
+                data-dl-uid="31"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >オペレーティング環境を</b
+              >開発していることを思い出してください。私たちの第一の目標は、アプリケーションや他のソフトウェアが安全に、かつ効果的に実行できる環境を提供することです。もし、すべてのソフトウェアをカーネルと一緒にリング0で動作させれば、カーネルは不要になりますね？もしそうだとしたら、<b
+                data-dl-uid="32"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >リング0のソフトがリング0のカーネルと衝突</b
+              >して、予想外の結果を引き起こすかもしれません。結局のところ、彼らは皆、システムの全バイトを完全に制御しているのです。どんなソフトウェアでも、カーネルを上書きすることができるし、他のソフトウェアも何の問題もなく上書きすることができるのです。痛そう。
+            </p>
+            <p data-dl-uid="33" data-dl-original="true" data-dl-translated="true">
+              とはいえ、それは問題の始まりに過ぎない。プログラムやプロセスを切り替える共通基盤がないため、マルチタスクやマルチプロセシングは不可能だ。一度に実行できるのは1つのプログラムだけである。
+            </p>
+            <p data-dl-uid="34" data-dl-original="true" data-dl-translated="true">
+              基本的な考え方は、カーネルは必要不可欠であるということです。他のソフトウェアがすべてを直接制御するのを<b
+                data-dl-uid="35"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >防ぐだけ</b
+              >でなく、そのための<b data-dl-uid="36" data-dl-original="true" data-dl-translated="true"
+                >抽象化レイヤーを</b
+              >作りたいのです。
+            </p>
+            <p data-dl-uid="37" data-dl-original="true" data-dl-translated="true">
+              カーネルが他のシステムのどこに、どのように位置づけられるかを理解することは、非常に重要なことです。
+            </p>
+            <h1 data-dl-uid="38" data-dl-original="true" data-dl-translated="true">
+              ソフトウェアの抽象化レイヤー
+            </h1>
+            ソフトウェアには多くの抽象化があります。これらの抽象化はすべて、実装の詳細を隠すだけでなく、そこからあなたを<b
+              data-dl-uid="39"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >守る</b
+            >ために、コアと基本的なインターフェースを提供することを目的としています。すべてを直接コントロールすることは、一見クールに見えますが、そうすることでどれだけの問題が発生するか想像してみてください。
+            <p data-dl-uid="40" data-dl-original="true" data-dl-translated="true">
+              私が言っているのはどんな問題なのか、興味を持たれたかもしれません。エレクトロニクスは、私たちが指示したとおりに動くのが基本です。私たちは、ソフトウェアを<b
+                data-dl-uid="41"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ハードウェアの</b
+              >レベルまで、場合によっては<b
+                data-dl-uid="42"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >エレクトロニクスの</b
+              >レベルまでコントロールすることができます。これらのレベルでミスを犯すと、それらのデバイスに物理的なダメージを与える可能性があります。
+            </p>
+            <p data-dl-uid="43" data-dl-original="true" data-dl-translated="true">
+              ここでは、各抽象レイヤーを見て、私が言いたいことを理解し、カーネルがどこに位置するかを確認しましょう。
+            </p>
+
+            <h2 data-dl-uid="44" data-dl-original="true" data-dl-translated="true">
+              PModeの保護リングレベルとの関係
+            </h2>
+
+            <b data-dl-uid="45" data-dl-original="true" data-dl-translated="true"
+              >ブートローダ 3 チュートリアルでは</b
+            >、アセンブリ言語のリングを詳しく見てきました。また、これが<b
+              data-dl-uid="46"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >プロテクトモードと</b
+            >どのように関係するのかも見てきました。
+            <p data-dl-uid="47" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="48" data-dl-original="true" data-dl-translated="true"
+                >Ring 0 のソフトウェアが最も低い保護レベル</b
+              >であることを忘れないでください。これは、私たちがすべてを直接制御し、決してクラッシュしないことを<b
+                data-dl-uid="49"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >期待</b
+              >されていることを意味します。もしRing 0の<b
+                data-dl-uid="50"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >プログラムが</b
+              >クラッシュした場合、システムも一緒にクラッシュしてしまいます(Triple Fault)。
+            </p>
+            <p data-dl-uid="51" data-dl-original="true" data-dl-translated="true">
+              このため、他のすべてを直接制御できない<b
+                data-dl-uid="52"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ように</b
+              >するだけでなく、ソフトウェアを実行するために必要な保護レベルのみを与えるようにします。このため、通常は
+            </p>
+            <ul data-dl-uid="53" data-dl-original="true" data-dl-translated="true">
+              <li data-dl-uid="54" data-dl-original="true" data-dl-translated="true">
+                カーネルはRing 0（「スーパーバイザーモード」）で動作します。
+              </li>
+              <li data-dl-uid="55" data-dl-original="true" data-dl-translated="true">
+                デバイスドライバは、ハードウェアデバイスに直接アクセスする必要があるため、Ring 1とRing
+                2で動作します。
+              </li>
+              <li data-dl-uid="56" data-dl-original="true" data-dl-translated="true">
+                通常のアプリケーションソフトはRing3（「ユーザーモード」）で動作します。
+              </li>
+            </ul>
+
+            さて、これらは<b data-dl-uid="57" data-dl-original="true" data-dl-translated="true"
+              >どのように</b
+            >組み合わされるのでしょうか？もう少し詳しく見てみましょう。
+
+            <h2 data-dl-uid="58" data-dl-original="true" data-dl-translated="true">
+              レベル1：ハードウェアレベル
+            </h2>
+
+            これは実際の物理的なコンポーネントです。マザーボード上のマイクロコントローラチップが、他のデバイス上のマイクロコントローラに低レベルのコマンドを送り、このデバイスを物理的に制御しているのです。どのように？それはレベル2で説明します。
+            <p data-dl-uid="59" data-dl-original="true" data-dl-translated="true">
+              ハードウェアの例としては、マイクロコントローラチップセット（「マザーボードチップセット」）、ディスクドライブ、SATA、IDE、ハードディスク、メモリ、プロセッサ（これはコントローラでもある--詳細はレベル2を参照）などがあります。
+            </p>
+            <p data-dl-uid="60" data-dl-original="true" data-dl-translated="true">
+              これは最も低いレベルであり、純粋な電子機器であるため最も詳細です。
+            </p>
+            <h2 data-dl-uid="61" data-dl-original="true" data-dl-translated="true">
+              レベル2：ファームウェアレベル
+            </h2>
+
+            ファームウェアは、エレクトロニクス・レベルの上位に位置するものです。各ハードウェア機器やマイコンが必要とするソフトウェアが含まれています。ファームウェアの一例として、BIOSのPOSTがあります。
+            <p data-dl-uid="62" data-dl-original="true" data-dl-translated="true">
+              プロセッサはコントローラであり、他のコントローラと同様にファームウェアに依存していることを忘れないでください。プロセッサ内の<b
+                data-dl-uid="63"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >命令デコーダは</b
+              >、1つの機械命令を<b data-dl-uid="64" data-dl-original="true" data-dl-translated="true"
+                >マクロコードに</b
+              >分解するか、直接<b data-dl-uid="65" data-dl-original="true" data-dl-translated="true"
+                >マイクロコードに</b
+              >分解します。
+            </p>
+            <p data-dl-uid="66" data-dl-original="true" data-dl-translated="true">
+              詳細については、<b data-dl-uid="67" data-dl-original="true" data-dl-translated="true"
+                >チュートリアル7「システムアーキテクチャのチュートリアル</b
+              >」を参照してください。
+            </p>
+            <h3 data-dl-uid="68" data-dl-original="true" data-dl-translated="true">マイクロコード</h3>
+            ファームウェアは通常、マイクロコードを用いて開発され、マイクロアセンブラで組み立てて記憶領域にアップロードするか（BIOS
+            POSTなど）、さまざまな手段で機器の論理回路にハードウエアとして組み込まれる。
+            <p data-dl-uid="69" data-dl-original="true" data-dl-translated="true">
+              マイクロコードは通常、EEPROMのようなROMチップに格納されています。
+            </p>
+            <p data-dl-uid="70" data-dl-original="true" data-dl-translated="true">
+              マイクロコードは非常にハードウェアに特化したものです。新しい変更や改訂があるたびに、新しいマイクロコード命令セットとマイクロアセンブラを開発する必要があります。システムによっては、マイクロコードは回路内の個々の電子ゲートやスイッチを制御するために使われている。そう、それほど低レベルなのだ。
+            </p>
+            <h3 data-dl-uid="71" data-dl-original="true" data-dl-translated="true">マクロコード</h3>
+            マイクロプロセッサやCPUのような複雑なシステムでは、マイクロコードは<b
+              data-dl-uid="72"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >非常に</b
+            >低レベルであり、開発が困難な場合があります。また、コードだけでなく、マイクロプログラムも変更するたびに再インプリメンテーションしなければなりません。
+            <p data-dl-uid="74" data-dl-original="true" data-dl-translated="true">
+              このため、マイクロコードの上に<b
+                data-dl-uid="75"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >マクロコードと</b
+              >呼ばれるより高度な言語を実装しているシステムもある。
+              マクロコードは抽象化されているため、マイクロコードよりも変更頻度が低く、移植性が高い。
+              また、抽象化されているため、より簡単に作業することができる。
+            </p>
+            <p data-dl-uid="76" data-dl-original="true" data-dl-translated="true">
+              しかし、まだ非常に低レベルです。より高度な機械語をマイクロコードに変換するための内部ロジック命令セットとして使用され、命令デコーダによって変換される。
+            </p>
+
+            <h2 data-dl-uid="77" data-dl-original="true" data-dl-translated="true">
+              レベル3：リング0 - カーネルレベル
+            </h2>
+
+            ここが私たちの到達点です。Stage 2
+            ブートローダは、カーネルが実行できる環境を整えることだけに専念していました。
+            <p data-dl-uid="78" data-dl-original="true" data-dl-translated="true">
+              デバイスドライバやアプリケーションソフトウェアと、ハードウェアが使用するファームウェアの間を抽象化するのがカーネルである。
+            </p>
+            <h2 data-dl-uid="79" data-dl-original="true" data-dl-translated="true">
+              レベル4：リング1、リング2 - デバイスドライバ
+            </h2>
+
+            デバイスドライバは、カーネルを経由してハードウェアにアクセスする。デバイスドライバは、特定のマイコンを直接制御する必要があるため、自由度が高く、コントロールしやすいことが必要です。しかし、コントロールし<b
+              data-dl-uid="80"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >すぎると</b
+            >、システムがクラッシュする可能性があります。例えば、GDTを変更したり、独自に設定したりすると、すぐにカーネルがクラッシュしてしまいます。このため、これらのドライバが<b
+              data-dl-uid="81"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >LGDTを</b
+            >使用して独自のGDTをロードできないようにする必要があります。このため、これらのドライバは<b
+              data-dl-uid="82"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >リング0ではなく、リング1またはリング2のいずれかで動作</b
+            >するようにします。
+            <p data-dl-uid="83" data-dl-original="true" data-dl-translated="true">
+              例えば、<b data-dl-uid="84" data-dl-original="true" data-dl-translated="true"
+                >キーボードデバイスドライバは</b
+              >、<b data-dl-uid="85" data-dl-original="true" data-dl-translated="true"
+                >アプリケーション</b
+              >ソフトウェアと<b data-dl-uid="86" data-dl-original="true" data-dl-translated="true"
+                >キーボードマイクロコントローラの</b
+              >間のインターフェースを提供する必要があります。ドライバは、コントローラに間接的にアクセスするためのルーチンを提供するライブラリとしてカーネルにロードされるかもしれません。
+            </p>
+            <p data-dl-uid="87" data-dl-original="true" data-dl-translated="true">
+              標準的なインターフェイスが使用されている限り、すべてのハードウェア依存を隠す限り、非常にポータブルなカーネルを提供することができます。
+            </p>
+            <h2 data-dl-uid="88" data-dl-original="true" data-dl-translated="true">
+              レベル5：リング3 - アプリケーションレベル
+            </h2>
+            これは、ソフトウェアがある場所です。通常、ドライバはカーネルに直接アクセスすることはありませんが、システムAPIやデバイスドライバのインタフェースを利用します。
+            <h2 data-dl-uid="89" data-dl-original="true" data-dl-translated="true">まとめ</h2>
+
+            本シリーズでは、Kernelの開発中にドライバを開発する予定です。これにより、オブジェクト指向を維持し、Kernelの抽象化レイヤーを提供することができます。
+            <p data-dl-uid="90" data-dl-original="true" data-dl-translated="true">
+              このように考えると、私たちがいるのはレベル<b
+                data-dl-uid="91"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >0</b
+              >であることに気づきます。他のすべてのプログラムはカーネルに依存しています。なぜかというと、カーネルに注目すると......。
+            </p>
+
+            <h1 data-dl-uid="92" data-dl-original="true" data-dl-translated="true">カーネル</h1>
+            カーネルはコアコンポーネントであるため、カーネルに依存するすべてのものの管理を行う必要があります。<b
+              data-dl-uid="93"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >カーネルの主な目的は、システムリソースを管理し、他のプログラムがこれらのリソースにアクセスできるようなインタフェースを提供</b
+            >することです。多くの場合、カーネル自身は他のリソースに提供するインターフェイスを使用することができません。<b
+              data-dl-uid="94"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >カーネルは、プログラミングの中で最も複雑で困難な作業であると言われています。</b
+            >
+            <p data-dl-uid="95" data-dl-original="true" data-dl-translated="true">
+              このことは、良いカーネルを設計し実装することは非常に困難であることを意味しています。
+            </p>
+            <p data-dl-uid="96" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="97" data-dl-original="true" data-dl-translated="true">チュートリアル</b
+              >2では、過去の様々なオペレーティングシステムを簡単に見てきました。このチュートリアルでは、多くの新しい用語を太字にし、チュートリアルの最後にそれらの用語のリストを作りました。このチュートリアルの最後に、そのリストをまとめました。
+            </p>
+            <p data-dl-uid="98" data-dl-original="true" data-dl-translated="true">
+              まず、そのリストをもう一度見て、それがカーネルにどのように関連しているかを見てみましょう。<b
+                data-dl-uid="99"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >太字の</b
+              >ものはすべてKernelで処理されます。
+            </p>
+            <p data-dl-uid="100" data-dl-original="true" data-dl-translated="true"></p>
+            <ul data-dl-uid="101" data-dl-original="true" data-dl-translated="true">
+              <li data-dl-uid="102" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="103" data-dl-original="true" data-dl-translated="true">メモリ管理</b>
+              </li>
+              <li data-dl-uid="104" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="105" data-dl-original="true" data-dl-translated="true">プログラム管理</b>
+              </li>
+              <li data-dl-uid="106" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="107" data-dl-original="true" data-dl-translated="true">マルチタスク</b>
+              </li>
+              <li data-dl-uid="108" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="109" data-dl-original="true" data-dl-translated="true">メモリ保護</b>
+              </li>
+
+              <li data-dl-uid="110" data-dl-original="true" data-dl-translated="true">
+                固定ベースアドレス - これはチュートリアル2で取り上げました。
+              </li>
+              <li data-dl-uid="111" data-dl-original="true" data-dl-translated="true">
+                マルチユーザ - これは通常、シェルによって実装されます。
+              </li>
+              <li data-dl-uid="112" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="113" data-dl-original="true" data-dl-translated="true">カーネル</b>-
+                もちろん
+              </li>
+              <li data-dl-uid="114" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="115" data-dl-original="true" data-dl-translated="true"
+                  >ファイルシステム</b
+                >
+              </li>
+              <li data-dl-uid="116" data-dl-original="true" data-dl-translated="true">コマンドシェル</li>
+              <li data-dl-uid="117" data-dl-original="true" data-dl-translated="true">
+                グラフィカルユーザーインターフェイス(GUI)
+              </li>
+
+              <li data-dl-uid="118" data-dl-original="true" data-dl-translated="true">
+                グラフィカルシェル
+              </li>
+              <li data-dl-uid="119" data-dl-original="true" data-dl-translated="true">
+                リニアブロックアドレッシング(LBA) -チュートリアル2で説明しました。
+              </li>
+              <li data-dl-uid="120" data-dl-original="true" data-dl-translated="true">
+                ブートローダ -完成
+              </li>
+            </ul>
+            <p data-dl-uid="121" data-dl-original="true" data-dl-translated="true">
+              上記のいくつかは、カーネルで使用される別のドライバとして実装することができます。例えば、WindowsはNTFSファイルシステムドライバとして<b
+                data-dl-uid="122"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ntfs.sysを</b
+              >使用します。
+            </p>
+            <p data-dl-uid="123" data-dl-original="true" data-dl-translated="true">
+              このリストは<b data-dl-uid="124" data-dl-original="true" data-dl-translated="true"
+                >チュートリアル</b
+              >2で見たことがあるはずです。また、これらの用語のいくつかを取り上げました。<b
+                data-dl-uid="125"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >太字の</b
+              >用語を見て、それらがカーネルにどのように関連しているかを見てみましょう。また、いくつかの新しい概念についても見ていきます。
+            </p>
+
+            <h2 data-dl-uid="126" data-dl-original="true" data-dl-translated="true">メモリ管理</h2>
+
+            これはおそらく、あらゆるカーネルで最も重要な部分です。ご存知のように、カーネルは<b
+              data-dl-uid="127"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >スーパーバイザーモード</b
+            >（リング0）なので、<b data-dl-uid="128" data-dl-original="true" data-dl-translated="true"
+              >メモリの各バイトに直接アクセス</b
+            >できます。これは非常に強力ですが、特にマルチタスク環境では、複数のプログラムやデータがメモリを必要とするため、問題が発生することもあります。
+            <p data-dl-uid="129" data-dl-original="true" data-dl-translated="true">
+              私たちが解決しなければならない主要な問題の1つは、次のようなものです。メモリが足りなくなったらどうするか？
+            </p>
+            <p data-dl-uid="130" data-dl-original="true" data-dl-translated="true">
+              もう一つの問題は、<b data-dl-uid="131" data-dl-original="true" data-dl-translated="true"
+                >断片化</b
+              >です。<b data-dl-uid="132" data-dl-original="true" data-dl-translated="true"
+                >ファイルやプログラムをメモリの連続した領域に読み込むことは必ずしも可能</b
+              >ではありません。例えば、2つのプログラムを読み込んだとします。1つは0x0に、もう1つは0x900にあります。どちらのプログラムもファイルをロードするように要求しているので、データファイルをロードします。
+            </p>
+            <p data-dl-uid="133" data-dl-original="true" data-dl-translated="true"></p>
+
+            <center><img src="./10_files/MemFrag.gif" /></center>
+
+            <p data-dl-uid="136" data-dl-original="true" data-dl-translated="true">
+              ここで何が起こっているかに注目してください。これらのプログラムとファイルの間には、たくさんの未使用メモリがあります。さて、もし上記で収まりきらないような大きなファイルを追加したらどうなるでしょうか？このとき、現在の方式では大きな問題が発生します。現在実行中のプログラムや読み込んだファイルを壊してしまうので、特定の方法で直接メモリを操作することができないのです。
+            </p>
+            <p data-dl-uid="137" data-dl-original="true" data-dl-translated="true">
+              そして、各プログラムがどこにロードされるかという問題がある。各プログラムは、<b
+                data-dl-uid="138"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >Position Indipendentに</b
+              >するか、<b data-dl-uid="139" data-dl-original="true" data-dl-translated="true"
+                >再配置テーブルを</b
+              >提供する必要があります。これがないと、プログラムがどのベースアドレスでロードされることになるのかがわからない。
+            </p>
+            <p data-dl-uid="140" data-dl-original="true" data-dl-translated="true">
+              この点について、もう少し詳しく見てみましょう。<b
+                data-dl-uid="141"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ORG</b
+              >命令を覚えていますか？このディレクティブは、プログラムがどこからロードされるかを設定します。プログラムを別の場所からロードすると、プログラムは不正確なアドレスを参照し、クラッシュします。この理論を簡単に試すことができます。今、Stage2
+              は 0x500 でロードされることを期待しています。しかし、Stage1 の 0x400 にロードすると (Stage2
+              の<b data-dl-uid="142" data-dl-original="true" data-dl-translated="true">ORG 0x500</b
+              >を維持したまま)、トリプルフォールトが発生することになります。
+            </p>
+            <p data-dl-uid="143" data-dl-original="true" data-dl-translated="true">
+              このため、新たに2つの問題が発生します。プログラムをどこにロードすればいいのか、どうやって判断すればいいのでしょうか？バイナリイメージしかないのであれば、<b
+                data-dl-uid="144"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >わからない</b
+              >。しかし、すべてのプログラムが同じアドレス、たとえば0x0から始まることを標準にすれば、知ることができる。これは有効ですが、マルチタスクをサポートするつもりなら、実現は不可能です。<b
+                data-dl-uid="145"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >しかし、各プログラムに独自のメモリ空間を与えて、実質的に0x0から始まるようにすれば、これはうまくいくでしょう。</b
+              >結局のところ、各プログラムから見れば、実際の（物理）メモリでは異なっていても、すべて同じベースアドレスでロードされているのです。
+            </p>
+            <p data-dl-uid="146" data-dl-original="true" data-dl-translated="true">
+              必要なのは、物理メモリを抽象化する方法だ。もっと詳しく見てみましょう。
+            </p>
+            <h3 data-dl-uid="147" data-dl-original="true" data-dl-translated="true">
+              仮想アドレス空間(VAS)
+            </h3>
+
+            <b data-dl-uid="148" data-dl-original="true" data-dl-translated="true">仮想アドレス空間は</b
+            >、<b data-dl-uid="149" data-dl-original="true" data-dl-translated="true"
+              >プログラムのアドレス空間</b
+            >です。<b data-dl-uid="151" data-dl-original="true" data-dl-translated="true"
+              >システムメモリとは</b
+            >関係<b data-dl-uid="150" data-dl-original="true" data-dl-translated="true">ない</b
+            >ことに注意する必要がある。これは、<b
+              data-dl-uid="152"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >各プログラムが独立したアドレス空間を</b
+            >持つようにするためのものです。<b
+              data-dl-uid="153"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >このため、あるプログラムが別のプログラムにアクセスすることはできない。</b
+            >
+            <p data-dl-uid="154" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="155" data-dl-original="true" data-dl-translated="true">VASは</b>
+              <b data-dl-uid="156" data-dl-original="true" data-dl-translated="true">仮想的な</b
+              >ものであり、物理メモリを直接使用しないため、ディスクドライブなどの他のソースをメモリであるかのように使用することができます。つまり、<b
+                data-dl-uid="157"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >物理的にシステムに搭載されているメモリよりも多くのメモリを使用</b
+              >することができます。
+            </p>
+            <p data-dl-uid="158" data-dl-original="true" data-dl-translated="true">
+              これにより、「メモリが足りない」という問題を解決することができます。
+            </p>
+            <p data-dl-uid="159" data-dl-original="true" data-dl-translated="true">
+              また、各プログラムは独自の<b
+                data-dl-uid="160"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >VASを</b
+              >使用するため、各プログラムは常にベース0x0000:0000で始まるようにすることができます。これにより、先に述べた再配置の問題や、メモリの断片化も解決され、各プログラムに連続した物理的なメモリブロックを割り当てる心配がなくなります。
+            </p>
+            <p data-dl-uid="161" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="162" data-dl-original="true" data-dl-translated="true"
+                >仮想アドレスは、カーネルがMMUを介してマッピングします。これについては、もう少し後で説明します。</b
+              >
+            </p>
+            <h3 data-dl-uid="163" data-dl-original="true" data-dl-translated="true">仮想メモリ概要</h3>
+
+            <b data-dl-uid="164" data-dl-original="true" data-dl-translated="true">仮想メモリは</b
+            >、ハードウェアとソフトウェアの両方によって実装された特別な<b
+              data-dl-uid="165"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >メモリアドレス指定方式で</b
+            >、連続しないメモリを連続するメモリのように動作させることができます。
+            <p data-dl-uid="166" data-dl-original="true" data-dl-translated="true">
+              仮想メモリは、<b data-dl-uid="167" data-dl-original="true" data-dl-translated="true"
+                >仮想アドレス空間（Virtual Address Space</b
+              >）の概念に基づいています。各プログラムに独自の仮想アドレス空間を提供し、メモリ保護とメモリの断片化を防ぎます。
+            </p>
+            <p data-dl-uid="168" data-dl-original="true" data-dl-translated="true">
+              仮想メモリは、<b data-dl-uid="170" data-dl-original="true" data-dl-translated="true"
+                >ハードディスクに</b
+              >保存された<b data-dl-uid="169" data-dl-original="true" data-dl-translated="true">ページ</b
+              >ファイルを使用することで、システム内に実際に存在する以上のメモリを間接的に使用する方法を提供します。
+            </p>
+            <p data-dl-uid="171" data-dl-original="true" data-dl-translated="true">
+              仮想メモリはハードウェアレベルで処理されるため、動作させるにはハードウェアデバイスコントローラを介してマッピングされる必要があります。これは通常、<b
+                data-dl-uid="172"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >MMUを通じて</b
+              >行われます。後ほど説明します。
+            </p>
+            <p data-dl-uid="173" data-dl-original="true" data-dl-translated="true">
+              仮想メモリの使用例を見るために、実際に動作しているところを見てみましょう。
+            </p>
+            <p data-dl-uid="174" data-dl-original="true" data-dl-translated="true"></p>
+
+            <center><img src="./10_files/virtual-memory[1].png" /></center>
+
+            <p data-dl-uid="177" data-dl-original="true" data-dl-translated="true">
+              ここで何が起こっているかに注目してください。<b
+                data-dl-uid="178"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >仮想アドレス</b
+              >内の各メモリブロックはリニアです。各メモリブロックは、実際の物理RAM内の位置か、ハードディスクなどの別のデバイスに<b
+                data-dl-uid="179"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >マッピング</b
+              >されます。
+              ブロックは、これらのデバイス間で必要に応じてスワップされます。これは遅く見えるかもしれませんが、MMUのおかげで非常に高速です。
+            </p>
+            <p data-dl-uid="180" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="181" data-dl-original="true" data-dl-translated="true"
+                >覚えておいてください。各プログラムは、上に示したような独自の仮想アドレス空間を持っています。</b
+              >各アドレス空間はリニアで、0x0000:00000から始まるので、メモリの断片化やプログラムの再配置に関する問題の多くを解決することができます。
+            </p>
+            <p data-dl-uid="182" data-dl-original="true" data-dl-translated="true">
+              また、<b data-dl-uid="183" data-dl-original="true" data-dl-translated="true"
+                >仮想メモリは</b
+              >メモリブロックを使用する際に異なるデバイスを使用するため、システム内のメモリ量以上を容易に管理することができます。もしメモリが足りなくなったら、このページファイルを必要に応じて増やすか、警告やエラーメッセージを表示することができます。
+            </p>
+            <p data-dl-uid="184" data-dl-original="true" data-dl-translated="true">
+              各メモリ「ブロック」は「<b
+                data-dl-uid="185"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ページ</b
+              >」と呼ばれ、通常<b data-dl-uid="186" data-dl-original="true" data-dl-translated="true"
+                >4096バイトの</b
+              >大きさになっています。
+            </p>
+            <p data-dl-uid="187" data-dl-original="true" data-dl-translated="true">
+              繰り返しになりますが、詳細は後ほど説明します。
+            </p>
+            <h3 data-dl-uid="188" data-dl-original="true" data-dl-translated="true">
+              メモリ管理ユニット（MMU）。概要
+            </h3>
+            この用語はどこかで聞いたことがあるような気がしますが、どうでしょう？）
+            <p data-dl-uid="189" data-dl-original="true" data-dl-translated="true">
+              MMUは、また、<b data-dl-uid="190" data-dl-original="true" data-dl-translated="true"
+                >ページメモリ管理ユニット（PMMU</b
+              >）として知られているマイクロプロセッサ内部のコンポーネントは、CPUが要求するメモリの管理に責任がある。<b
+                data-dl-uid="191"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >仮想アドレスから物理アドレスへの変換、メモリ保護、キャッシュ制御など</b
+              >、さまざまな役割を担っている。
+            </p>
+            <h3 data-dl-uid="192" data-dl-original="true" data-dl-translated="true">
+              セグメンテーション。概要
+            </h3>
+            セグメンテーションは、<b data-dl-uid="193" data-dl-original="true" data-dl-translated="true"
+              >メモリ保護の</b
+            >手法の一つです。セグメンテーションでは、現在実行中のプログラムから特定のアドレス空間だけを確保します。これは、<b
+              data-dl-uid="194"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >ハードウェアレジスタを通じて</b
+            >行われます。
+            <p data-dl-uid="195" data-dl-original="true" data-dl-translated="true">
+              セグメンテーションは、最も広く使用されているメモリ保護方式の1つである。x86では、通常、<b
+                data-dl-uid="196"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >セグメントレジスタによって</b
+              >処理される。CS、SS、DS、ESです。
+            </p>
+            <p data-dl-uid="197" data-dl-original="true" data-dl-translated="true">
+              Real Modeでは、このレジスタが使用されています。
+            </p>
+            <h3 data-dl-uid="198" data-dl-original="true" data-dl-translated="true">ページング概要</h3>
+            これは私たちにとって重要なことです。ページングとは、RAMにない仮想メモリページへのプログラムのアクセスを管理するプロセスです。これは後で詳しく説明します。
+
+            <h2 data-dl-uid="199" data-dl-original="true" data-dl-translated="true">プログラム管理</h2>
+
+            ここで、リングレベルが重要になります。
+            <p data-dl-uid="200" data-dl-original="true" data-dl-translated="true">
+              ご存知のように、KernelはRing 0で、アプリケーションはRing
+              3にあります。これは良いことで、アプリケーションが特定のシステムリソースに直接アクセスするのを防ぐことができるからです。しかし、アプリケーションはこれらのリソースを必要とするため、これは悪いことでもあります。
+            </p>
+            <p data-dl-uid="201" data-dl-original="true" data-dl-translated="true">
+              プロセッサがどのように現在のリングレベルを知り、どのようにリングレベルを切り替えるのか、気になるところです。
+              プロセッサは単純に内部フラグを使って現在のリングレベルを保存しています。では、プロセッサはどのリングでコードを実行すべきかをどのようにして知るのでしょうか。
+            </p>
+            <p data-dl-uid="202" data-dl-original="true" data-dl-translated="true">
+              ここで、<b data-dl-uid="203" data-dl-original="true" data-dl-translated="true"
+                >GDTとLDTが</b
+              >重要になります。
+            </p>
+            <p data-dl-uid="204" data-dl-original="true" data-dl-translated="true">
+              ご存知のように、Real Modeではプロテクションレベルがありません。<b
+                data-dl-uid="205"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >プロテクトモードに入る前に、GDTを</b
+              >設定しなければならないことを思い出してください。また、32ビットモードに入るために、<b
+                data-dl-uid="206"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ファージャンプを</b
+              >実行する必要があったことを思い出してください。ここでは、これらが非常に重要な役割を果たすので、より詳細に説明しましょう。
+            </p>
+            <h3 data-dl-uid="207" data-dl-original="true" data-dl-translated="true">
+              スーパーバイザーモード
+            </h3>
+
+            リング0は<b data-dl-uid="208" data-dl-original="true" data-dl-translated="true"
+              >スーパーバイザーモードとして</b
+            >知られています。このモードでは、すべての命令、レジスタ、テーブル、その他、より高いリングレベルを持つ他のアプリケーションがアクセスできない特権的なリソースにアクセスできます。
+            <p data-dl-uid="209" data-dl-original="true" data-dl-translated="true">
+              リング0は<b data-dl-uid="210" data-dl-original="true" data-dl-translated="true"
+                >カーネルレベルとも</b
+              >呼ばれ、絶対に失敗しないことが<b
+                data-dl-uid="211"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >期待されて</b
+              >います。もしRing
+              0のプログラムがクラッシュすると、システムも一緒にダウンしてしまいます。覚えておいてください。<b
+                data-dl-uid="212"
+                data-dl-original="true"
+                data-dl-translated="true"
+                ><i data-dl-uid="213" data-dl-original="true" data-dl-translated="true"
+                  >「大きな力には大きな責任が</i
+                ></b
+              >伴う」これがプロテクトモードの主な理由です。
+            </p>
+            <p data-dl-uid="214" data-dl-original="true" data-dl-translated="true">
+              Supervisor
+              Modeは、システムレベルのソフトウェアによって変更可能なハードウェアフラグを利用します。システムレベルのソフトウェア（リング0）にはこのフラグが設定され、アプリケーションレベルのソフトウェア（リング3）には設定されません。
+            </p>
+            <p data-dl-uid="215" data-dl-original="true" data-dl-translated="true">
+              Ring 0のコードにしかできないこと、Ring 3のコードにはできないことがたくさんあります。<b
+                data-dl-uid="216"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >チュートリアル7で出て</b
+              >きたフラグレジスタを覚えていますか？RFLAGSレジスタの<b
+                data-dl-uid="217"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >IOPLフラグは</b
+              >、<b data-dl-uid="218" data-dl-original="true" data-dl-translated="true">IN命令やOUT</b
+              >命令など、特定の命令を実行するのに必要なレベルを決定します。IOPLは通常0なので、<b
+                data-dl-uid="219"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >Ring0プログラムのみがソフトウェアポート経由でハードウェアに直接アクセス</b
+              >できることを意味します。このため、頻繁にRing 0に戻す必要があります。
+            </p>
+            <h3 data-dl-uid="220" data-dl-original="true" data-dl-translated="true">カーネルスペース</h3>
+            <b data-dl-uid="221" data-dl-original="true" data-dl-translated="true"
+              >カーネルスペースとは</b
+            >、カーネルとRng 0デバイスドライバのために予約された特別なメモリ領域を指します。
+            ほとんどの場合、<b data-dl-uid="222" data-dl-original="true" data-dl-translated="true"
+              >カーネルスペースは仮想メモリのようにディスクにスワップアウトしてはいけません</b
+            >。
+            <p data-dl-uid="223" data-dl-original="true" data-dl-translated="true">
+              OSが<b data-dl-uid="224" data-dl-original="true" data-dl-translated="true">ユーザー</b
+              >空間で動作する場合、「<b
+                data-dl-uid="225"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ユーザーランド</b
+              >」と呼ばれることが多い。
+            </p>
+            <h3 data-dl-uid="226" data-dl-original="true" data-dl-translated="true">ユーザースペース</h3>
+            これは通常、<b data-dl-uid="227" data-dl-original="true" data-dl-translated="true"
+              >Ring 3のアプリケーションプログラム</b
+            >です。各アプリケーションは通常、独自の<b
+              data-dl-uid="228"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >仮想アドレス空間（VAS</b
+            >）で実行され、異なるディスクデバイスからスワップすることができます。<b
+              data-dl-uid="229"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >各アプリケーションは独自の仮想メモリ内にあるため、他のプログラムのメモリに直接アクセスすることはできません。</b
+            >そのため、Ring 0のプログラムを経由してアクセスする必要があります。これは<b
+              data-dl-uid="230"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >デバッガに</b
+            >必要なことです。
+            <p data-dl-uid="231" data-dl-original="true" data-dl-translated="true">
+              アプリケーションは通常、最も特権のないものです。このため、通常、システムリソースにアクセスするには、リング0のカーネルレベルのソフトウェアにサポートを要求する必要があります。
+            </p>
+
+            <h3 data-dl-uid="232" data-dl-original="true" data-dl-translated="true">
+              保護レベルの切り替え
+            </h3>
+            <p data-dl-uid="233" data-dl-original="true" data-dl-translated="true">
+              必要なのは、これらのアプリケーションがシステムに対してこれらのリソースを問い合わせることができるようにする方法です。しかし、これを行うには、リング3ではなく、リング0である必要があります。このため、プロセッサの状態をRing
+              3からRing 0に切り替えて、アプリケーションがシステムを照会できるようにする方法が必要です。
+            </p>
+            <p data-dl-uid="234" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="235" data-dl-original="true" data-dl-translated="true">チュートリアル5で</b
+              >、アセンブリ言語のリングについて説明したのを思い出してください。プロセッサは次のような条件で現在のリングレベルを変更することを思い出してください。
+            </p>
+            <ul data-dl-uid="236" data-dl-original="true" data-dl-translated="true">
+              <li data-dl-uid="237" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="238" data-dl-original="true" data-dl-translated="true"
+                  >far jump、far call、fat ret</b
+                >などの指示命令。
+              </li>
+              <li data-dl-uid="239" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="241" data-dl-original="true" data-dl-translated="true"
+                  >INT、SYSCALL、SYSEXIT、SYSENTER、SYSRETURN</b
+                >などの<b data-dl-uid="240" data-dl-original="true" data-dl-translated="true">トラップ</b
+                >命令。
+              </li>
+              <li data-dl-uid="242" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="243" data-dl-original="true" data-dl-translated="true">例外</b>
+              </li>
+            </ul>
+            つまり、アプリケーションがシステムルーチンを実行するには（Ring 0に切り替わりながら）、<b
+              data-dl-uid="244"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >ファージャンプ</b
+            >するか、<b data-dl-uid="245" data-dl-original="true" data-dl-translated="true">割り込みを</b
+            >実行するか、<b data-dl-uid="246" data-dl-original="true" data-dl-translated="true"
+              >SYSENTERなどの</b
+            >特別な命令を使用しなければならないのです。
+            <p data-dl-uid="247" data-dl-original="true" data-dl-translated="true">
+              これは素晴らしいことですが、プロセッサはどのリングレベルに切り替わるかをどのように知るのでしょうか？ここでGDTの出番です。
+            </p>
+            <p data-dl-uid="248" data-dl-original="true" data-dl-translated="true">
+              GDTの各ディスクリプタで、各ディスクリプタの<b
+                data-dl-uid="249"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >リング</b
+              >レベルを設定する必要があったのを覚えていますか？今回のGDTでは、2つのディスクリプタを用意しました。それぞれ、<b
+                data-dl-uid="250"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >Kernel</b
+              >
+              Mode Ring 0用です。
+            </p>
+            <p data-dl-uid="251" data-dl-original="true" data-dl-translated="true">
+              このGDTに、<b data-dl-uid="252" data-dl-original="true" data-dl-translated="true"
+                >Ring3アクセス</b
+              >用のモードディスクリプタを2つ追加するだけです。これが<b
+                data-dl-uid="253"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ユーザ</b
+              >空間です。
+            </p>
+            <p data-dl-uid="254" data-dl-original="true" data-dl-translated="true">
+              もう少し詳しく見てみましょう。
+            </p>
+            <p data-dl-uid="255" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="256" data-dl-original="true" data-dl-translated="true"
+                >チュートリアル8で、重要なバイトはアクセスバイト</b
+              >であることを思い出してください。このため、バイトパターンをもう一度説明します。
+            </p>
+            <ul data-dl-uid="257" data-dl-original="true" data-dl-translated="true">
+              <li data-dl-uid="258" data-dl-original="true" data-dl-translated="true">
+                ビット0（GDTではビット40）。アクセスビット(仮想メモリで使用)。仮想メモリは使わないので（まだ、とにかく）、無視することにします。従って、0になります。
+              </li>
+              <li data-dl-uid="259" data-dl-original="true" data-dl-translated="true">
+                ビット1（GDTのビット41）：読み取り/書き込み可能なビットです。このビットは（コードセレクタのために）設定されているので、セグメント（0x0から0xFFFFまで）のデータをコードとして読み、実行することができる。
+              </li>
+              <li data-dl-uid="260" data-dl-original="true" data-dl-translated="true">
+                ビット2（GDTのビット42）：「拡張方向」ビットです。これについては、後で詳しく見ていきます。今のところ、無視してください。
+              </li>
+              <li data-dl-uid="261" data-dl-original="true" data-dl-translated="true">
+                ビット3（GDTのビット43）：プロセッサに、これがコードまたはデータ記述子であることを伝えます。(セットされているので、コード・ディスクリプタです。）
+              </li>
+              <li data-dl-uid="262" data-dl-original="true" data-dl-translated="true">
+                ビット4 (GDTのビット44)。システム "または "コード/データ
+                "ディスクリプタとして表現します。これはコードセレクタなので、ビットに1がセットされています。
+              </li>
+              <li data-dl-uid="263" data-dl-original="true" data-dl-translated="true">
+                ビット5〜6（GDTのビット45〜46）：特権レベル（すなわち、リング0またはリング3）である。リング0にいるので、両ビットは0です。
+              </li>
+              <li data-dl-uid="264" data-dl-original="true" data-dl-translated="true">
+                ビット7（GDTのビット47）。セグメントがメモリ内にあることを示すために使用されます（仮想メモリで使用されます）。まだ仮想メモリを使用していないため、今は0に設定する
+              </li>
+            </ul>
+
+            <blockquote>
+              <pre><div class="code">;*******************************************
+; Global Descriptor Table (GDT)
+;*******************************************
+ 
+gdt_data: 
+ 
+; Null descriptor (Offset: 0x0)--Remember each descriptor is 8 bytes!
+	dd 0 				; null descriptor
+	dd 0 
+ 
+; Kernel Space code (Offset: 0x8 bytes)
+	dw 0FFFFh 			; limit low
+	dw 0 				; base low
+	db 0 				; base middle
+	db 10011010b 			; access - Notice that bits 5 and 6 (privilege level) are 0 for Ring 0
+	db 11001111b 			; granularity
+	db 0 				; base high
+ 
+; Kernel Space data (Offset: 16 (0x10) bytes
+	dw 0FFFFh 			; limit low (Same as code)10:56 AM 7/8/2007
+	dw 0 				; base low
+	db 0 				; base middle
+	db 10010010b 			; access - Notice that bits 5 and 6 (privilege level) are 0 for Ring 0
+	db 11001111b 			; granularity
+	db 0				; base high
+ 
+; User Space code (Offset: 24 (0x18) bytes)
+	dw 0FFFFh 			; limit low
+	dw 0 				; base low
+	db 0 				; base middle
+	db 11111010b 			; access - Notice that bits 5 and 6 (privilege level) are 11b for Ring 3
+	db 11001111b 			; granularity
+	db 0 				; base high
+ 
+; User Space data (Offset: 32 (0x20) bytes
+	dw 0FFFFh 			; limit low (Same as code)10:56 AM 7/8/2007
+	dw 0 				; base low
+	db 0 				; base middle
+	db 11110010b 			; access - Notice that bits 5 and 6 (privilege level) are 11b for Ring 3
+	db 11001111b 			; granularity
+	db 0				; base high</div></pre>
+            </blockquote>
+
+            ここで何が起こっているかに注目してください。すべてのコードとデータは同じ範囲の値を持っており、唯一の違いは<b
+              data-dl-uid="268"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >リング</b
+            >レベルの違いです。
+            <p data-dl-uid="269" data-dl-original="true" data-dl-translated="true">
+              ご存知のように、<b data-dl-uid="270" data-dl-original="true" data-dl-translated="true"
+                >プロテクトモードは</b
+              >、<b data-dl-uid="271" data-dl-original="true" data-dl-translated="true"
+                >現在の特権レベル(CPL)</b
+              >を保存するためにCSを使用します。初めてプロテクトモードに入るとき、<b
+                data-dl-uid="272"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >Ring0に切り替える</b
+              >必要がありましたが、CSの値が無効だったため（リアルモードより）、GDTからCSに正しいディスクリプタを選択する必要があります。詳しくは、<b
+                data-dl-uid="273"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >チュートリアル8を</b
+              >ご覧ください。
+            </p>
+            <p data-dl-uid="274" data-dl-original="true" data-dl-translated="true">
+              このため、CSに新しい値をアップロードする必要があり、ファージャンプが必要でした。リング3ディスクリプタに遥<b
+                data-dl-uid="275"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >かにジャンプ</b
+              >することで、実質的にリング3状態に入ることができます。
+            </p>
+            <p data-dl-uid="276" data-dl-original="true" data-dl-translated="true">
+              ご存知のように、<b data-dl-uid="277" data-dl-original="true" data-dl-translated="true"
+                >INT、SYSCALL/SYSEXIT/SYSENTER/SYSRET、far call、または例外を</b
+              >使用して、プロセッサをRing 0に戻すことが可能です。
+            </p>
+            <p data-dl-uid="278" data-dl-original="true" data-dl-translated="true">
+              これらのメソッドについて詳しく見ていきましょう。
+            </p>
+
+            <h3 data-dl-uid="279" data-dl-original="true" data-dl-translated="true">システムAPI概要</h3>
+            このプログラムは、システムリソースにアクセスするためにシステムAPIに依存しています。ほとんどのアプリケーションはシステム
+            API を直接、または<b data-dl-uid="280" data-dl-original="true" data-dl-translated="true"
+              >C ランタイムライブラリの</b
+            >ような言語 API を通して参照します。
+            <p data-dl-uid="281" data-dl-original="true" data-dl-translated="true">
+              システムAPIは、<b data-dl-uid="283" data-dl-original="true" data-dl-translated="true"
+                >システム・コール</b
+              >を通じて、アプリケーションとシステム・リソースとの間の<b
+                data-dl-uid="282"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >インタフェースを</b
+              >提供します。
+            </p>
+            <h3 data-dl-uid="284" data-dl-original="true" data-dl-translated="true">割り込み</h3>
+            <b data-dl-uid="285" data-dl-original="true" data-dl-translated="true"
+              >ソフトウェア割り込みは</b
+            >、ソフトウェアで実装された特別なタイプの割り込みです。割り込みは非常に頻繁に使用され、<b
+              data-dl-uid="286"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >割り込み記述子テーブル(IDT</b
+            >)という特別なテーブルを使用することになります。割り込みはカーネルに実装される最初のものなので、後でもっと詳しく見ます。
+            <p data-dl-uid="287" data-dl-original="true" data-dl-translated="true">
+              Linuxでは、すべてのシステムコールにINT 0x80を使用しています。
+            </p>
+            <p data-dl-uid="288" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="289" data-dl-original="true" data-dl-translated="true"
+                >割り込みは、システムコールを実装するための最もポータブルな方法です。</b
+              >このため、システムルーチンを呼び出す最初の方法として割り込みを使用することにします。
+            </p>
+            <h3 data-dl-uid="290" data-dl-original="true" data-dl-translated="true">コールゲート</h3>
+            コールゲートは、Ring 3 アプリケーションがより私的な（Ring 0、1、2）コードを実行するための
+            方法を提供します。<b data-dl-uid="291" data-dl-original="true" data-dl-translated="true"
+              >コールゲートは</b
+            >、Ring 0 ルーチンと Ring 3
+            アプリケーションの間のインターフェイスで、通常カーネルによって設定されます。
+            <p data-dl-uid="292" data-dl-original="true" data-dl-translated="true">
+              コールゲートは、FAR
+              CALLへの単一のゲート（エントリポイント）を提供します。このエントリポイントはGDTまたはLDTの中で定義されます。
+            </p>
+            <p data-dl-uid="293" data-dl-original="true" data-dl-translated="true">
+              コールゲートを理解するには、例を挙げるとわかりやすいでしょう。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">;*******************************************
+; Global Descriptor Table (GDT)
+;*******************************************
+ 
+gdt_data: 
+ 
+; Null descriptor (Offset: 0x0)--Remember each descriptor is 8 bytes!
+	dd 0 				; null descriptor
+	dd 0 
+ 
+; Kernel Space code (Offset: 0x8 bytes)
+	dw 0FFFFh 			; limit low
+	dw 0 				; base low
+	db 0 				; base middle
+	db 10011010b 			; access - Notice that bits 5 and 6 (privilege level) are 0 for Ring 0
+	db 11001111b 			; granularity
+	db 0 				; base high
+ 
+; Kernel Space data (Offset: 16 (0x10) bytes
+	dw 0FFFFh 			; limit low (Same as code)10:56 AM 7/8/2007
+	dw 0 				; base low
+	db 0 				; base middle
+	db 10010010b 			; access - Notice that bits 5 and 6 (privilege level) are 0 for Ring 0
+	db 11001111b 			; granularity
+	db 0				; base high
+ 
+; Call gate (Offset: 24 (0x18) bytes
+ 
+ CallGate1:
+	dw (Gate1 &amp; 0xFFFF)		; limit low address of gate routine
+	dw 0x8				; code segment selector
+	db 0				; base middle
+	db 11101100b			; access - Notice that bits 5 and 6 (privilege level) are 11 for Ring 3
+	db 0				; granularity
+	db (Gate1 &gt;&gt; 16)		; base high of gate routine
+ 
+; End of the GDT. Define the routine wherever
+ 
+; The call gate routine
+ 
+Gate1:
+	; do something special here at Ring 3
+ 
+	retf			; far return back to calling routine</div></pre>
+            </blockquote>
+
+            上記はコールゲートの一例です。
+            <p data-dl-uid="297" data-dl-original="true" data-dl-translated="true">
+              コールゲートを実行するには、GDT 内の<b
+                data-dl-uid="298"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >記述子コードから</b
+              >オフセットします。これは、<b
+                data-dl-uid="299"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >jmp 0x8:Stage2</b
+              >命令と似ていることに注意してください。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">; execute the call gate
+	call far	0x18:0			; far call--calls our Gate1 routine</div></pre>
+            </blockquote>
+
+            コールゲートは、最近のオペレーティングシステムではあまり使われません。その理由の1つは、ほとんどのアーキテクチャがコールゲートをサポートしていないためです。また、<b
+              data-dl-uid="303"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >FAR CALL</b
+            >命令と<b data-dl-uid="304" data-dl-original="true" data-dl-translated="true">FAR RET</b
+            >命令を必要とするため、かなり遅いです。
+            <p data-dl-uid="305" data-dl-original="true" data-dl-translated="true">
+              GDTが保護されたメモリにないシステムでは、他のプログラムが独自のコールゲートを作成し、その保護レベルを上げる（そしてリング0アクセスを得る）ことも可能です。
+              セキュリティ上の問題があることも知られています。例えば、Windowsオペレーティングシステムに独自のコールゲートをインストールする<b
+                data-dl-uid="306"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >Gurongは</b
+              >注目すべきワームの1つです。
+            </p>
+            <h3 data-dl-uid="307" data-dl-original="true" data-dl-translated="true">
+              SYSENTER/SYSEXITの命令
+            </h3>
+            これらの命令は Pentium II 以降の CPU
+            に導入されました。最近のAMDプロセッサの一部もこれらの命令をサポートしています。
+            <p data-dl-uid="308" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="309" data-dl-original="true" data-dl-translated="true">SYSENTERは</b
+              >、どのアプリケーションでも実行できます。<b
+                data-dl-uid="310"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >SYSRETは</b
+              >Ring 0のプログラムだけが実行できる。
+            </p>
+            <p data-dl-uid="311" data-dl-original="true" data-dl-translated="true">
+              これらの命令は、ユーザーモード（リング3）からプリビレッジモード（リング0）へ制御を移し、素早く戻すための高速な方法として使用されます。これにより、ユーザモードからシステムルーチンを高速かつ安全に実行することができます。
+            </p>
+            <p data-dl-uid="312" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="313" data-dl-original="true" data-dl-translated="true"
+                >これらの命令は、モデルスペシフィックレジスタ（MSR）に直接依存しています。MSRとRDMSRおよびWRMSR命令については、チュートリアル7を参照してください。</b
+              >
+            </p>
+            <p data-dl-uid="314" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="315" data-dl-original="true" data-dl-translated="true">SYSENTER</b>
+            </p>
+            <p data-dl-uid="316" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="317" data-dl-original="true" data-dl-translated="true">SYSENTER</b
+              >命令は、以下のレジスタをMSR内で定義された位置に自動的に設定します。
+            </p>
+
+            <ul>
+              <li>CS = IA32_SYSENTER_CS MSR + the value 8</li>
+              <li>ESP = IA32_SYSENTER_ESP MSR</li>
+              <li>EIP = IA32_SYSENTER_IP MSR</li>
+              <li>SS = IA32_SYSENTER_SS MSR</li>
+            </ul>
+
+            <p data-dl-uid="323" data-dl-original="true" data-dl-translated="true">
+              この命令は、Ring 3コードからRing 0に制御を移すためにのみ使用されます。
+              起動時には、これらのMSRを、すべてのシステムコールのための<b
+                data-dl-uid="325"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >シスコールエントリーポイントと</b
+              >なる<b data-dl-uid="324" data-dl-original="true" data-dl-translated="true">開始</b
+              >位置を指すように設定する必要があります。
+            </p>
+            <p data-dl-uid="326" data-dl-original="true" data-dl-translated="true">
+              ここでは、SYSEXITについて説明します。
+            </p>
+            <p data-dl-uid="327" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="328" data-dl-original="true" data-dl-translated="true">SYSEXIT</b>
+            </p>
+            <p data-dl-uid="329" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="330" data-dl-original="true" data-dl-translated="true">SYSEXIT</b
+              >命令は、次のレジスタを MSR 内で定義された場所に自動的に設定します。
+            </p>
+
+            <ul>
+              <li>CS = IA32_SYSENTER_CS MSR + the value 16</li>
+              <li>ESP = ECX Register</li>
+              <li>EIP = EDX Register</li>
+              <li>SS = IA32_SYSENTER_CS MSR MSR + 24</li>
+            </ul>
+
+            <p data-dl-uid="336" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="337" data-dl-original="true" data-dl-translated="true"
+                >SYSENTER/SYSEXITの使い方</b
+              >
+            </p>
+            <p data-dl-uid="338" data-dl-original="true" data-dl-translated="true">
+              さて、これらの命令の使い方は複雑に見えるかもしれませんが、それほど難しいものではありません;)
+            </p>
+            <p data-dl-uid="339" data-dl-original="true" data-dl-translated="true">
+              SYSENTER と SYSEXIT は呼び出す<b
+                data-dl-uid="340"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >前に</b
+              >MSR をセットアップする必要があるため、まずこれらの MSR を初期化する必要があります。
+            </p>
+            <p data-dl-uid="341" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="342" data-dl-original="true" data-dl-translated="true"
+                >IA32_SYSENTER_CSはMSR内のインデックス0x174、IA32_SYSENTER_ESPは0x175、IA32_SYSENTER_IPは0x176であることを思い出してください。チュートリアル7を覚えていますか？</b
+              >
+            </p>
+            <p data-dl-uid="343" data-dl-original="true" data-dl-translated="true">
+              これを知った上で、SYSENTERのためにそれらを設定しましょう。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">	%define IA32_SYSENTER_CS 0x174
+	%define IA32_SYSENTER_ESP 0x175
+	%define IA32_SYSENTER_EIP 0x176
+ 
+	mov	eax, 0x8				; kernel code descriptor
+	mov	edx, 0
+	mov	ecx, IA32_SYSENTER_CS
+	wrmsr
+	
+	mov	eax, esp
+	mov	edx, 0
+	mov	ecx, IA32_SYSENTER_ESP
+	wrmsr
+	
+	mov	eax, Sysenter_Entry
+	mov	edx, 0
+	mov	ecx, IA32_SYSENTER_EIP
+	wrmsr
+ 
+	; Now, we can use sysenter to execute Sysenter_Entry at ring 0 from either a Ring 0 program or Ring 3:
+	sysenter
+ 
+Sysenter_Entry:
+ 
+	; sysenter jumps here, is is executing this code at prividege level 0. Simular to Call Gates, normally we will
+	; provide a single entry point for all system calls.</div></pre>
+            </blockquote>
+
+            <b data-dl-uid="347" data-dl-original="true" data-dl-translated="true">sysenterを</b
+            >実行するコードがリング3であり、<b
+              data-dl-uid="348"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >Sysenter_Entryが</b
+            >保護レベル0である場合、プロセッサは<b
+              data-dl-uid="349"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >SYSENTER</b
+            >命令内でモードを切り替えます。
+            <p data-dl-uid="350" data-dl-original="true" data-dl-translated="true">
+              上記のコードでは、両方ともプロテクションレベル0であるため、プロセッサはモードを変更せずにルーチンを呼び出すだけです。
+            </p>
+            <p data-dl-uid="351" data-dl-original="true" data-dl-translated="true">
+              このように、SYSENTER.indexとSYSEXITを呼び出す前に行わなければならない作業が少しあります。
+            </p>
+            <p data-dl-uid="352" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="353" data-dl-original="true" data-dl-translated="true"
+                >SYSENTERとSYSEEXITは移植性がありません。</b
+              >このため、SYSENTER/SYSEXITと並行して、より移植性の高い別の方法を導入することが賢明です。
+            </p>
+            <p data-dl-uid="354" data-dl-original="true" data-dl-translated="true"></p>
+            <h3 data-dl-uid="355" data-dl-original="true" data-dl-translated="true">
+              SYSCALL / SYSRET命令
+            </h3>
+
+            <i data-dl-uid="356" data-dl-original="true" data-dl-translated="true"
+              >[近々、ここにSYSCALLとSYSRETのセクションを追加</i
+            >する予定です]。
+            <h3 data-dl-uid="357" data-dl-original="true" data-dl-translated="true">エラー処理</h3>
+            プログラムが問題を起こした場合、どうすればいいのでしょうか？その問題が何であるか、どのように対処すればよいかを知るにはどうしたらよいでしょうか。
+            <p data-dl-uid="358" data-dl-original="true" data-dl-translated="true">
+              通常、これは<b data-dl-uid="359" data-dl-original="true" data-dl-translated="true"
+                >例外処理によって</b
+              >行われます。無効な命令や0による除算などによってプロセッサが無効な状態になると、プロセッサは<b
+                data-dl-uid="360"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >割り込みサービスルーチン（ISR</b
+              >）をトリガします。もし、私たち自身のISRをマッピングしていれば、私たちのルーチンが呼び出されます。
+            </p>
+            <p data-dl-uid="361" data-dl-original="true" data-dl-translated="true">
+              呼び出される<b data-dl-uid="362" data-dl-original="true" data-dl-translated="true">ISRは</b
+              >、問題が何であったかに依存します。これは素晴らしいことで、問題が何であるかが分かっているので、元々問題を起こしたプログラムを探してみることができます。
+            </p>
+            <p data-dl-uid="363" data-dl-original="true" data-dl-translated="true">
+              この方法の1つは、プロセッサ時間を与えた最後のプログラムを取得することです。これは、ISRを生成したプログラムであることが保証されています。
+            </p>
+            <p data-dl-uid="364" data-dl-original="true" data-dl-translated="true">
+              プログラムの情報を得たら、エラーを出力するか、プログラムをシャットダウンさせるか、どちらかの方法があります。
+            </p>
+            <p data-dl-uid="365" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="366" data-dl-original="true" data-dl-translated="true"
+                >IRQは、プロセッサ内部のPIC（Programmable Interrupt
+                Controller）によってマッピングされる。IRQはプロセッサ内部のPICによってマッピングされ、IDT（Interrupt
+                Descriptor
+                Table）内の割り込みエントリにマップされます。これはカーネル内部で最初に取り組むことなので、後ですべてをカバーすることになります。</b
+              >
+            </p>
+
+            <h1 data-dl-uid="367" data-dl-original="true" data-dl-translated="true">まとめ</h1>
+            <p data-dl-uid="368" data-dl-original="true" data-dl-translated="true">
+              このチュートリアルでは、カーネル理論、メモリ管理の概念、仮想メモリアドレス指定（VMA）、プログラム管理、リング0とリング3の分離、アプリケーションとシステムソフトウェア間のインターフェースなど、様々な概念について見てきました。ふーっ。という感じでしょうか？
+            </p>
+            <p data-dl-uid="369" data-dl-original="true" data-dl-translated="true">
+              このチュートリアルのコンセプトの多くは、あなたにとって新しいものかもしれません。このチュートリアルは、カーネルに関連するすべての基本的な概念をカバーする、「Get
+              your feet wet」チュートリアルのようなものです。
+            </p>
+            <p data-dl-uid="370" data-dl-original="true" data-dl-translated="true">
+              このチュートリアルはカーネルがしなければならないことの表面をかすったに過ぎません。しかし、これはスタート地点です。）
+            </p>
+            <p data-dl-uid="371" data-dl-original="true" data-dl-translated="true">
+              次のチュートリアルでは、カーネルを別の角度から見ていきます。また、いくつかの新しい概念をカバーし、カーネルの設計と実装について話します。その後、CとC++で動作するコンパイラとツールチェインの構築を開始する予定です。面白そうでしょう？
+            </p>
+            <p data-dl-uid="372" data-dl-original="true" data-dl-translated="true">
+              私は現在、私のカーネルに MSVC++ 2005 を使っています。
+            </p>
+            <p data-dl-uid="373" data-dl-original="true" data-dl-translated="true">
+              また、<b data-dl-uid="374" data-dl-original="true" data-dl-translated="true"
+                >マルチタスク、TSS、ファイルシステムなど</b
+              >、ここで見ていない他の概念も仕上げる予定です。<i
+                data-dl-uid="375"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >楽しくなりそうです ;)</i
+              >
+            </p>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </body>
+</html>
