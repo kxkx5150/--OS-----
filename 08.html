@@ -1,0 +1,1163 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Cache-Control" content="no-cache" />
+    <title></title>
+    <link href="css/reference.css" rel="stylesheet" />
+  </head>
+  <body>
+    <table cellspacing="0" cellpadding="3" width="80%" border="0">
+      <tbody>
+        <tr>
+          <td class="tblhdr">Operating Systems Development Series</td>
+        </tr>
+        <tr>
+          <td align="middle" colspan="2"></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <table cellspacing="0" cellpadding="5" width="100%" border="0">
+      <tbody>
+        <tr>
+          <td>
+            <!-- Title -->
+
+            <div>
+              <span class="title">Prepare for the Kernel part 1</span>
+
+              <br />
+              <span class="author">by Mike, 2008, 2009</span>
+            </div>
+
+            <h1 data-dl-uid="7" data-dl-original="true" data-dl-translated="true">はじめに</h1>
+            ようこそ!:)
+            <p data-dl-uid="8" data-dl-original="true" data-dl-translated="true">
+              これまで、私たちは多くのことを学んできたのではないでしょうか。OSの開発がいかに複雑であるかということがおわかりいただけたと思います。しかし、それでもなお、難しくなる一方です。
+            </p>
+            <p data-dl-uid="9" data-dl-original="true" data-dl-translated="true">
+              今回は2部構成のチュートリアルの第1回目です。最初のパートでは、アセンブリによる基本的な 32
+              ビットグラフィックプログラミングについて詳しく説明します。これには以下が含まれます。基本的なVGAプログラミングのコンセプト、ビデオディスプレイへのアクセス、文字列の印刷、画面のクリア、ハードウェアカーソルの更新などです。少し数学が入りますが、それほど多くはありません
+              :)
+            </p>
+            <p data-dl-uid="10" data-dl-original="true" data-dl-translated="true">
+              デモ自体は完成しています。このチュートリアルの第2部では、新しい小さな FAT12 ドライバである
+              Floppy ドライバを含む、完成した Stage 2 ソースコードの概要を紹介します。
+              これらは、私たちが追加する定義上「本物の」ドライバではありません。しかし、これらはドライバの機能と、なぜそれらが有用であるかを示すのに役立ちます。すべてのコードは、ブートローダからFAT12をロードするコードを大幅に修正したものなので、FAT12について再び詳しく説明するつもりはありません。
+            </p>
+            <p data-dl-uid="11" data-dl-original="true" data-dl-translated="true">
+              ステージ2の最後のチュートリアルであるパート2では、1MBの基本的な（純粋なバイナリ）カーネルイメージのロードと実行について説明します。
+            </p>
+            <p data-dl-uid="12" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="13" data-dl-original="true" data-dl-translated="true"
+                >この 2 部構成のチュートリアルは、Stage 2 の最後のチュートリアルとなります!</b
+              >カーネルを起動するとき、さまざまな実行可能ファイル形式をカバーする必要があります。Stage
+              2がオブジェクトファイルを正しく実行することを確認する必要があります。このため、カーネルを起動するときに、現在の
+              Stage 2
+              ブートローダにローダを追加して、カーネルを正しくロードすることを確認します。これは後の話ですが
+              :)
+            </p>
+            <p data-dl-uid="14" data-dl-original="true" data-dl-translated="true">
+              この<b data-dl-uid="15" data-dl-original="true" data-dl-translated="true"
+                >チュートリアルのパート 1 では、</b
+              >このようなことを学びます。
+            </p>
+            <ul data-dl-uid="16" data-dl-original="true" data-dl-translated="true">
+              <li data-dl-uid="17" data-dl-original="true" data-dl-translated="true">
+                VGA プログラミングの基本概念
+              </li>
+
+              <li data-dl-uid="18" data-dl-original="true" data-dl-translated="true">
+                ディスプレイへのアクセス
+              </li>
+              <li data-dl-uid="19" data-dl-original="true" data-dl-translated="true">文字の印刷</li>
+              <li data-dl-uid="20" data-dl-original="true" data-dl-translated="true">文字列の印刷</li>
+              <li data-dl-uid="21" data-dl-original="true" data-dl-translated="true">
+                CRTマイクロコントローラの理論とハードウェアカーソルの更新
+              </li>
+              <li data-dl-uid="22" data-dl-original="true" data-dl-translated="true">画面の消去</li>
+            </ul>
+
+            このチュートリアルは、<a
+              href="05.html"
+              data-dl-uid="23"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >悪名高いチュートリアル7を</a
+            >多く参照しています。つまり、<b
+              data-dl-uid="24"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >Real Mode Addressing Map</b
+            >と<b data-dl-uid="25" data-dl-original="true" data-dl-translated="true"
+              >Default I/O Port Addresses</b
+            >
+            です。ビデオアドレス空間とVGAポートアクセスについて説明するときに、このチュートリアルが役に立つかもしれません。
+            <p data-dl-uid="26" data-dl-original="true" data-dl-translated="true">
+              <i data-dl-uid="27" data-dl-original="true" data-dl-translated="true">準備完了</i>
+            </p>
+
+            <h1 data-dl-uid="28" data-dl-original="true" data-dl-translated="true">
+              ディスプレイについて
+            </h1>
+
+            <h2 data-dl-uid="29" data-dl-original="true" data-dl-translated="true">VGA - 理論</h2>
+            <b data-dl-uid="30" data-dl-original="true" data-dl-translated="true"
+              >VGA（Video Graphics Array</b
+            >）は、1987年にIBMから発売されたアノログコンピュータディスプレイの規格です。<b
+              data-dl-uid="31"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >MDA</b
+            >、<b data-dl-uid="32" data-dl-original="true" data-dl-translated="true">CGA</b>、<b
+              data-dl-uid="33"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >EGAが</b
+            >使用していたISA（Industry Standard
+            Architecture）ボード内の数十個のロジックチップに代わる1つのチップとして開発されたため「Array」と呼ばれている。これが1枚のISAボードに収まっていたため、マザーボードへの接続が非常に容易だった。
+            <p data-dl-uid="34" data-dl-original="true" data-dl-translated="true">
+              VGAは、<b data-dl-uid="35" data-dl-original="true" data-dl-translated="true"
+                >ビデオバッファ、ビデオDAC、CRTコントローラ、シーケンサユニット、グラフィックコントローラ、アトリビュートコントローラで</b
+              >構成されています。ビデオドライバの話を始めるまで、まだすべてを詳しく説明しないことに注意してください。これは、主にスペースを節約するためと、VGAのプログラミングが非常に複雑になるため、物事をより簡単にするためです。
+            </p>
+            <p data-dl-uid="36" data-dl-original="true" data-dl-translated="true"></p>
+            <h3 data-dl-uid="37" data-dl-original="true" data-dl-translated="true">ビデオバッファ</h3>
+            ビデオバッファは、ビデオメモリとしてマッピングされたメモリのセグメントである。どの領域のメモリをビデオメモリにマッピングするかは変更可能だ。<b
+              data-dl-uid="38"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >起動時には、BIOSはビデオメモリを0xA0000.にマッピングして</b
+            >います（0xA0000<b data-dl-uid="38" data-dl-translated="true">.</b
+            >(チュートリアル7のリアルモードアドレスマップを覚えていますか？)<b
+              data-dl-uid="39"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >これは重要です!</b
+            >
+
+            <h3 data-dl-uid="40" data-dl-original="true" data-dl-translated="true">ビデオDAC</h3>
+
+            ビデオデジタルアナログコンバータ（DAC）には、ビデオデータをアナログビデオ信号に変換し、ディスプレイに送信するために使用する<b
+              data-dl-uid="41"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >カラーパレットが</b
+            >含まれています。この信号は、<b
+              data-dl-uid="42"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >赤、緑、青の強度を</b
+            >アナログで示します。後で詳しく説明しますので、まだ理解できていなくても気にしないでください。
+            <h3 data-dl-uid="43" data-dl-original="true" data-dl-translated="true">CRTコントローラ</h3>
+            このコントローラは、水平・垂直同期信号のタイミング、<b
+              data-dl-uid="44"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >ビデオバッファのアドレス指定、カーソルやアンダーラインのタイミングを</b
+            >生成します。カーソルを更新するときにCRTコントローラを経由する必要があるので、このチュートリアルの後半でより詳細に説明します。
+            <h3 data-dl-uid="45" data-dl-original="true" data-dl-translated="true">シーケンサ</h3>
+
+            シーケンサは、ビデオメモリの基本的なメモリタイミングと、再生バッファフェッチを制御するためのキャラクタクロックを生成します。このため、システムがアクティブな表示間隔中にメモリにアクセスすることができます。
+            もう一度言いますが、ここではまだ詳細を説明しません。後でビデオドライバについて詳しく説明しますので、ご安心ください。
+            <h3 data-dl-uid="46" data-dl-original="true" data-dl-translated="true">
+              グラフィックコントローラ
+            </h3>
+            ビデオメモリと属性コントローラ、およびビデオメモリとCPUの間のインターフェースです。<b
+              data-dl-uid="47"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >アクティブな表示時間帯には、ビデオバッファ（ビデオメモリ）からメモリデータが送られ、アトリビュートコントローラに送られます。</b
+            >グラフィックモードでは、このデータはパラレルからシリアルのビットプレーンデータに変換されて送信されます。テキストモードでは、パラレルデータだけを送信します。
+            <p data-dl-uid="48" data-dl-original="true" data-dl-translated="true">
+              まだ理解していなくても気にしないでください。後でビデオドライバを開発するときに詳しく説明します。とりあえず、これだけは覚えておいてください。<b
+                data-dl-uid="49"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >グラフィックコントローラは、ビデオメモリからのパラレルデータからディスプレイをリフレッシュします。</b
+              >これは、ディスプレイがアクティブな時間に基づいて自動的に行われます。つまり、<b
+                data-dl-uid="50"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ビデオメモリ（デフォルトでは0xA0000にマッピング）に書き込むことで、現在のモードによっては、実質的にビデオディスプレイに書き込む</b
+              >ことになるのです。これは、文字を印刷するときに重要です。
+            </p>
+            <p data-dl-uid="51" data-dl-original="true" data-dl-translated="true">
+              グラフィックスコントローラで使用されるアドレス範囲を変更することが可能であることを忘れないでください。初期化の際、BIOSはビデオメモリを0xA0000にマップするために、まさにこれを行います。
+            </p>
+
+            <h2 data-dl-uid="52" data-dl-original="true" data-dl-translated="true">ビデオモード</h2>
+            ビデオモード」とは、表示の仕様のことである。つまり、<b
+              data-dl-uid="53"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >ビデオメモリーを</b
+            >どのように参照し、そのデータをビデオアダプターでどのように表示するかを記述している。
+            <p data-dl-uid="54" data-dl-original="true" data-dl-translated="true">
+              VGAは2種類のモードをサポートしています。<b
+                data-dl-uid="55"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >APA</b
+              >グラフィックスと<b data-dl-uid="56" data-dl-original="true" data-dl-translated="true"
+                >テキスト</b
+              >です。
+            </p>
+            <h3 data-dl-uid="57" data-dl-original="true" data-dl-translated="true">APAグラフィックス</h3>
+
+            <b data-dl-uid="58" data-dl-original="true" data-dl-translated="true"
+              >APA（All Points Addressable）</b
+            >とは、ビデオモニターやドットマトリクスなど、画素配列で構成された装置において、各セルを個別に参照できる表示モードのこと。
+            ビデオ表示の場合、各セルは「画素」を表し、各画素は直接操作することができる。このため、ほとんどすべてのグラフィックモードがこの方式を採用しています。<b
+              data-dl-uid="59"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >このピクセルバッファを変更することで、画面上の個々のピクセルを効果的に変更することができるのです。</b
+            >
+            <p data-dl-uid="60" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="61" data-dl-original="true" data-dl-translated="true">画素（ピクセル</b>
+            </p>
+            <p data-dl-uid="62" data-dl-original="true" data-dl-translated="true">
+              ピクセルとは、ディスプレイ上で表現できる最小の単位です。ディスプレイ上では、色の最小単位を表し、基本的には1つのドットとなります。各ピクセルの大きさは、現在の解像度とビデオモードに大きく依存します。
+            </p>
+            <h3 data-dl-uid="63" data-dl-original="true" data-dl-translated="true">テキストモード</h3>
+            テキストモードとは、APAのように画面上のコンテンツをピクセルではなく、文字で内部表現する表示モードです。
+            <p data-dl-uid="64" data-dl-original="true" data-dl-translated="true">
+              ビデオコントローラは、テキストモードを実装する場合、2つのバッファを使用します。キャラクタマップは表示される個々の文字のピクセルを表し、バッファは各セルにどのような文字があるのかを表します。キャラクタマップバッファを変更することで、文字そのものを変更し、新しい文字セットを作成することができます。各セルの中にある文字を表す<b
+                data-dl-uid="65"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >スクリーンバッファ</b
+              >を変更することで、<b data-dl-uid="66" data-dl-original="true" data-dl-translated="true"
+                >画面上に表示される文字を実質的に変更</b
+              >することができます。
+              テキストモードによっては、文字の色や、点滅、下線、反転、明るさなどの属性を指定することもできます。
+            </p>
+            <p data-dl-uid="67" data-dl-original="true" data-dl-translated="true"></p>
+
+            <h2 data-dl-uid="68" data-dl-original="true" data-dl-translated="true">MDA、CGA、EGA</h2>
+            VGAは、MDA、CGA、EGAをベースにしていることを忘れないでください。VGAは、これらのアダプタが行うモードのほとんどをサポートしています。これらのモードを理解することは、VGAをよりよく理解することにつながります。
+            <h3 data-dl-uid="69" data-dl-original="true" data-dl-translated="true">MDA - 理論編</h3>
+
+            私が生まれる前の1981年に、IBMはPC用の標準的なビデオディスプレイカードを開発しました。<b
+              data-dl-uid="70"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >モノクロディスプレイアダプタ（MDA）、モノクロディスプレイ＆プリンタアダプタ（MDPA</b
+            >）である。
+            <p data-dl-uid="71" data-dl-original="true" data-dl-translated="true">
+              MDAにはグラフィックモードは一切なかった。<b
+                data-dl-uid="72"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >80列×25行の高解像度テキスト文字を表示できるテキストモード（Mode
+                7）を1つだけ持っていた。</b
+              >
+            </p>
+            <p data-dl-uid="73" data-dl-original="true" data-dl-translated="true">
+              このディスプレイアダプターは、古いPCでよく使われていた規格である。
+            </p>
+            <p data-dl-uid="74" data-dl-original="true" data-dl-translated="true"></p>
+
+            <h3 data-dl-uid="75" data-dl-original="true" data-dl-translated="true">CGA - 理論編</h3>
+
+            また、1981年には<b data-dl-uid="76" data-dl-original="true" data-dl-translated="true"
+              >CGA（Color Graphics Adapter</b
+            >）を開発し、PC用カラーディスプレイの標準規格を初めて策定した。
+            <p data-dl-uid="77" data-dl-original="true" data-dl-translated="true">
+              CGAは、1<b data-dl-uid="79" data-dl-original="true" data-dl-translated="true"
+                >ピクセルあたり4バイトに</b
+              >制限されていたため、16色の<b
+                data-dl-uid="78"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >カラーパレットしか</b
+              >サポートしていなかった。
+            </p>
+            <p data-dl-uid="80" data-dl-original="true" data-dl-translated="true">
+              CGAは、以下の2つのテキストモードと2つのグラフィックモードをサポートしていた。
+            </p>
+            <ul data-dl-uid="81" data-dl-original="true" data-dl-translated="true">
+              <li data-dl-uid="82" data-dl-original="true" data-dl-translated="true">
+                40x25文字(16色)のテキストモード
+              </li>
+              <li data-dl-uid="83" data-dl-original="true" data-dl-translated="true">
+                18x25文字(16色)のテキストモード
+              </li>
+              <li data-dl-uid="84" data-dl-original="true" data-dl-translated="true">
+                320x200ピクセル(4色)のグラフィックモード
+              </li>
+              <li data-dl-uid="85" data-dl-original="true" data-dl-translated="true">
+                640x200ピクセル(モノクロ)グラフィックス・モード
+              </li>
+            </ul>
+            このディスプレイアダプターは、新しい「文書化されていない」ビデオモードを作成したり、発見したりすることが可能です。これについては後で詳しく説明します。
+            <h3 data-dl-uid="86" data-dl-original="true" data-dl-translated="true">EGA - 理論編</h3>
+
+            1984年にIBMが発表した<b data-dl-uid="87" data-dl-original="true" data-dl-translated="true"
+              >EGA（Enhanced Graphics Adapter</b
+            >）は、最大解像度640×350ピクセルで16色のディスプレイを実現した。
+            <p data-dl-uid="88" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="89" data-dl-original="true" data-dl-translated="true"
+                >VGAアダプタは、80x86マイクロプロセッサファミリーと同様に、下位互換性があることを覚えておいてください。このため、BIOSは80列×25行をサポートするMode
+                7（元はMDA）で起動します。これは私たちにとって重要なことで、私たちはこのモードで使用しています。</b
+              >
+            </p>
+            <h2 data-dl-uid="90" data-dl-original="true" data-dl-translated="true">
+              VGAメモリのアドレス指定
+            </h2>
+            VGAコントローラで使用されるビデオメモリは、PCのメモリに0xA0000から0xBFFFFまでマッピングされています。<b
+              data-dl-uid="91"
+              data-dl-original="true"
+              data-dl-translated="true"
+            >
+              <a href="05.html" data-dl-uid="92" data-dl-original="true" data-dl-translated="true"
+                >チュートリアル5の</a
+              >リアルモードメモリマップを思い出して</b
+            >ください。
+            <p data-dl-uid="93" data-dl-original="true" data-dl-translated="true">
+              通常、ビデオメモリは次のようにマッピングされています。
+            </p>
+            <ul data-dl-uid="94" data-dl-original="true" data-dl-translated="true">
+              <li data-dl-uid="95" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="96" data-dl-original="true" data-dl-translated="true"
+                  >0xA0000 - 0xBFFFF</b
+                >グラフィックモードに使用されるビデオメモリ
+              </li>
+              <ul data-dl-uid="97" data-dl-original="true" data-dl-translated="true">
+                <li data-dl-uid="98" data-dl-original="true" data-dl-translated="true">
+                  <b data-dl-uid="99" data-dl-original="true" data-dl-translated="true"
+                    >0xB0000 - 0xB7777</b
+                  >モノクロテキストモード
+                </li>
+                <li data-dl-uid="100" data-dl-original="true" data-dl-translated="true">
+                  <b data-dl-uid="101" data-dl-original="true" data-dl-translated="true"
+                    >0xB8000 - 0xBFFFF</b
+                  >カラーテキストモードとCGA互換のグラフィックモード
+                </li>
+              </ul>
+            </ul>
+            メモリマッピングのアドレスが異なるため、同じマシンにECG、CGA、VGAの各ディスプレイアダプタをインストールすることが可能です。
+            <p data-dl-uid="102" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="103" data-dl-original="true" data-dl-translated="true"
+                >ビデオアダプタカードが使用するメモリマッピングは、CRTマイコンを通じて変更することが可能です。通常、これはビデオドライバを介して行われます。</b
+              >これについては、後で詳しく説明します。
+            </p>
+            <p data-dl-uid="104" data-dl-original="true" data-dl-translated="true">
+              また、Video
+              Controllerがこのメモリをどのように使用するかを変更することも可能です。そうすることで、「新しい」、いや、「文書化されていない」モードを作ることができます。よくあるモードの1つは、悪名高い「モードX」です。
+            </p>
+            <p data-dl-uid="105" data-dl-original="true" data-dl-translated="true">
+              ディスプレイバッファとテキストバッファを変更すると、画面に表示される内容が事実上変更されるのを覚えていますか？これは、ビデオコントローラが現在のリフレッシュレートに基づいてディスプレイをリフレッシュするために行われます。ビデオコントローラは、VGAポートを介してモニタ内部のCRTコントローラにコマンドを送信します。これにより、CRTの<b
+                data-dl-uid="106"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >垂直方向と水平方向のリトレースが</b
+              >発生し、モニターの表示が更新されます。また、テキストとディスプレイのアダプタは、上記のPCのメモリアドレスにマッピングされているため。
+            </p>
+            <p data-dl-uid="107" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="108" data-dl-original="true" data-dl-translated="true"
+                >このメモリ領域に書き込むと、画面に表示さ</b
+              >れる内容が変化する
+            </p>
+            <p data-dl-uid="109" data-dl-original="true" data-dl-translated="true">
+              例えば、今が「モード7」であることを思い出してください。モード7はカラーテキストモードなので、0xB8000で始まるメモリを使用します。これはビデオコントローラが表示内容を決定するためのテキストバッファなので、<b
+                data-dl-uid="110"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >0xB8000に書き込むと、実質的に画面にテキストが表示さ</b
+              >れることになります。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">	%define	VIDMEM	0xB8000		; video memory
+ 
+	mov	edi, VIDMEM		; get pointer to video memory
+	mov	[edi], 'A'		; print character 'A'
+	mov	[edi+1], 0x7		; character attribute</div></pre>
+            </blockquote>
+
+            この場合、ディスプレイの左上隅に白と黒の背景（The
+            attribute）で「A」という文字が表示されます。
+
+            <h1 data-dl-uid="115" data-dl-original="true" data-dl-translated="true">文字の印刷</h1>
+
+            さて、では、画面上の任意のx/y位置に文字を表示するにはどうしたらいいのでしょうか？
+            <p data-dl-uid="116" data-dl-original="true" data-dl-translated="true">
+              メモリの特殊な性質として、メモリの線形性があります。表示されている行の終端に到達すると、次のバイトはその直下の行にあります。リニアアドレスのため、画面に表示するためには、x/yの位置をリニアアドレスに変換できなければなりません。
+              そして、それを行うための特別な数式は、<b
+                data-dl-uid="117"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >x + y * 画面幅</b
+              >です。
+            </p>
+
+            <p>
+              <img src="./08_files/vram.jpg" />
+            </p>
+            <p data-dl-uid="120" data-dl-original="true" data-dl-translated="true">
+              以下はその例です。例えば、文字'A'を x/y (5,5) にプリントするとします。
+              ビデオメモリは0xb8000で始まり、リニアなので、この x/y
+              位置を絶対アドレスに変換する公式を使用することができます。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">		address = x + (y * screen width)
+		address = 5 + (5 * 80)
+		address = 5 + 400
+		address = 405
+ 
+		This means, from the start of video memory, location 5,5 is 405 bytes away.
+		So, add this to the base address of video memory:
+ 
+		0xB8000 + 405 = 0xB8195</div></pre>
+            </blockquote>
+
+            つまり、0xB8195 に文字 'A' を書き込めば、実質的に x/y の位置 (5,5)
+            に書き込むことになります。クールでしょう？
+            <p data-dl-uid="124" data-dl-original="true" data-dl-translated="true">
+              これは、BIOSのように動作させるためで、他のプログラムには必要ありません。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">_CurX db 0					; current x/y location
+_CurY db 0
+ 
+%define		VIDMEM	0xB8000			; video memory
+%define		COLS	80			; width and height of screen
+%define		LINES	25
+%define		CHAR_ATTRIB 14			; character attribute (White text on black background)</div></pre>
+            </blockquote>
+
+            ここはモード7であることを思い出してください。このモードでは、1行に80文字、25行の列があります。
+            そしてもちろん、ビデオメモリは0xB8000から始まります。でも、ちょっと待ってください。文字属性ってなんだろう？
+            <p data-dl-uid="128" data-dl-original="true" data-dl-translated="true">
+              テキストモード7は、実際には1文字あたり1バイトではなく、<b
+                data-dl-uid="129"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >2</b
+              >バイトを使用します。<b data-dl-uid="130" data-dl-original="true" data-dl-translated="true"
+                >これを覚えておいてください!</b
+              >
+              1バイト目は実際の文字を表し、2バイト目は...お待ちください...属性バイトです!このため、Mode 7
+              で画面に文字を書き込むときは、1 バイトではなく<b
+                data-dl-uid="131"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >2</b
+              >バイトを書き込む必要があります。
+            </p>
+            <p data-dl-uid="132" data-dl-original="true" data-dl-translated="true">
+              アトリビュートバイトは、色や、点滅などのアトリビュートを指定するためのものです。その値は
+            </p>
+
+            <ul>
+              <li><b>0</b> - Black</li>
+              <li>
+                <font color="#0000FF"><b>1</b> - Blue</font>
+              </li>
+              <li>
+                <font color="#00FF00"><b>2</b> - Green</font>
+              </li>
+
+              <li>
+                <font color="#00FFFF"><b>3</b> - Cyan</font>
+              </li>
+              <li>
+                <font color="#FF0000"><b>4</b> - Red</font>
+              </li>
+              <li>
+                <font color="#CC0099"><b>5</b> - Magenta</font>
+              </li>
+              <li>
+                <font color="#663300"><b>6</b> - Brown</font>
+              </li>
+
+              <li>
+                <font color="#CCCCCC"><b>7</b> - Light Gray</font>
+              </li>
+              <li>
+                <font color="#444444"><b>8</b> - Dark Gray</font>
+              </li>
+              <li>
+                <font color="#3399FF"><b>9</b> - Light Blue</font>
+              </li>
+              <li>
+                <font color="#99FF66"><b>10</b> - Light Green</font>
+              </li>
+
+              <li>
+                <font color="#CCFFFF"><b>11</b> - Light Cyan</font>
+              </li>
+              <li>
+                <font color="#FF6600"><b>12</b> - Light Red</font>
+              </li>
+              <li>
+                <font color="#FF66FF"><b>13</b> - Light Magenta</font>
+              </li>
+              <li>
+                <font color="#CC6600"><b>14</b> - Light Brown</font>
+              </li>
+
+              <li>
+                <font color="#444444"><b>15</b> - White</font>
+              </li>
+            </ul>
+
+            <p data-dl-uid="181" data-dl-original="true" data-dl-translated="true">
+              属性バイトは、特定の属性を定義するバイトであり、前景色と背景色の両方を定義する。このバイトは次のような形式をとる。
+            </p>
+            <ul>
+              <li><b>Bits 0 - 2:</b> Foreground color</li>
+
+              <ul>
+                <li>Bit 0: Red</li>
+                <li>Bit 1: Green</li>
+                <li>Bit 2: Blue</li>
+              </ul>
+              <li><b>Bit 3:</b> Foreground Intensity</li>
+
+              <li><b>Bits 4 - 6:</b> Background color</li>
+              <ul>
+                <li>Bit 4: Red</li>
+                <li>Bit 5: Green</li>
+                <li>Bit 6: Blue</li>
+              </ul>
+
+              <li><b>Bit 7:</b> Blinking or background intensity</li>
+            </ul>
+
+            さて、これですべての設定が終わったので、文字を印刷してみましょう。
+
+            <h3 data-dl-uid="199" data-dl-original="true" data-dl-translated="true">設定方法</h3>
+            文字の印刷は少し複雑で、現在の x/y
+            位置とビデオメモリに書き込むときの位置を追跡する必要があります。また、改行文字のような特定の文字を追跡し、行末を監視する必要があります。さらに、ハードウェアカーソルをこの位置に更新することも必要です。
+            <p data-dl-uid="200" data-dl-original="true" data-dl-translated="true">
+              Putch32は、ステージ2で文字を表示するpmodeルーチンです。心配しないでください、これらのルーチンはCを使ってカーネル用に書き直します。アセンブリでどのように行われるかを示すことによって、アセンブリ言語とC言語の関係を比較することができます。
+            </p>
+            <p data-dl-uid="201" data-dl-original="true" data-dl-translated="true">
+              ともかく、スタートアップ・コードを紹介しましょう。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">bits 32
+ 
+%define		VIDMEM	0xB8000			; video memory
+%define		COLS	80			; width and height of screen
+%define		LINES	25
+%define		CHAR_ATTRIB 14			; character attribute (White text on black background)
+ 
+_CurX db 0					; current x/y location
+_CurY db 0
+ 
+;**************************************************;
+;	Putch32 ()
+;		- Prints a character to screen
+;	BL =&gt; Character to print
+;**************************************************;
+ 
+Putch32:
+ 
+	pusha				; save registers
+	mov	edi, VIDMEM		; get pointer to video memory</div></pre>
+            </blockquote>
+
+            さて、いくつかの基本的な定義ができました。_CurX と _CurY には、文字を書き込むための現在の x/y
+            位置が入ります。また、EDIにはビデオメモリーのベースアドレスが含まれています。つまり、ビデオメモリ[EDI]に書き込むことで、現在のビデオメモリマップに対応した文字を画面に表示することができるのです。
+            <p data-dl-uid="205" data-dl-original="true" data-dl-translated="true">
+              文字を表示する前に、それをどこに表示するかを調べなければなりません。そのためには、現在のX/Yの位置(_CurXと_CurY)に書き込めばいいのです。しかし、これはかなり単純ではありません。
+            </p>
+            <p data-dl-uid="206" data-dl-original="true" data-dl-translated="true">
+              ビデオメモリはリニアなので、x/yの位置をリニアメモリに変換しなければならないのです。<b
+                data-dl-uid="207"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >x + y * スクリーン幅という</b
+              >公式を思い出してください。これは簡単に計算できますが、<b
+                data-dl-uid="208"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >各文字は2バイトの大き</b
+              >さであることを忘れないでください。<b data-dl-uid="208" data-dl-translated="true"
+                >CurX、_CurY、COLS、LINESは、バイトではなく、文字に基づいていることを忘れないでください。</b
+              >1文字あたり2バイトなので、80*2で比較しなければならない。簡単でしょう？
+            </p>
+            <p data-dl-uid="209" data-dl-original="true" data-dl-translated="true">
+              このように、少し複雑になりますが、それほど難しいことではありません。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">	;-------------------------------;
+	;   Get current position	;
+	;-------------------------------;
+ 
+	xor	eax, eax		; clear eax
+ 
+		;--------------------------------
+		; Remember: currentPos = x + y * COLS! x and y are in _CurX and _CurY.
+		; Because there are two bytes per character, COLS=number of characters in a line.
+		; We have to multiply this by 2 to get number of bytes per line. This is the screen width,
+		; so multiply screen with * _CurY to get current line
+		;--------------------------------
+ 
+		mov	ecx, COLS*2		; Mode 7 has 2 bytes per char, so its COLS*2 bytes per line
+		mov	al, byte [_CurY]	; get y pos
+		mul	ecx			; multiply y*COLS
+		push	eax			; save eax--the multiplication</div></pre>
+            </blockquote>
+
+            これは、<b data-dl-uid="213" data-dl-original="true" data-dl-translated="true"
+              >y * 画面幅 (バイト)</b
+            >、または _CurY * (COLS*1 文字あたりのバイト数)
+            という式の最初の部分です。これをスタックに格納することで、計算式を完成させることができます。
+
+            <blockquote>
+              <pre><div class="code">		;--------------------------------
+		; Now y * screen width is in eax. Now, just add _CurX. But, again remember that _CurX is relative
+		; to the current character count, not byte count. Because there are two bytes per character, we
+		; have to multiply _CurX by 2 first, then add it to our screen width * y.
+		;--------------------------------
+ 
+		mov	al, byte [_CurX]	; multiply _CurX by 2 because it is 2 bytes per char
+		mov	cl, 2
+		mul	cl
+		pop	ecx			; pop y*COLS result
+		add	eax, ecx</div></pre>
+            </blockquote>
+
+            それでは!現在のバイト位置を得るために_CurXを2倍していることに注意してください。次に、y *
+            COLSの結果をポップしてxの位置に追加し、x+y*COLSの式を完成させます。
+            <p data-dl-uid="217" data-dl-original="true" data-dl-translated="true">
+              やったー!さて、EAXには文字を表示するためのオフセットバイトが含まれているので、それをビデオメモリのベースアドレスを保持しているEDIに追加しましょう。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">		;-------------------------------
+		; Now eax contains the offset address to draw the character at, so just add it to the base address
+		; of video memory (Stored in edi)
+		;-------------------------------
+ 
+		xor	ecx, ecx
+		add	edi, eax		; add it to the base address</div></pre>
+            </blockquote>
+
+            さて、これでEDIには書き込むべき正確なバイトが入り、BLには書き込むべき文字が入ります。もしその文字が改行文字であれば、次の行に移動します。そうでない場合は、その文字を表示するだけです。
+
+            <blockquote>
+              <pre><div class="code">	;-------------------------------;
+	;   Watch for new line          ;
+	;-------------------------------;
+ 
+	cmp	bl, 0x0A		; is it a newline character?
+	je	.Row			; yep--go to next row
+ 
+	;-------------------------------;
+	;   Print a character           ;
+	;-------------------------------;
+ 
+	mov	dl, bl			; Get character
+	mov	dh, CHAR_ATTRIB		; the character attribute
+	mov	word [edi], dx		; write to video display
+ 
+	;-------------------------------;
+	;   Update next position        ;
+	;-------------------------------;
+ 
+	inc	byte [_CurX]		; go to next character
+	cmp	[_CurX], COLS		; are we at the end of the line?
+	je	.Row			; yep-go to next row
+	jmp	.done			; nope, bail out</div></pre>
+            </blockquote>
+
+            さて、どうでしょう？かなり簡単でしょう？そうそう、次の行に移動するのは簡単です。
+
+            <blockquote>
+              <pre><div class="code">	;-------------------------------;
+	;   Go to next row              ;
+	;-------------------------------;
+ 
+.Row:
+	mov	byte [_CurX], 0		; go back to col 0
+	inc	byte [_CurY]		; go to next row
+ 
+	;-------------------------------;
+	;   Restore registers &amp; return  ;
+	;-------------------------------;
+ 
+.done:
+	popa				; restore registers and return
+	ret</div></pre>
+            </blockquote>
+
+            <h1 data-dl-uid="227" data-dl-original="true" data-dl-translated="true">文字列の操作</h1>
+            よし、これで文字を印刷できるぞ。イパーイ。一文字でもドキドキしちゃいますね。ええ、そんなことはありませんよ
+            :)
+            <p data-dl-uid="228" data-dl-original="true" data-dl-translated="true">
+              実際の情報を表示するには、完全な文字列を表示する方法が必要です。現在位置を追跡し(そして更新し)、文字を表示するルーチンはすでにあるので、文字列を表示するために必要なのは単純なループだけです。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">Puts32:
+ 
+	;-------------------------------;
+	;   Store registers             ;
+	;-------------------------------;
+ 
+	pusha				; save registers
+	push	ebx			; copy the string address
+	pop	edi</div></pre>
+            </blockquote>
+
+            では、Puts32()関数です。この関数は1つのパラメータを受け取ります。EBXはヌル文字で終端された文字列のアドレスで、これをプリントします。Putch32()関数では、印字する文字をBLに保存する必要があるので、EBXのコピーを保存する必要があり、ここでそれを行います。
+            <p data-dl-uid="232" data-dl-original="true" data-dl-translated="true">
+              では、ループさせます。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">.loop:
+ 
+	;-------------------------------;
+	;   Get character               ;
+	;-------------------------------;
+ 
+	mov	bl, byte [edi]		; get next character
+	cmp	bl, 0			; is it 0 (Null terminator)?
+	je	.done			; yep-bail out</div></pre>
+            </blockquote>
+
+            EDIを使用して文字列を参照し、表示する現在の文字を取得します。ヌルターミネーターのテストに注意してください。もし見つかれば、ベイルアウトします。さて、その文字を表示するには...最も複雑なコードです。
+
+            <blockquote>
+              <pre><div class="code">	;-------------------------------;
+	;   Print the character         ;
+	;-------------------------------;
+ 
+	call	Putch32			; Nope-print it out</div></pre>
+            </blockquote>
+
+            ...いや、そうでもないか:)
+            <p data-dl-uid="239" data-dl-original="true" data-dl-translated="true">
+              あとは、次の文字に移動して、ループするだけです。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">	;-------------------------------;
+	;   Go to next character        ;
+	;-------------------------------;
+ 
+.Next:
+	inc	edi			; go to next character
+	jmp	.loop
+ 
+.done:
+	;-------------------------------;
+	;   Update hardware cursor      ;
+	;-------------------------------;
+ 
+	; Its more efficiant to update the cursor after displaying
+	; the complete string because direct VGA is slow
+ 
+	mov	bh, byte [_CurY]	; get current position
+	mov	bl, byte [_CurX]
+	call	MovCur			; update cursor
+ 
+	popa				; restore registers, and return
+	ret</div></pre>
+            </blockquote>
+
+            <p data-dl-uid="243" data-dl-original="true" data-dl-translated="true">
+              ほら!32ビットプロテクトモードで文字列をプリントする方法を手に入れました。難しいことじゃないでしょう？MovCurは何のためにあるのでしょうか？それは次に見てみましょう。
+            </p>
+
+            <h1 data-dl-uid="244" data-dl-original="true" data-dl-translated="true">
+              ハードウェアカーソルの更新
+            </h1>
+
+            さて、これで文字と文字列をプリントアウトできるようになりました。しかし、カーソルが動かないことにお気づきでしょうか？カーソルが動かないのです！このため、何をやってもそのままになってしまいます。このカーソルは、BIOSがテキストを印刷するときに現在の位置を示すために使用する単純な下線です。
+            <p data-dl-uid="245" data-dl-original="true" data-dl-translated="true">
+              このカーソルは、ハードウェアによって処理されます。実際、<b
+                data-dl-uid="246"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >CRTマイクロコントローラ</b
+              >です。そこで、このカーソルを動かすために、基本的なvgaプログラミングを知る必要があります。
+            </p>
+            <h2 data-dl-uid="247" data-dl-original="true" data-dl-translated="true">CRTマイコン</h2>
+            <p data-dl-uid="248" data-dl-original="true" data-dl-translated="true"></p>
+            <h3 data-dl-uid="249" data-dl-original="true" data-dl-translated="true">
+              CRTをお使いの方へのご注意
+            </h3>
+            このように、OSの環境では、ハードウェアを直接操作し、すべてをコントロールすることができることを忘れないでください。
+            <p data-dl-uid="250" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="251" data-dl-original="true" data-dl-translated="true"
+                >CRTモニターの故障は性質上激しく、爆発して鋭いガラス片が高速で飛び散ることがあります。</b
+              >また、周波数設定を変更すると、<b
+                data-dl-uid="252"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >デバイスやマイクロチップが誤動作し、予期せぬ</b
+              >災害を引き起こす可能性があります。
+            </p>
+            <p data-dl-uid="253" data-dl-original="true" data-dl-translated="true">
+              このため、もし読者の皆様がこのコードで実験されるなら、実際のハードウェアに挑戦する前に、まずエミュレータですべての実験コードを最大限にテストされることをお勧めします。
+            </p>
+            <p data-dl-uid="254" data-dl-original="true" data-dl-translated="true">
+              ビデオドライバーの話をするまでは、ビデオプログラミングに関するすべての説明はしません。
+              その後に詳しく見ていきましょう。
+            </p>
+            <p data-dl-uid="255" data-dl-original="true" data-dl-translated="true">
+              というわけで、CRTコントローラについて説明します。
+            </p>
+            <h3 data-dl-uid="256" data-dl-original="true" data-dl-translated="true">ポートマッピング</h3>
+
+            CRTコントローラは、<b data-dl-uid="258" data-dl-original="true" data-dl-translated="true"
+              >ポート0x3D</b
+            >5にマッピングされた1つの<b
+              data-dl-uid="257"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >データレジスタを</b
+            >使用します。チュートリアル7のポート表を覚えていますか？
+            CRTコントローラは、データレジスタのデータの種類を決定するために、<b
+              data-dl-uid="259"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >インデックスレジスタという</b
+            >特別なレジスタを使用します。
+            <p data-dl-uid="260" data-dl-original="true" data-dl-translated="true">
+              CRTコントローラにデータを渡すには、<b
+                data-dl-uid="261"
+                data-dl-original="true"
+                data-dl-translated="true"
+              >
+                2つの値を書き込まなければ</b
+              >なりません。<b data-dl-uid="261" data-dl-translated="true">
+                一つはインデックスレジスタ（書き込むデータの種類を格納）、もう一つはデータレジスタ（書き込むデータを格納）です。</b
+              >それほど難しいことではありません。
+            </p>
+            <p data-dl-uid="262" data-dl-original="true" data-dl-translated="true">
+              インデックスレジスタは、ポート0x3D5または0x3B5にマッピングされます。<br
+                data-dl-uid="263"
+                data-dl-original="true"
+                data-dl-translated="true"
+              />
+              データレジスタはポート0x3D4または0x3B4にマップされます。
+            </p>
+            <p data-dl-uid="264" data-dl-original="true" data-dl-translated="true">
+              この2つ以外にもレジスタはありますが（Misc.Output
+              Registerなど）、ここではこの2つに焦点を当てます。
+            </p>
+            <h3 data-dl-uid="265" data-dl-original="true" data-dl-translated="true">
+              インデックスレジスタのマッピング
+            </h3>
+
+            デフォルトでは、インデックス・レジスタのインデックスは次のようにマップされています。
+            <p data-dl-uid="266" data-dl-original="true" data-dl-translated="true"></p>
+
+            <center>
+              <table border="1" bgcolor="CCCCCC">
+                <tbody>
+                  <tr>
+                    <th colspan="5" bgcolor="FFFFFF">CRT Microcontroller - Index Register</th>
+                  </tr>
+                  <tr bgcolor="#AAAAAA">
+                    <td>Index Offset</td>
+                    <td>CRT Controller Register</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="ffffff">0x0</td>
+                    <td colspan="4">Horizontal Total</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="ffffff">0x1</td>
+                    <td colspan="4">Horizontal Display Enable End</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="ffffff">0x2</td>
+                    <td colspan="4">Start Horizontal Blanking</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="ffffff">0x3</td>
+                    <td colspan="4">End Horizontal Blanking</td>
+                  </tr>
+
+                  <tr>
+                    <td bgcolor="ffffff">0x4</td>
+                    <td colspan="4">Start Horizontal Retrace Pulse</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="ffffff">0x5</td>
+                    <td colspan="4">End Horizontal Retrace</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="ffffff">0x6</td>
+                    <td colspan="4">Vertical Total</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="ffffff">0x7</td>
+                    <td colspan="4">Overflow</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="ffffff">0x8</td>
+                    <td colspan="4">Preset Row Scan</td>
+                  </tr>
+
+                  <tr>
+                    <td bgcolor="ffffff">0x9</td>
+                    <td colspan="4">Maximum Scan Line</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="ffffff">0xA</td>
+                    <td colspan="4">Cursor Start</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="ffffff">0xB</td>
+                    <td colspan="4">Cursor End</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="ffffff">0xC</td>
+                    <td colspan="4">Start Address High</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="ffffff">0xD</td>
+                    <td colspan="4">Start Address Low</td>
+                  </tr>
+
+                  <tr>
+                    <td bgcolor="ffffff">0xE</td>
+                    <td colspan="4">Cursor Location High</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="ffffff">0xF</td>
+                    <td colspan="4">Cursor Location Low</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="ffffff">0x10</td>
+                    <td colspan="4">Vertical Retrace Start</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="ffffff">0x11</td>
+                    <td colspan="4">Vertical Retrace End</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="ffffff">0x12</td>
+                    <td colspan="4">Vertical Display Enable End</td>
+                  </tr>
+
+                  <tr>
+                    <td bgcolor="ffffff">0x13</td>
+                    <td colspan="4">Offset</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="ffffff">0x14</td>
+                    <td colspan="4">Underline Location</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="ffffff">0x15</td>
+                    <td colspan="4">Start Vertical Blanking</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="ffffff">0x16</td>
+                    <td colspan="4">End Vertical Blanking</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="ffffff">0x17</td>
+                    <td colspan="4">CRT Mode Control</td>
+                  </tr>
+
+                  <tr>
+                    <td bgcolor="ffffff">0x18</td>
+                    <td colspan="4">Line Compare</td>
+                  </tr>
+                </tbody>
+              </table>
+            </center>
+
+            <p data-dl-uid="350" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="351" data-dl-original="true" data-dl-translated="true"
+                >インデックス・オフセット値を書き込むことにより、データ・レジスタがどのレジスタを指しているか（つまり、何を参照して</b
+              >いるか）を示すことができます。
+            </p>
+            <p data-dl-uid="352" data-dl-original="true" data-dl-translated="true">
+              上表のほとんどは、今、気にする必要はないでしょう。しかし、インデックス0xEと0xFについては、ちょっと見てください。
+            </p>
+            <ul data-dl-uid="353" data-dl-original="true" data-dl-translated="true">
+              <li data-dl-uid="354" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="355" data-dl-original="true" data-dl-translated="true">0x0E:</b
+                >カーソルの位置の上位バイト
+              </li>
+              <li data-dl-uid="356" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="357" data-dl-original="true" data-dl-translated="true">0x0F：</b
+                >カーソル位置の下位バイト
+              </li>
+            </ul>
+            Yippe!これらのインデックスは、ハードウェアカーソルの現在のオフセット位置を参照しています。このオフセットは、x/y
+            位置（線形位置として -<b data-dl-uid="358" data-dl-original="true" data-dl-translated="true"
+              >x + y * スクリーン幅の</b
+            >式を思い出してください<b data-dl-uid="358" data-dl-translated="true">！</b
+            >）であり、その上位バイトと下位バイトに分割されています。
+
+            <h3 data-dl-uid="359" data-dl-original="true" data-dl-translated="true">
+              ハードウェアカーソルの移動
+            </h3>
+
+            まず、カーソルのインデックスは0x0Eと0x0Fで、これをポート0x3D4のインデックスレジスタに入れる必要があることを思い出してください。
+
+            <blockquote>
+              <pre><div class="code">	mov	al, 0x0f
+	mov	dx, 0x03D4
+	out	dx, al</div></pre>
+            </blockquote>
+
+            これはインデックス0x0F（カーソルの下位バイトのアドレス）をインデックスレジスタに入れることです。これで、データレジスタ（ポート0x3d5）に入れられた値は、カーソル位置のローバイトを示すことになります。
+
+            <blockquote>
+              <pre><div class="code">	mov	al, bl                  ; al contains the low byte address
+	mov	dx, 0x03D5
+	out	dx, al			; low byte</div></pre>
+            </blockquote>
+
+            これはカーソルの新しい下位バイトの位置を設定します!クールでしょう？上位バイトの設定も全く同じです。ただし、インデックスを0x0Eに設定しなければなりません。
+            <p data-dl-uid="366" data-dl-original="true" data-dl-translated="true">
+              以下は、このルーチンの完全版です。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">;**************************************************;
+;	MoveCur ()
+;		- Update hardware cursor
+;	parm/ bh = Y pos
+;	parm/ bl = x pos
+;**************************************************;
+ 
+bits 32
+ 
+MovCur:
+ 
+	pusha				; save registers (aren't you getting tired of this comment?)
+ 
+	;-------------------------------;
+	;   Get current position        ;
+	;-------------------------------;
+ 
+	; Here, _CurX and _CurY are relitave to the current position on screen, not in memory.
+	; That is, we don't need to worry about the byte alignment we do when displaying characters,
+	; so just follow the forumla: location = _CurX + _CurY * COLS
+ 
+	xor	eax, eax
+	mov	ecx, COLS
+	mov	al, bh			; get y pos
+	mul	ecx			; multiply y*COLS
+	add	al, bl			; Now add x
+	mov	ebx, eax
+ 
+	;--------------------------------------;
+	;   Set low byte index to VGA register ;
+	;--------------------------------------;
+ 
+	mov	al, 0x0f		; Cursor location low byte index
+	mov	dx, 0x03D4		; Write it to the CRT index register
+	out	dx, al
+ 
+	mov	al, bl			; The current location is in EBX. BL contains the low byte, BH high byte
+	mov	dx, 0x03D5		; Write it to the data register
+	out	dx, al			; low byte
+ 
+	;---------------------------------------;
+	;   Set high byte index to VGA register ;
+	;---------------------------------------;
+ 
+	xor	eax, eax
+ 
+	mov	al, 0x0e		; Cursor location high byte index
+	mov	dx, 0x03D4		; Write to the CRT index register
+	out	dx, al
+ 
+	mov	al, bh			; the current location is in EBX. BL contains low byte, BH high byte
+	mov	dx, 0x03D5		; Write it to the data register
+	out	dx, al			; high byte
+ 
+	popa
+	ret</div></pre>
+            </blockquote>
+
+            簡単でしょう？
+            <p data-dl-uid="370" data-dl-original="true" data-dl-translated="true">次は画面を消去する</p>
+            <h1 data-dl-uid="371" data-dl-original="true" data-dl-translated="true">画面の消去</h1>
+            テキストを表示する方法はすでにあるので、ループして、現在位置を0にリセットするだけです！これは驚くほど簡単です....
+
+            <blockquote>
+              <pre><div class="code">;**************************************************;
+;	ClrScr32 ()
+;		- Clears screen
+;**************************************************;
+ 
+bits 32
+ 
+ClrScr32:
+ 
+	pusha
+	cld
+	mov	edi, VIDMEM
+	mov	cx, 2000
+	mov	ah, CHAR_ATTRIB
+	mov	al, ' '	
+	rep	stosw
+ 
+	mov	byte [_CurX], 0
+	mov	byte [_CurY], 0
+	popa
+	ret</div></pre>
+            </blockquote>
+
+            簡単でしょう？
+            <p data-dl-uid="375" data-dl-original="true" data-dl-translated="true">
+              さて、テキストを印刷し、ハードウェアカーソルを更新し、画面をクリアする方法があります。もし望むなら、このステージ2ローダーを拡張して、カーネルに制御を与えるときに小さなメニューと高度なオプションを含めることができます。これについては後で詳しく説明します。
+            </p>
+
+            <h1 data-dl-uid="383" data-dl-original="true" data-dl-translated="true">まとめ</h1>
+
+            次のチュートリアルをどのように進めるか、かなり迷いました。私は、2つのパートに分けることが良い解決策だと信じています（希望！）。
+            <p data-dl-uid="384" data-dl-original="true" data-dl-translated="true">
+              私たちはここで多くのこと、より具体的にはグラフィックの概念について説明しました。基本的なVGAの概念、文字、文字列の印刷、画面の消去、ハードウェアカーソルの更新について説明しました。
+              印刷するテキストの<b data-dl-uid="385" data-dl-original="true" data-dl-translated="true"
+                >属性バイトを</b
+              >変更することで、簡単にいろいろな色で文字を印刷することができました！また、印刷された文字列の背景色を変更することもできました。属性バイトの色を変えて、<b
+                data-dl-uid="386"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ClrScr32()</b
+              >関数を呼び出せば、新しい背景を得ることもできます!クールだと思いませんか?確かに、白黒はつまらないですね...
+              :)
+            </p>
+            <p data-dl-uid="387" data-dl-original="true" data-dl-translated="true">
+              次のチュートリアルではStage
+              2を終了し、1MBの基本的なピュアバイナリ32ビットカーネルイメージをロードして実行します。
+              心配しないでください--このシリーズのカーネルセクションに入ると、カーネルの構築方法を変更し、ロード方法を変更することになります。これにより、カーネルをオブジェクトフォーマットとしてロードし、シンボルのインポートやエクスポートを可能にし、C言語と混在させることができるようになるのです。
+            </p>
+            <p data-dl-uid="388" data-dl-original="true" data-dl-translated="true">
+              次のチュートリアルは、新しいことを学ぶという意味でのチュートリアルではありません。そのかわり、すでに説明されているコードをすべてカバーします。しかし、このコードは、より良いコードレイアウトと、基本的なファイルシステム（FAT12）ドライバとフロッピードライバの間のインタフェース（と分離）を提供するために修正されています。とはいえ、これでStage
+              2のチュートリアルは終了です。
+            </p>
+            <p data-dl-uid="389" data-dl-original="true" data-dl-translated="true">
+              Stage 2 は、より多くのオプションを提供したり、<b
+                data-dl-uid="390"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >マルチブートや</b
+              >
+              <b data-dl-uid="391" data-dl-original="true" data-dl-translated="true"
+                >ブートオプションを</b
+              >サポートするように変更することができますので、後で Stage 2
+              に戻ります。その時はお楽しみに...。）
+            </p>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </body>
+</html>
