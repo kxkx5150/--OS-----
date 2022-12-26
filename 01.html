@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Cache-Control" content="no-cache" />
+    <title></title>
+    <link href="css/reference.css" rel="stylesheet" />
+  </head>
+  <body
+    text="#000000"
+    vlink="#666699"
+    alink="#000000"
+    link="#666699"
+    bgcolor="#ffffff"
+    leftmargin="0"
+    background="./en01_files/watermark.gif"
+    topmargin="0"
+    marginheight="0"
+    marginwidth="0"
+  >
+    <table border="0" cellpadding="0" cellspacing="0" width="100%">
+      <tbody>
+        <tr>
+          <td width="60%">
+            <a href="http://www.brokenthorn.com/"><img src="./en01_files/5.png" border="0" /></a>
+          </td>
+          <td width="40%">
+            <div id="ad_main">
+              <script type="text/javascript">
+                <!--
+                google_ad_client = "pub-9243579471203558";
+                google_ad_width = 468;
+                google_ad_height = 60;
+                google_ad_format = "468x60_as";
+                google_ad_type = "image";
+                google_ad_channel = "";
+                google_ui_features = "rc:6";
+                //-->
+              </script>
+              <script type="text/javascript" src="./en01_files/f.txt"></script>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <table cellspacing="0" cellpadding="3" width="80%" border="0">
+      <tbody>
+        <tr>
+          <td class="tblhdr">Operating Systems Development Series</td>
+        </tr>
+        <tr>
+          <td align="middle" colspan="2"></td>
+        </tr>
+      </tbody>
+    </table>
+    <table cellspacing="0" cellpadding="5" width="100%" border="0">
+      <tbody>
+        <tr>
+          <td>
+            <!-- Title -->
+
+            <center>
+              <span class="title">Operating Systems Development - Bootloaders</span>
+
+              <br /><span class="author">by Mike, 2008, 2009</span>
+            </center>
+
+            <p data-dl-uid="6" data-dl-original="true" data-dl-translated="true">
+              このシリーズは、オペレーティングシステムの開発を一から実演して教えることを目的としています。
+            </p>
+
+            <h1 data-dl-uid="19" data-dl-original="true" data-dl-translated="true">ブートプロセス</h1>
+            <p data-dl-uid="20" data-dl-original="true" data-dl-translated="true"></p>
+            <h2 data-dl-uid="21" data-dl-original="true" data-dl-translated="true">電源ボタンを押す</h2>
+            <p data-dl-uid="22" data-dl-original="true" data-dl-translated="true">
+              実際に電源ボタンを押すとどうなるのでしょうか？このボタンが押されると、ボタンに接続された配線がマザーボードに電子信号を送ります。
+              マザーボードはこの信号を電源 (PSU) に再ルートするだけです。
+            </p>
+            <p data-dl-uid="23" data-dl-original="true" data-dl-translated="true">
+              この信号には、1ビットのデータが含まれています。それが0であれば、もちろん電源はありません（つまり、コンピューターの電源が切れているか、マザーボードが死んでいる）。1であれば（アクティブな信号を意味する）、電力が供給されていることを意味します。
+            </p>
+            <p data-dl-uid="24" data-dl-original="true" data-dl-translated="true">
+              このことをよりよく理解するために、コンピュータにおける2進法の基本を思い出してください。8つの「ビット」は、簡単に言えば、電気が通る8本の「線」または「ライン」を表します。0」は電流が流れていないことを表し、「1」はその線に電流が流れていることを表す。これが、コンピュータの原点である「デジタル論理回路」の基礎となり、「ロジックゲート」とともに、コンピュータを構成している。
+            </p>
+            <p data-dl-uid="25" data-dl-original="true" data-dl-translated="true">
+              PSUはこのアクティブな信号を受け取ると、システムの残りの部分に電力を供給し始めます。
+              すべてのデバイスに適切な量の電力が供給されていれば、PSUは大きな問題なく電力を供給し続けることができるのです。
+            </p>
+            <p data-dl-uid="26" data-dl-original="true" data-dl-translated="true">
+              その後、PSUは「power_good」信号と呼ばれる信号をマザーボードに送信し、BIOS（Basic Input
+              Output System）に送信します。
+            </p>
+
+            <h2 data-dl-uid="27" data-dl-original="true" data-dl-translated="true">BIOSのPOST</h2>
+            <p data-dl-uid="28" data-dl-original="true" data-dl-translated="true">
+              BIOSがこの「power_good」信号を受信すると、BIOSはPOST（Power On Self
+              Test）と呼ばれるプロセスの初期化を開始します。POSTでは、十分な電力が供給されていること、取り付けられているデバイス（キーボード、マウス、USB、シリアルポートなど）、メモリが正常であることを確認します（メモリの破損をテストすることで）。
+            </p>
+            <p data-dl-uid="29" data-dl-original="true" data-dl-translated="true">
+              その後、POSTはBIOSに制御を委ねる。POSTはBIOSをメモリの終端（0xFFFFF0かもしれない）にロードし、メモリの最初のバイトにジャンプ命令を置く。
+            </p>
+            <p data-dl-uid="30" data-dl-original="true" data-dl-translated="true">
+              プロセッサの命令ポインタ（CS:IP）は0に設定され、プロセッサが制御するようになります。
+            </p>
+            <p data-dl-uid="31" data-dl-original="true" data-dl-translated="true">
+              これは何を意味するのでしょうか？プロセッサはアドレス0x0から命令を実行し始めます。この場合、POSTによって置かれたジャンプ命令です。このジャンプ命令は0xFFFFF0（またはBIOSがロードされた場所）にジャンプし、プロセッサーはBIOSの実行を開始します。
+            </p>
+            <p data-dl-uid="32" data-dl-original="true" data-dl-translated="true">BIOSが制御する...</p>
+
+            <h2 data-dl-uid="33" data-dl-original="true" data-dl-translated="true">BIOS</h2>
+            基本入出力システム(BIOS)は、いくつかのことを行います。割り込みベクターテーブル（IVT）を作成し、いくつかの基本的な割り込みサービスを提供します。その後、BIOSはハードウェアに問題がないことを確認するために、さらにいくつかのテストを行います。BIOSはまた、セットアップユーティリティを提供します。
+            <p data-dl-uid="34" data-dl-original="true" data-dl-translated="true">
+              BIOSは次にOSを探す必要があります。BIOSセットアップで設定した起動順序に基づき、BIOSは割り込み（INT）0x19を実行して起動可能なデバイスを探そうとします。
+            </p>
+            <p data-dl-uid="35" data-dl-original="true" data-dl-translated="true">
+              起動可能なデバイスが見つからない場合（INT
+              0x19が戻る）、BIOSは起動順序に記載されている次のデバイスに進みます。これ以上デバイスがない場合、"No
+              Operating System found "と同様のエラーを出力し、システムを停止させます。
+            </p>
+            <h3 data-dl-uid="36" data-dl-original="true" data-dl-translated="true">
+              割り込みと割り込みベクターテーブル(IVT)
+            </h3>
+            割り込みは、多くの異なるプログラムから実行できるサブルーチンです。
+            これらの割り込みは、割り込みベクターテーブルと呼ばれるテーブルにアドレス0x0で格納されます。
+            例えば、DOSで使用される<b data-dl-uid="37" data-dl-original="true" data-dl-translated="true"
+              >INT 0x21は</b
+            >、一般的な割り込みです。
+            <p data-dl-uid="38" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="39" data-dl-original="true" data-dl-translated="true"
+                >注意：DOSはありません。利用可能な割り込みは、BIOSによって設定された割り込みのみであり、それ以上はありません!他の割り込みを使用すると、システムが存在しないルーチンを実行することになり、プログラムがクラッシュする原因になります。</b
+              >
+            </p>
+            <p data-dl-uid="40" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="41" data-dl-original="true" data-dl-translated="true"
+                >注意：プロセッサのモードを切り替えた場合、IVTは使用できなくなります。</b
+              >つまり、<b data-dl-uid="41" data-dl-translated="true"
+                >ソフトもハードも、BIOSも、全く割り込みが</b
+              >効かなくなります。32ビットOSでは、これをやらなければならないでしょう。まだ、そうではないですが。
+            </p>
+
+            <h2 data-dl-uid="42" data-dl-original="true" data-dl-translated="true">
+              BIOSインタラプト0x19
+            </h2>
+            <p data-dl-uid="43" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="44" data-dl-original="true" data-dl-translated="true"
+                >INT 0x19 - SYSTEM: BOOTSTRAP LOADER (ブートストラップローダー</b
+              >)
+            </p>
+            <p data-dl-uid="45" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="46" data-dl-original="true" data-dl-translated="true"
+                >メモリーのクリアや割り込みベクターテーブル（IVT）の復元を行わず、Warm
+                Rebootによりシステムを再起動します。</b
+              >
+            </p>
+            <p data-dl-uid="47" data-dl-original="true" data-dl-translated="true">
+              この割り込みはBIOSによって実行されます。最初のハードディスクの最初のセクタ（Sector 1, Head
+              0, Track 0）を読み出します。
+            </p>
+            <p data-dl-uid="48" data-dl-original="true" data-dl-translated="true"></p>
+            <h3 data-dl-uid="49" data-dl-original="true" data-dl-translated="true">セクタ</h3>
+            セクタとは、簡単に言うと512バイトのまとまりを表します。つまり、セクタ1はディスクの最初の512バイトを表しています。
+            <h3 data-dl-uid="50" data-dl-original="true" data-dl-translated="true">ヘッド</h3>
+            ヘッド（またはフェイス）は、ディスクの側面を表します。ほとんどのディスクは1面しかないため、ヘッドも1つしかありません（「ヘッド1」）。
+            <h3 data-dl-uid="51" data-dl-original="true" data-dl-translated="true">トラック</h3>
+            トラックを理解するために、絵を見てみましょう。
+            <p data-dl-uid="52" data-dl-original="true" data-dl-translated="true"></p>
+
+            <center>
+              <img src="./en01_files/platter[1].gif" />
+            </center>
+
+            <p data-dl-uid="55" data-dl-original="true" data-dl-translated="true">
+              この写真では、このディスクはハードディスクまたはフロッピーディスクを表しています。ここでは、ヘッド1（前面）を見ており、セクタは512バイトを表しています。トラックはセクタの集合体です。
+            </p>
+            <p data-dl-uid="56" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="57" data-dl-original="true" data-dl-translated="true"
+                >注意：1セクタは512バイトで、フロッピーディスクでは1トラックあたり18セクタあることを覚えておいてください。
+                これはファイルを読み込むときに重要なことでしょう。</b
+              >
+            </p>
+            <p data-dl-uid="58" data-dl-original="true" data-dl-translated="true">
+              ディスクがブータブルであれば、<b
+                data-dl-uid="59"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ブートセクタが0x7C00にロード</b
+              >され、INT 0x19がそこにジャンプし、ブートローダに制御を委ねます。
+            </p>
+            <p data-dl-uid="60" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="61" data-dl-original="true" data-dl-translated="true"
+                >注：ブートローダは0x7C00にロードされることを忘れないでください。これは重要です。</b
+              >
+            </p>
+            <p data-dl-uid="62" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="63" data-dl-original="true" data-dl-translated="true"
+                >注意: システムによっては、0x1234 をアドレス 0x0040:0072 に置き、0xFFFF:0
+                にジャンプすることで、ウォームブートを実行することもできます。コールドリブートの場合は、代わりに0x0を格納してください。</b
+              >
+            </p>
+            <p data-dl-uid="64" data-dl-original="true" data-dl-translated="true">
+              これで、1337 ブートローダが制御できるようになりました!
+            </p>
+
+            <h1 data-dl-uid="65" data-dl-original="true" data-dl-translated="true">
+              ブートローダの理論
+            </h1>
+            <p data-dl-uid="66" data-dl-original="true" data-dl-translated="true">
+              これまでブートローダについていろいろと説明してきました。重要な部分をまとめてみましょうか。
+            </p>
+            <p data-dl-uid="67" data-dl-original="true" data-dl-translated="true">
+              これまでのところ、ブートローダは...
+            </p>
+            <ul data-dl-uid="68" data-dl-original="true" data-dl-translated="true">
+              <li data-dl-uid="69" data-dl-original="true" data-dl-translated="true">
+                マスターブートレコード(MBR)と共に保存される。
+              </li>
+              <li data-dl-uid="70" data-dl-original="true" data-dl-translated="true">
+                ディスクの最初のセクタにある。
+              </li>
+              <li data-dl-uid="71" data-dl-original="true" data-dl-translated="true">
+                ...1セクタ（512）バイトの大きさである。
+              </li>
+              <li data-dl-uid="72" data-dl-original="true" data-dl-translated="true">
+                ...BIOSのINT 0x19でアドレス0x7C00にロードされる。
+              </li>
+            </ul>
+            <p data-dl-uid="73" data-dl-original="true" data-dl-translated="true">
+              想像できるように、512バイトでは多くのことはできません。ではどうするか？
+            </p>
+            <p data-dl-uid="74" data-dl-original="true" data-dl-translated="true">
+              アセンブリ言語では、512バイトの枠を超えることは非常に簡単です。つまり、見た目には問題ないのですが、そのコードの<b
+                data-dl-uid="75"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >一部しか</b
+              >メモリ上に存在しないことになります。 例えば、次のように考えてみてください。
+            </p>
+            <blockquote>
+              <pre><div class="code">mov	ax, 4ch
+inc	bx         ; 512 byte
+mov     [var], bx  ; 514 byte</div></pre>
+            </blockquote>
+
+            アセンブリ言語では、ファイルの先頭から下に向かって実行されます。
+            しかし、ファイルをメモリにロードするときは、セクタをロードしていることを覚えておいてください。
+            セクタはそれぞれ512バイトなので、ファイルの512バイトだけがメモリにコピーされます。
+            <p data-dl-uid="79" data-dl-original="true" data-dl-translated="true">
+              上記のコードを実行し、最初のセクタだけをメモリにロードした場合、512バイトまでしかコピーされません（<b
+                data-dl-uid="80"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >inc bx</b
+              >命令）。つまり、最後のmov命令はまだディスク上にありますが、<b
+                data-dl-uid="81"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >メモリ上にはないのです!</b
+              >
+            </p>
+            <p data-dl-uid="82" data-dl-original="true" data-dl-translated="true">
+              では、<b data-dl-uid="83" data-dl-original="true" data-dl-translated="true">inc bxの</b
+              >後、プロセッサは何をするのでしょうか？514バイトに進みます。これはメモリ上にないため、<b
+                data-dl-uid="84"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ファイルの終端を越えて実行</b
+              >されます。最終結果は？クラッシュです。
+            </p>
+            <p data-dl-uid="85" data-dl-original="true" data-dl-translated="true">
+              しかし、指定されたアドレスの2番目のセクタ（またはそれ以上）をロードして実行することは可能です。
+              そうすれば、ファイルの残りはメモリ内にあり、すべてがうまく動作します。
+            </p>
+            <p data-dl-uid="86" data-dl-original="true" data-dl-translated="true">
+              このアプローチはうまくいきますが、ハードハッキングされます。最も一般的な方法は、ブートローダのサイズを512バイトに保ち、セカンドステージのブートローダを検索、ロード、実行する方法です。
+              これについては、後で詳しく説明します。
+            </p>
+
+            <h3 data-dl-uid="87" data-dl-original="true" data-dl-translated="true">
+              ハードウェアの例外
+            </h3>
+
+            ハードウェア例外はソフトウェア例外と同じですが、<b
+              data-dl-uid="88"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >プロセッサが</b
+            >ソフトウェアではなくハードウェア例外を実行します。
+            <p data-dl-uid="89" data-dl-original="true" data-dl-translated="true">
+              例外の発生をすべて停止しなければならない場合があります。例えば、コンピュータのモードを切り替えるとき、割り込みベクタテーブル全体が利用できないので、<b
+                data-dl-uid="90"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ハードウェアでもソフトウェアでも割り込みがあると、システムがクラッシュして</b
+              >しまいます。これについては後で詳しく説明します。
+            </p>
+            <h3 data-dl-uid="91" data-dl-original="true" data-dl-translated="true">CLIとSTIの命令</h3>
+
+            STI命令やCLI命令を使って、すべての割り込みを有効にしたり無効にしたりすることができます。
+            ほとんどのシステムは、大きな問題を引き起こす可能性があるため、アプリケーションに対してこれらの命令を許可していません（システムはこれらをエミュレートすることができますが）。
+
+            <blockquote>
+              <pre><div class="code">cli		; clear interrupts
+ 
+; do something...
+ 
+sti		; enable interrupts--we're in the clear!</div></pre>
+            </blockquote>
+
+            <h3 data-dl-uid="95" data-dl-original="true" data-dl-translated="true">
+              ダブルフォールトハードウェア例外
+            </h3>
+            <p data-dl-uid="96" data-dl-original="true" data-dl-translated="true">
+              プロセッサが実行中に問題（無効な命令、0による除算など）を発見した場合、2番目の故障例外ハンドラ（ダブルフォールト）を実行し、これが割り込み0x8となります。
+            </p>
+            <p data-dl-uid="97" data-dl-original="true" data-dl-translated="true">
+              ダブルフォールトについては後述します。ダブルフォールトの後、プロセッサがまだ継続できない場合、<b
+                data-dl-uid="98"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >トリプルフォールトが</b
+              >実行されます。
+            </p>
+            <h3 data-dl-uid="99" data-dl-original="true" data-dl-translated="true">トリプルフォルト</h3>
+            <p data-dl-uid="100" data-dl-original="true" data-dl-translated="true">
+              この言葉、どこかで見たことありますよね？CPUが「Triple
+              Faults」を起こすと、システムがハードリブートすることを意味します。
+            </p>
+            <p data-dl-uid="101" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="102" data-dl-original="true" data-dl-translated="true"
+                >ブートローダのような初期段階では、コードにバグがあると、システムがトリプルフォルトを起こします。
+                これはコードに問題があることを示します。</b
+              >
+            </p>
+            <h1 data-dl-uid="103" data-dl-original="true" data-dl-translated="true">
+              簡単なブートローダを開発する
+            </h1>
+            Yiippee!*待ちに待った瞬間だ!:)
+            <p data-dl-uid="104" data-dl-original="true" data-dl-translated="true">
+              私たちのリストをもう一度見てみましょう。
+            </p>
+            <ul data-dl-uid="105" data-dl-original="true" data-dl-translated="true">
+              <li data-dl-uid="106" data-dl-original="true" data-dl-translated="true">
+                マスターブートレコード(MBR)と共に保存される。
+              </li>
+              <li data-dl-uid="107" data-dl-original="true" data-dl-translated="true">
+                ディスクの最初のセクタにある。
+              </li>
+              <li data-dl-uid="108" data-dl-original="true" data-dl-translated="true">
+                1セクタ（512）バイトの大きさです。
+              </li>
+              <li data-dl-uid="109" data-dl-original="true" data-dl-translated="true">
+                アドレス0x7C00でBIOS INT 0x19によってロードされます。
+              </li>
+            </ul>
+            普通のテキストエディタ（私はVisual Studio
+            2005を使用しています）を開きますが、メモ帳で十分です。
+            <p data-dl-uid="110" data-dl-original="true" data-dl-translated="true">
+              ブートローダ(Boot1.asm)は...
+            </p>
+            <blockquote>
+              <pre><div class="code">;*********************************************
+;	Boot1.asm
+;		- A Simple Bootloader
+;
+;	Operating Systems Development Tutorial
+;*********************************************
+ 
+org		0x7c00				; We are loaded by BIOS at 0x7C00
+ 
+bits	16					; We are still in 16 bit Real Mode
+ 
+Start:
+ 
+	cli					; Clear all Interrupts
+	hlt					; halt the system
+	
+times 510 - ($-$$) db 0				; We have to be 512 bytes. Clear the rest of the bytes with 0
+ 
+dw 0xAA55					; Boot Signiture</div></pre>
+            </blockquote>
+
+            この中には、あまり驚くようなことはないでしょう。一行ずつ解析してみましょう。
+
+            <blockquote>
+              <pre><div class="code">org		0x7c00				; We are loaded by BIOS at 0x7C00</div></pre>
+            </blockquote>
+
+            覚えておいてください。<b data-dl-uid="117" data-dl-original="true" data-dl-translated="true"
+              >BIOSは0x7C00で私たちをロードします。</b
+            >上のコードはNASMに、すべてのアドレスが0x7C00に戻るように指示しています。つまり、最初の命令は0x7C00になります。
+            チュートリアル2を覚えていますか？あのチュートリアルでは、x86ファミリーがいかに古いDOSシステムと後方互換性を持っているかを説明しました。古いDOSシステムは16ビットでしたから、<b
+              data-dl-uid="121"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >x86互換のコンピュータはすべて16ビットモードで起動</b
+            >します。これはつまり
+            <ul data-dl-uid="122" data-dl-original="true" data-dl-translated="true">
+              <li data-dl-uid="123" data-dl-original="true" data-dl-translated="true">
+                メモリは1MB(+64k)に制限されています。
+              </li>
+            </ul>
+            コンピュータを32ビットモードに切り替える必要があります。この作業は後ほど行います。
+
+            <blockquote>
+              <pre><div class="code">times 510 - ($-$$) db 0				; We have to be 512 bytes. Clear the rest of the bytes with 0</div></pre>
+            </blockquote>
+
+            私はこれがより文書化されていることを望みます。NASMでは、ドル演算子($)は現在行のアドレスを表します。つまり、<b
+              data-dl-uid="127"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >$-$は</b
+            >現在行から先頭命令までのバイト数（この場合はプログラムのサイズ）を返します。
+
+            <blockquote>
+              <pre><div class="code">dw 0xAA55					; Boot Signiture</div></pre>
+            </blockquote>
+
+            これには少し説明が必要です。
+            <p data-dl-uid="131" data-dl-original="true" data-dl-translated="true">
+              BIOSのINT
+              0x19はブート可能なディスクを検索することを思い出してください。ディスクが起動可能かどうか、どうやって判断しているのでしょうか？ブートシグニチャです。511バイトが0xAAで512バイトが0x55なら、INT
+              0x19はブートローダをロードして実行します。
+            </p>
+            <p data-dl-uid="132" data-dl-original="true" data-dl-translated="true">
+              ブートシグニチャはブートセクタの最後の2バイトでなければならないので、512バイト目ではなく、510バイト目まで埋めるために異なるサイズを計算するために<b
+                data-dl-uid="133"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >times</b
+              >キーワードを使用します。
+            </p>
+
+            <h1 data-dl-uid="134" data-dl-original="true" data-dl-translated="true">
+              NASMでのアセンブル
+            </h1>
+            NASMはコマンドラインアセンブラなので、コマンドラインかバッチスクリプトで実行する必要があります。<b
+              data-dl-uid="135"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >Boot1.asmを</b
+            >アセンブルするには、次のようにします。
+
+            <blockquote>
+              <pre><div class="code">nasm -f bin Boot1.asm -o Boot1.bin</div></pre>
+            </blockquote>
+
+            <b data-dl-uid="139" data-dl-original="true" data-dl-translated="true">f</b
+            >オプションはNASMにどのような出力を生成するかを指示するために使います。この場合、それはバイナリプログラムです。
+            <p data-dl-uid="140" data-dl-original="true" data-dl-translated="true">
+              -<b data-dl-uid="141" data-dl-original="true" data-dl-translated="true">o</b
+              >オプションは、生成されたファイルに別の出力名をつけるために使います。この場合、<b
+                data-dl-uid="142"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >Boot1.bin</b
+              >となります。
+            </p>
+            <p data-dl-uid="143" data-dl-original="true" data-dl-translated="true">
+              アセンブル後、"Boot1.bin "という名前の正確な512バイトのファイルができているはずです。
+            </p>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </body>
+</html>
