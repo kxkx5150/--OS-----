@@ -1,0 +1,1991 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Cache-Control" content="no-cache" />
+    <title></title>
+    <link href="css/reference.css" rel="stylesheet" />
+  </head>
+  <body>
+    <table cellspacing="0" cellpadding="3" width="80%" border="0">
+      <tbody>
+        <tr>
+          <td class="tblhdr">Operating Systems Development Series</td>
+        </tr>
+        <tr>
+          <td align="middle" colspan="2"></td>
+        </tr>
+      </tbody>
+    </table>
+    <table cellspacing="0" cellpadding="5" width="100%" border="0">
+      <tbody>
+        <tr>
+          <td>
+            <!-- Title -->
+
+            <div>
+              <span class="title">Errors, Exceptions, Interruptions</span>
+
+              <br />
+              <span class="author">by Mike, 2008, 2009</span>
+            </div>
+
+            <i data-dl-uid="7" data-dl-original="true" data-dl-translated="true"
+              >注意:
+              このチュートリアルはソフトウェア割込み処理について述べており、ハードウェア割込み処理については述べていません。もし、ハードウェア割り込みをお探しなら、8259A
+              PICチュートリアルをご覧ください。ハードウェア割り込みのソフトウェア側での処理については、こちらで説明しています。</i
+            >
+
+            <h1 data-dl-uid="9" data-dl-original="true" data-dl-translated="true">はじめに</h1>
+
+            お帰りなさい。:)
+            <p data-dl-uid="10" data-dl-original="true" data-dl-translated="true">
+              前回のチュートリアルで、私たちはシステムの基本的な設計をカバーしました。そう、ここまではかなり基本的で簡単だったでしょう？
+            </p>
+            <p data-dl-uid="11" data-dl-original="true" data-dl-translated="true">
+              いつになったらシステムレベルのコードに戻るのだろう、と思っているかもしれません。さて....*お帰りなさい:)
+            </p>
+            <p data-dl-uid="12" data-dl-original="true" data-dl-translated="true">
+              このチュートリアルでは、非常に重要な概念を扱います。<b
+                data-dl-uid="13"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >エラー処理</b
+              >エラー処理には、単に問題を処理するだけでなく、問題を<b
+                data-dl-uid="14"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >捕捉</b
+              >することも含まれます。<b
+                data-dl-uid="16"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >例外</b
+              >
+              <b data-dl-uid="15" data-dl-original="true" data-dl-translated="true">処理には</b>
+              <b data-dl-uid="17" data-dl-original="true" data-dl-translated="true">割り込みが</b
+              >必要なので、<b data-dl-uid="18" data-dl-original="true" data-dl-translated="true"
+                >割り込み処理も</b
+              >扱います。
+            </p>
+            <p data-dl-uid="19" data-dl-original="true" data-dl-translated="true">
+              割り込みはアーキテクチャに依存します。このため、私たちは、1337という巨大な、しかし（現時点では）非常に空の<b
+                data-dl-uid="20"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ハードウェア抽象化レイヤーを通して</b
+              >割り込みを管理するためのインタフェースを開発し、私たち自身の<b
+                data-dl-uid="21"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >トラップゲートを</b
+              >インストールするためにカーネルとインタフェースをとる予定です。これはプロセッサ例外エラーをキャッチし、現在そして永久にトリプルフォルトを防ぐために使われるとともに、完全にハードウェア独立であることができます。
+            </p>
+            <p data-dl-uid="22" data-dl-original="true" data-dl-translated="true">
+              面白そうでしょ？では、ここからが本題です。
+            </p>
+            <p data-dl-uid="23" data-dl-original="true" data-dl-translated="true"></p>
+            <ul data-dl-uid="24" data-dl-original="true" data-dl-translated="true">
+              <li data-dl-uid="25" data-dl-original="true" data-dl-translated="true">
+                エラーハンドリング
+              </li>
+
+              <li data-dl-uid="26" data-dl-original="true" data-dl-translated="true">例外処理</li>
+
+              <li data-dl-uid="27" data-dl-original="true" data-dl-translated="true">IRs、IRQs、ISRs</li>
+              <li data-dl-uid="28" data-dl-original="true" data-dl-translated="true">
+                ゲートトラップ、割り込み、タスク
+              </li>
+              <li data-dl-uid="29" data-dl-original="true" data-dl-translated="true">IDTとIVT</li>
+              <li data-dl-uid="30" data-dl-original="true" data-dl-translated="true">
+                IDTRプロセッサレジスタ
+              </li>
+              <li data-dl-uid="31" data-dl-original="true" data-dl-translated="true">
+                LIDTおよびSIDT命令
+              </li>
+
+              <li data-dl-uid="32" data-dl-original="true" data-dl-translated="true">FLIHとSLIH</li>
+
+              <li data-dl-uid="33" data-dl-original="true" data-dl-translated="true">
+                割り込みの仕組み、スタック、エラーコード
+              </li>
+              <li data-dl-uid="34" data-dl-original="true" data-dl-translated="true">
+                カーネルパニックエラー画面の開発、すなわちBSoD
+              </li>
+            </ul>
+
+            <p data-dl-uid="35" data-dl-original="true" data-dl-translated="true">
+              ...いろいろありますね、では始めましょう。
+            </p>
+
+            <h1 data-dl-uid="36" data-dl-original="true" data-dl-translated="true">
+              エラー、エラー、エラー
+            </h1>
+
+            さて、現実を直視しましょう。完璧な人間なんていません。コンピュータの場合、これはさらに真実です。私たちはカーネルランドという素晴らしい世界で仕事をしているので、単純なエラーがソフトウェアやハードウェアに予測できない問題を引き起こす可能性があるため、状況はさらに悪化します。
+            <p data-dl-uid="37" data-dl-original="true" data-dl-translated="true">
+              読者の多くは、すでにTriple
+              Faultsで経験したことがあると思います。アプリケーション・プログラミングでは、ハードウェアを直接操作することはありません。そのため、エラーになるような問題はあまりありません。しかし、カーネルの世界では少し違います。トリプルフォールトは、命令やデータのエラーによって引き起こされます。もしプロセッサが解決できない問題があれば、悪化する前にシステムを再起動します。
+            </p>
+            <p data-dl-uid="38" data-dl-original="true" data-dl-translated="true">
+              OSの開発において、トリプルフォールトが発生し、エラーハンドリングを行わないというのは、非常にまずいことです。エラー処理の重要性を知ることは、これらの問題を解決し、システムが最終的にリリースされるまで安定であることを保証するために重要です。
+            </p>
+            <h1 data-dl-uid="39" data-dl-original="true" data-dl-translated="true">例外処理</h1>
+
+            例外処理には2つの種類があります。プログラミング言語の構成要素（例えば、標準的なC++?
+            try/catch/throwキーワード。コンパイラによっては、_exceptのような追加のキーワードや、SEHやVEHのようなメカニズムも含まれています）。もう1つの味は、私たちが興味を持っているものです。現在の実行の流れを変える（中断する）ように設計されたハードウェアメカニズム。この実行の流れを変える条件は、例外と呼ばれます。例外は、エラー（例外的な）状態を知らせるためにのみ使用されるべきで、通常の動作に使用される条件文には使用されない。
+            <p data-dl-uid="40" data-dl-original="true" data-dl-translated="true">
+              例外が発生すると、実行の流れが変わり、サブルーチン（例外ハンドラ）が実行される。これにより、サブルーチンは何らかの方法でエラー状態を処理することができる。通常、ハンドラが呼ばれる前に現在の状態を保存しておく。これにより、可能であれば、ハンドラは後で実行を継続することができる。
+            </p>
+            <p data-dl-uid="41" data-dl-original="true" data-dl-translated="true">
+              例外はハードウェアから設計されていること、すなわちハードウェアメカニズムであることを忘れないでください。このことは、ハードウェア割り込みと、割り込み処理の基本が関連していることに似ています。
+            </p>
+            <p data-dl-uid="42" data-dl-original="true" data-dl-translated="true">
+              このため、例外処理をハードウェアから理解するためには、割り込みを見る必要があります。次にそれを見てみましょう。
+            </p>
+            <h1 data-dl-uid="43" data-dl-original="true" data-dl-translated="true">割り込みの処理</h1>
+
+            <h2 data-dl-uid="44" data-dl-original="true" data-dl-translated="true">割り込み</h2>
+
+            インタラプトとは、ソフトウェアやハードウェアが注意を必要とする外部非同期信号のことです。より重要なことを実行するために、現在のタスクを中断させる方法を可能にします。
+            <p data-dl-uid="45" data-dl-original="true" data-dl-translated="true">
+              難しいことではありません。割り込みは、ゼロ除算のような問題を捕捉するための手段です。プロセッサが現在実行中のコードに問題を発見した場合、その問題を修正するために実行する代替コードをプロセッサに提供します。
+            </p>
+            <p data-dl-uid="46" data-dl-original="true" data-dl-translated="true">
+              他の割り込みは、ルーチンとしてソフトウェアをサービスする方法を提供するために使用されるかもしれません。これらの割り込みは、システム内の任意のソフトウェアから呼び出すことができます。これは、リング3アプリケーションにリング0レベルのルーチンを実行させる方法を提供するシステムAPIによく使われます。
+            </p>
+            <p data-dl-uid="47" data-dl-original="true" data-dl-translated="true">
+              割り込みは、特に非同期で状態を変える可能性のあるハードウェアから情報を受け取る方法として、多くの用途があります。
+            </p>
+            <h2 data-dl-uid="48" data-dl-original="true" data-dl-translated="true">割り込みの種類</h2>
+
+            割り込みには、ハードウェア割り込みとソフトウェア割り込みの2種類があります。8259A
+            PICのチュートリアルでは、ハードウェア割り込みを取り上げました。このチュートリアルでは、ソフトウェア割り込みに焦点を当てます。
+            <h3 data-dl-uid="49" data-dl-original="true" data-dl-translated="true">
+              ハードウェア割り込み
+            </h3>
+
+            ハードウェア割り込みは、ハードウェアデバイスによって起動される割り込みです。通常、注意が必要なハードウェアデバイスです。ハードウェア割り込みハンドラは、このハードウェア要求を処理することが必要になります。
+            <p data-dl-uid="50" data-dl-original="true" data-dl-translated="true">
+              このチュートリアルでは、ハードウェア特有の割り込み処理については説明しません。x86
+              アーキテクチャでは、ハードウェア割り込みは 8259A PIC (Programmable Interrupt Controller)
+              のプログラムによって処理されます。ハードウェア割り込み処理の詳細については、8259A
+              PICチュートリアルを参照してください。
+            </p>
+            <p data-dl-uid="51" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="52" data-dl-original="true" data-dl-translated="true">スプリアス割り</b
+              >込み
+            </p>
+            <p data-dl-uid="53" data-dl-original="true" data-dl-translated="true">
+              割り込み線への電気的干渉や、ハードウェアの不具合によって発生するハードウェア割り込みです。このような割り込みは発生させないようにしましょう。
+            </p>
+            <h3 data-dl-uid="54" data-dl-original="true" data-dl-translated="true">
+              ソフトウェア割込み
+            </h3>
+
+            ここが楽しいところです
+            <p data-dl-uid="55" data-dl-original="true" data-dl-translated="true">
+              ソフトウェア割り込みは、ソフトウェアで実装され、トリガされる割り込みです。通常、プロセッサの命令セットには、ソフトウェア割り込みを処理するための命令が含まれています。x86アーキテクチャの場合、これらは通常INT
+              immとINT 3であり、IRETとIRETD命令も使用します。
+            </p>
+            <p data-dl-uid="56" data-dl-original="true" data-dl-translated="true">
+              INT immとINT
+              3命令は割り込みを発生させるために使用され、IRETクラスの命令は割り込みルーチン（IR）から復帰するために使用されます。
+            </p>
+            <p data-dl-uid="57" data-dl-original="true" data-dl-translated="true">
+              例えば、ここではソフトウェア命令で割り込みを発生させます。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">int     3              ; generates software interrupt 3</div></pre>
+            </blockquote>
+
+            これらの命令は、ソフトウェア割込みを生成し、ソフトウェアで割込みルーチン（IR）を実行するために使用されることがあります。
+            <p data-dl-uid="61" data-dl-original="true" data-dl-translated="true">
+              ご存知のように、ソフトウェア割り込みはリアルモードでも利用可能でした。しかし、プロテクトモードへジャンプした途端、IVT（Interrupt
+              Vector
+              Table）が無効になってしまいました。このため、割り込みは使えません。その代わり、自作する必要があります。
+            </p>
+            <p data-dl-uid="62" data-dl-original="true" data-dl-translated="true">
+              このチュートリアルでは、ソフトウェア割込み処理について説明します。
+            </p>
+            <h2 data-dl-uid="63" data-dl-original="true" data-dl-translated="true">
+              割込みルーチン(IR)
+            </h2>
+
+            割込みルーチン（IR）は、割込み要求（IRQ）を処理するために使用される特別な関数です。
+            <p data-dl-uid="64" data-dl-original="true" data-dl-translated="true">
+              プロセッサがINTのような割り込み命令を実行すると、割り込みベクタテーブル（IVT）内のその位置にある割り込みルーチン（IR）を実行します。
+            </p>
+            <p data-dl-uid="65" data-dl-original="true" data-dl-translated="true">
+              つまり、私たちが定義したルーチンが実行されるだけです。難しいことではありませんね。この特別なルーチンは、AXレジスタの値に基づいて、通常実行すべきインタラプトファンクションを決定します。これにより、1つの割り込みコールで複数の関数を定義することができます。例えば、DOSのINT21h関数0x4c00のようなものです。
+            </p>
+            <p data-dl-uid="66" data-dl-original="true" data-dl-translated="true">
+              覚えておいてください。割り込みの実行は、作成した割り込みルーチンを実行するだけです。例えば、INT
+              2という命令を実行すると、IVTのインデックス2のIRが実行されます。かっこいいでしょう？
+            </p>
+            <p data-dl-uid="67" data-dl-original="true" data-dl-translated="true">
+              IRは一般に<b data-dl-uid="68" data-dl-original="true" data-dl-translated="true"
+                >Interrupt Requests (IRQs)</b
+              >とも呼ばれます。しかし、ISAバス内ではIRの命名規則がまだ使われていますので、両方の名前を理解することが重要です。
+            </p>
+            <h2 data-dl-uid="69" data-dl-original="true" data-dl-translated="true">
+              インタラプトリクエスト(IRQ)
+            </h2>
+
+            <b data-dl-uid="70" data-dl-original="true" data-dl-translated="true"
+              >IRQとは、コントロールバスのIRラインまたは8259Aプログラマブル割り込みコントローラ（PIC）のIRラインを使用してシステムに信号を送り、イベントを中断させることを指します。</b
+            >
+            <p data-dl-uid="71" data-dl-original="true" data-dl-translated="true">
+              8259 PICを1個搭載したシステムでは、IRQラインが8本あり、IR0
+              IR7とラベル付けされています。2つの8259 PICを持つシステムでは、IR0
+              IR15というラベルの付いた16本のIRQがあります。システムのISAバス上では、これらのラインはIRQ0
+              IRQ15とラベル付けされています。
+            </p>
+            <p data-dl-uid="72" data-dl-original="true" data-dl-translated="true">
+              新しいintelベースのシステムは、コントローラあたり255のIRQを可能にするAPIC (Advanced
+              Programmable Interrupt Controller)デバイスを統合しています。
+            </p>
+            <p data-dl-uid="73" data-dl-original="true" data-dl-translated="true">
+              IRQの詳細については、8259A
+              PICチュートリアルまたはAPICチュートリアルのいずれかを参照してください。
+            </p>
+            <p data-dl-uid="74" data-dl-original="true" data-dl-translated="true">
+              これが意味するところは、8259A
+              PICはプロセッサのIRラインをアクティブにすることによって、ハードウェアデバイスを通してソフトウェア割り込みコールを生成し、プロセッサが正しい割り込みハンドラを実行するよう信号を送ることができるということです。<b
+                data-dl-uid="75"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >これにより、ハードウェアデバイスの要求をソフトウェアで処理することができます。</b
+              >
+              これについては、8259A
+              PICチュートリアルを参照してください...これを理解することは非常に重要です。
+            </p>
+            <h2 data-dl-uid="76" data-dl-original="true" data-dl-translated="true">
+              割込みサービスルーチン(ISR)
+            </h2>
+
+            Interrupt Service Routines (ISR)
+            は、割り込みハンドラです。これらは理解するのに重要なので、詳しく見てみましょう。
+            <h3 data-dl-uid="77" data-dl-original="true" data-dl-translated="true">
+              インタラプトハンドラ
+            </h3>
+
+            割り込みハンドラとは、割り込みやIRQを処理するためのIRのことです。つまり、ハードウェア割り込みとソフトウェア割り込みの両方を処理するために定義したコールバックメソッドなのです。
+            <p data-dl-uid="78" data-dl-original="true" data-dl-translated="true">
+              ISRには2つのタイプがあります。<b
+                data-dl-uid="79"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >FLIHと</b
+              >
+              <b data-dl-uid="80" data-dl-original="true" data-dl-translated="true">SLIH</b>です。
+            </p>
+            <p data-dl-uid="81" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="82" data-dl-original="true" data-dl-translated="true"
+                >ファーストレベルインタラプトハンドラ（FLIH）</b
+              >
+            </p>
+            <p data-dl-uid="83" data-dl-original="true" data-dl-translated="true">
+              デバイスドライバやカーネルの下半分の部分と考えられています。これらの割り込みハンドラはプラットフォーム固有で、通常ハードウェアの要求を処理し、割り込みルーチン（IR）や割り込み要求（IRQ）と同様に実行されます。実行時間は短いです。主な役割は、割り込みの処理、または割り込みが発生したときにのみ利用可能なプラットフォーム固有の情報の記録です（下位レベルで実行されているため）。
+            </p>
+            <p data-dl-uid="84" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="85" data-dl-original="true" data-dl-translated="true"
+                >セカンドレベル割り込みハンドラ(SLIH</b
+              >)
+            </p>
+            <p data-dl-uid="86" data-dl-original="true" data-dl-translated="true">
+              この割り込みハンドラはFLIHより長寿命です。この点で、タスクやプロセスに似ています。SLIHは通常、カーネルプログラムまたはFLIHによって実行および管理されます。
+            </p>
+            <p data-dl-uid="87" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="88" data-dl-original="true" data-dl-translated="true"
+                >ネストされた割込みハンドラ</b
+              >
+            </p>
+            <p data-dl-uid="89" data-dl-original="true" data-dl-translated="true">
+              割込みハンドラが実行され、割込みフラグ（IF）が設定されると、現在の割込みの間にも割込みを実行することができます。これをネスト型割込みと呼びます。
+            </p>
+
+            <h1 data-dl-uid="90" data-dl-original="true" data-dl-translated="true">
+              リアルモードでの割り込み
+            </h1>
+
+            Real Modeにおける割り込みは、IVT（Interrupt Vector
+            Table）を通じて処理されます。IVT（Interrupt Vector Table）は、Interrupt
+            Vectorのリストです。IVTには256個の割り込みが含まれます。
+            <h2 data-dl-uid="91" data-dl-original="true" data-dl-translated="true">IVTマップ</h2>
+
+            IVTは物理メモリの最初の1024バイト（アドレス0x0～0x3FF）に配置されています。IVT内の各エントリは4バイトで、以下のような形式です。
+
+            <ul>
+              <li>Byte 0: Offset Low Address of the Interrupt Routine (IR)</li>
+              <li>Byte 1: Offset High Address of the IR</li>
+
+              <li>Byte 2: Segment Low Address of the IR</li>
+              <li>Byte 3: Segment High Address of the IR</li>
+            </ul>
+
+            IVTの各エントリには、呼び出すべきIRのアドレスが単純に含まれていることに注意してください。これにより、メモリ上の任意の場所に簡単な関数を作成することができます（Our
+            IR）。IVTに関数のアドレスが含まれていれば、全て問題なく動作します。
+            <p data-dl-uid="97" data-dl-original="true" data-dl-translated="true">
+              では、IVTについて見ていきましょう。最初の数個の割り込みは予約されており、そのままです。
+            </p>
+            <p data-dl-uid="98" data-dl-original="true" data-dl-translated="true"></p>
+
+            <center>
+              <table border="1" bgcolor="CCCCCC">
+                <tbody>
+                  <tr>
+                    <th colspan="5" bgcolor="FFFFFF">x86 Interrupt Vector Table (IVT)</th>
+                  </tr>
+                  <tr bgcolor="AAAAAA">
+                    <td>Base Address</td>
+                    <td>Interrupt Number</td>
+                    <td>Description</td>
+                  </tr>
+
+                  <tr>
+                    <td bgcolor="ffffff">0x000</td>
+                    <td>0</td>
+                    <td colspan="4">Divide by 0</td>
+                  </tr>
+
+                  <tr>
+                    <td bgcolor="ffffff">0x004</td>
+                    <td>1</td>
+                    <td colspan="4">Single step (Debugger)</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="ffffff">0x008</td>
+                    <td>2</td>
+                    <td colspan="4">Non Maskable Interrupt (NMI) Pin</td>
+                  </tr>
+
+                  <tr>
+                    <td bgcolor="ffffff">0x00C</td>
+                    <td>3</td>
+                    <td colspan="4">Breakpoint (Debugger)</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="ffffff">0x010</td>
+                    <td>4</td>
+                    <td colspan="4">Overflow</td>
+                  </tr>
+
+                  <tr>
+                    <td bgcolor="ffffff">0x014</td>
+                    <td>5</td>
+                    <td colspan="4">Bounds check</td>
+                  </tr>
+
+                  <tr>
+                    <td bgcolor="ffffff">0x018</td>
+                    <td>6</td>
+                    <td colspan="4">Undefined Operation Code (OPCode) instruction</td>
+                  </tr>
+
+                  <tr>
+                    <td bgcolor="ffffff">0x01C</td>
+                    <td>7</td>
+                    <td colspan="4">No coprocessor</td>
+                  </tr>
+
+                  <tr>
+                    <td bgcolor="ffffff">0x020</td>
+                    <td>8</td>
+                    <td colspan="4">Double Fault</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="ffffff">0x024</td>
+                    <td>9</td>
+                    <td colspan="4">Coprocessor Segment Overrun</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="ffffff">0x028</td>
+                    <td>10</td>
+                    <td colspan="4">Invalid Task State Segment (TSS)</td>
+                  </tr>
+
+                  <tr>
+                    <td bgcolor="ffffff">0x02C</td>
+                    <td>11</td>
+                    <td colspan="4">Segment Not Present</td>
+                  </tr>
+
+                  <tr>
+                    <td bgcolor="ffffff">0x030</td>
+                    <td>12</td>
+                    <td colspan="4">Stack Segment Overrun</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="ffffff">0x034</td>
+                    <td>13</td>
+                    <td colspan="4">General Protection Fault (GPF)</td>
+                  </tr>
+
+                  <tr>
+                    <td bgcolor="ffffff">0x038</td>
+                    <td>14</td>
+                    <td colspan="4">Page Fault</td>
+                  </tr>
+
+                  <tr>
+                    <td bgcolor="ffffff">0x03C</td>
+                    <td>15</td>
+                    <td colspan="4">Unassigned</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="ffffff">0x040</td>
+                    <td>16</td>
+                    <td colspan="4">Coprocessor error</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="ffffff">0x044</td>
+                    <td>17</td>
+                    <td colspan="4">Alignment Check (486+ Only)</td>
+                  </tr>
+
+                  <tr>
+                    <td bgcolor="ffffff">0x048</td>
+                    <td>18</td>
+                    <td colspan="4">Machine Check (Pentium/586+ Only)</td>
+                  </tr>
+
+                  <tr>
+                    <td bgcolor="ffffff">0x05C</td>
+                    <td>19-31</td>
+                    <td colspan="4">Reserved exceptions</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="ffffff">0x068 - 0x3FF</td>
+                    <td>32-255</td>
+                    <td colspan="4">Interrupts free for software use</td>
+                  </tr>
+                </tbody>
+              </table>
+            </center>
+
+            <p data-dl-uid="192" data-dl-original="true" data-dl-translated="true">
+              ハードではありません。これらの割り込みは、それぞれIVT内のベースアドレスに配置されています。
+            </p>
+            <h1 data-dl-uid="193" data-dl-original="true" data-dl-translated="true">
+              プロテクトモードでの割り込み
+            </h1>
+
+            私たちはプロテクトモードオペレーティングシステムを開発しているので、この点は重要です。これは私たちにとって重要なことです。ご存知のように、プロテクトモードでは様々な理由でIVTにアクセスすることができません。このため、これ以上割り込みにアクセスしたり、使用したりすることはできません。そこで、代わりに自分自身で割り込みを作成する必要があります。
+            <p data-dl-uid="194" data-dl-original="true" data-dl-translated="true">
+              ...そして、それはすべてInterrupt Descriptor Tableから始まります。
+            </p>
+            <h1 data-dl-uid="195" data-dl-original="true" data-dl-translated="true">
+              インタラプトディスクリプタテーブル(IDT)
+            </h1>
+
+            Interrupt Descriptor Table (IDT)
+            はプロセッサがIRを管理するために使用する特別なテーブルです。IDT自体は256個の<b
+              data-dl-uid="196"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >ディスクリプタの</b
+            >配列で、LDTやGDTと同じようなものです。
+            <h2 data-dl-uid="197" data-dl-original="true" data-dl-translated="true">リアルモード</h2>
+
+            リアルモードでは、IDTはIVTとも呼ばれます。詳しくは、上記のセクションのIVTの説明をご覧ください。
+            <h2 data-dl-uid="198" data-dl-original="true" data-dl-translated="true">プロテクトモード</h2>
+
+            プロテクトモードでのIDTの動作はリアルモードとは大きく異なります（プロテクトモードでIVTを使用できない多くの理由のうちの1つです）。しかし、IVTはまだ使用されています。
+            <p data-dl-uid="199" data-dl-original="true" data-dl-translated="true">
+              IDTは8バイトのディスクリプタを256個連続してメモリに格納した配列で、IVT内の割込みベクタをインデックスとしています。次に、これらのディスクリプタ、ディスクリプタの種類、IDTの詳細について説明します。
+            </p>
+
+            <h2 data-dl-uid="200" data-dl-original="true" data-dl-translated="true">
+              インタラプトディスクリプタ構造
+            </h2>
+
+            IDTのディスクリプタは以下のような形式をとります。どのような種類の記述子であるかによって、一部フォーマットが変わります。
+
+            <ul>
+              <li>Bits 0...15:</li>
+              <ul>
+                <li><b>Interrupt / Trap Gate:</b> Offset address Bits 0-15 of IR</li>
+
+                <li><b>Task Gate:</b></li>
+                Not used.
+              </ul>
+              <li>Bits 16...31:</li>
+              <ul>
+                <li><b>Interrupt / Trap Gate:</b> Segment Selector (Useually 0x10)</li>
+                <li><b>Task Gate:</b> TSS Selector</li>
+              </ul>
+              <li>Bits 31...35: Not used</li>
+
+              <li>Bits 36...38:</li>
+              <ul>
+                <li><b>Interrupt / Trap Gate:</b> Reserved. Must be 0.</li>
+                <li><b>Task Gate:</b> Not used.</li>
+              </ul>
+              <li>Bits 39...41:</li>
+              <ul>
+                <li><b>Interrupt Gate:</b> Of the format 0D110, where D determins size</li>
+
+                <ul>
+                  <li><b>01110</b> - 32 bit descriptor</li>
+                  <li><b>00110</b> - 16 bit descriptor</li>
+                </ul>
+                <li><b>Task Gate:</b> Must be 00101</li>
+                <li><b>Trap Gate:</b> Of the format 0D111, where D determins size</li>
+
+                <ul>
+                  <li><b>01111</b> - 32 bit descriptor</li>
+                  <li><b>00111</b> - 16 bit descriptor</li>
+                </ul>
+              </ul>
+              <li>Bits 42...44: Descriptor Privedlge Level (DPL)</li>
+              <ul>
+                <li><b>00:</b> Ring 0</li>
+
+                <li><b>01:</b> Ring 1</li>
+                <li><b>10:</b> Ring 2</li>
+                <li><b>11:</b> Ring 3</li>
+              </ul>
+              <li>Bit 45: Segment is present (1: Present, 0:Not present)</li>
+              <li>Bits 46...62:</li>
+
+              <ul>
+                <li><b>Interrupt / Trap Gate:</b> Bits 16...31 of IR address</li>
+
+                <li><b>Task Gate:</b> Not used</li>
+              </ul>
+            </ul>
+
+            <p data-dl-uid="256" data-dl-original="true" data-dl-translated="true">
+              それだけですか？そうです、これで全部です。）
+            </p>
+            <p data-dl-uid="257" data-dl-original="true" data-dl-translated="true">
+              あとは、GDTと同じように、IDTを埋めて、インストールするだけです。IDTはGDTよりずっとシンプルなので、さらに簡単です
+              :)
+              上のリストが完全な記述形式です。ここでは、割り込みゲートを開発することだけを考え、それだけに焦点を当てます。
+            </p>
+            <h2 data-dl-uid="258" data-dl-original="true" data-dl-translated="true">
+              割り込みディスクリプタ。例
+            </h2>
+
+            GDTと同じように、ビットレベルで例を作り、すべてがどのように動くかを正確に説明するのに役立ちます。
+            <p data-dl-uid="259" data-dl-original="true" data-dl-translated="true">
+              まず、割込みディスクリプタの例を見てみましょう。これはアセンブリで表示されるので、よりよく全体を見ることができます。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">idt_descriptor:
+   .m_baseLow     	dw   0 
+   .m_selector      	dw   0x8
+   .m_reserved     	db   0 
+   .m_flags      	db   010001110b
+   .m_baseHi      	dw   0</div></pre>
+            </blockquote>
+
+            そう、これがディスクリプタのすべてなんだ。そんなに難しくはないでしょう？
+            <p data-dl-uid="263" data-dl-original="true" data-dl-translated="true">
+              上の表とどのような関係があるのか、各ビットを分解して見てみましょう。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">00000000 00000000 00000000 00001000 00000000 10001110 00000000 00000000</div></pre>
+            </blockquote>
+
+            これが私たちのディスクリプタですが、バイナリ形式です。ほとんどの部分はすべて0なので、これは簡単です。
+            <p data-dl-uid="267" data-dl-original="true" data-dl-translated="true">
+              最初の2バイトは、上のコードで示した<b
+                data-dl-uid="268"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >m_baseLow</b
+              >メンバーです。上の表から、これはディスクリプタの最初の16ビットであることがわかります。これは<b
+                data-dl-uid="269"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >割り込みゲートなので、IRのベースアドレスの0-15ビットに相当</b
+              >します。つまり、これが私たちのフィールドであれば、IRはアドレス0に位置することになります（IRの位置は様々なので、通常はそうではありません。しかし、この例ではうまくいきます。）
+            </p>
+            <p data-dl-uid="270" data-dl-original="true" data-dl-translated="true">
+              次の2バイトは、<b data-dl-uid="271" data-dl-original="true" data-dl-translated="true"
+                >m_selector</b
+              >フィールドです。これはディスクリプタの16〜31バイト目です。このテーブルを見ると、これがセグメントセレクタを表していることがわかります。割り込みハンドラにはコードが含まれているので、コードセレクタのいずれかを使用する必要があります。これは
+              GDT 内のオフセット 0x8 で定義されており、これがセグメントセレクタです。
+            </p>
+            <p data-dl-uid="272" data-dl-original="true" data-dl-translated="true">
+              次の数ビットは使用されません。31-35ビットは使用されず、36-38ビットは割り込みゲート用に0でなければなりません。
+              このため、31-38ビットは0であると安全に言うことができます。
+            </p>
+            <p data-dl-uid="274" data-dl-original="true" data-dl-translated="true">
+              次のバイトは、面白いことが起こるところです。文字どおり、1ビットずつ分解してみましょう。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">10001110</div></pre>
+            </blockquote>
+
+            さて...今、私たちはビット39にいます。上の表を見ると、<b
+              data-dl-uid="278"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >ビット39-41は0D110でなければ</b
+            >ならないことがわかります。<b data-dl-uid="278" data-dl-translated="true"
+              >Dビットがセットされていれば、これは32ビットディスクリプタです。</b
+            >これは01110と同じなので、確かに32bitのディスクリプタです。
+            <p data-dl-uid="279" data-dl-original="true" data-dl-translated="true">
+              次の2ビット（上の00）は、ディスクリプタのバイト42-45で、プライバシーのレベル（DPL）を表しています。これは00なので、DPLはリング0で実行されることになります。
+            </p>
+            <p data-dl-uid="280" data-dl-original="true" data-dl-translated="true">
+              この例の中の最後の2バイトは、上記のテーブル内の最後の2バイトです。これはIRベースアドレスの上位16ビット(この例では0です)です。
+            </p>
+            <p data-dl-uid="282" data-dl-original="true" data-dl-translated="true">
+              見てわかるように、ここではそれほど多くのことは行われていません。セレクタは常にGDT内のコードセレクタ（ここでは0x8）になり、あとはフラグビットとIRベースアドレスを<b
+                data-dl-uid="283"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >m_baseLowと</b
+              >
+              <b data-dl-uid="284" data-dl-original="true" data-dl-translated="true">m_baseHiに</b
+              >設定するだけです。 後ほど、すべてを理解するのに役立つ完全な例を示します。
+            </p>
+            <h2 data-dl-uid="285" data-dl-original="true" data-dl-translated="true">
+              IDTR プロセッサレジスタ
+            </h2>
+
+            IDTRレジスタは、IDTのベースアドレスを格納するプロセッサレジスタです。
+            <p data-dl-uid="286" data-dl-original="true" data-dl-translated="true">
+              IDTRレジスタは次のような形式になっています。
+            </p>
+
+            <center>
+              <table border="1" bgcolor="CCCCCC">
+                <tbody>
+                  <tr>
+                    <th colspan="5" bgcolor="AAAAAA">IDTR Register</th>
+                  </tr>
+                  <tr>
+                    <td bgcolor="ffffff">Bits 16...46 (IDT Base Address)</td>
+                    <td bgcolor="ffffff">Bits 0...15 (IDT Limit)</td>
+                  </tr>
+                </tbody>
+              </table>
+            </center>
+
+            <p data-dl-uid="295" data-dl-original="true" data-dl-translated="true">
+              十分シンプルでしょう？IDTの<b
+                data-dl-uid="296"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ベースアドレスは</b
+              >このレジスタに格納されています。
+              プロセッサはこのレジスタを使って、IDTがどこにあるかを判断しています。
+            </p>
+            <p data-dl-uid="297" data-dl-original="true" data-dl-translated="true">
+              このレジスタにはリミットとベース・アドレスの<b
+                data-dl-uid="298"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >両方が</b
+              >格納されているため、このフォーマットを知っておくことは非常に重要です。このため、単にIDTのベースアドレスを与えても動作しません。この問題は、通常、次のようなフォーマットで新しい構造体を作成することで解決されます。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">idt_ptr:
+	.limit	dw idt_end - idt_start	; bits 0...15 is size of idt
+	.base	dd idt_start		; base of idt
+ 
+; load register with idt_ptr</div></pre>
+            </blockquote>
+
+            <p data-dl-uid="302" data-dl-original="true" data-dl-translated="true">
+              あれ、このレジスタはどうやってアクセスするんだっけ？そうなんです。
+            </p>
+            <h2 data-dl-uid="303" data-dl-original="true" data-dl-translated="true">
+              LIDT命令 - IDTをロードする
+            </h2>
+
+            この命令は、IDTの新しいアドレスをIDTRレジスタに格納するために使用されます。この命令は、電流保護レベル(CPL)が0(Ring0)の場合のみ使用できます。使い方はとても簡単です。
+
+            <blockquote>
+              <pre><div class="code">lidt [idt_ptr]</div></pre>
+            </blockquote>
+
+            それがすべてです。idt_baseがIDTのベースアドレスであれば、そのアドレスがIDTRにコピーされます。
+            <h2 data-dl-uid="307" data-dl-original="true" data-dl-translated="true">
+              SIDT命令 - IDTを格納する
+            </h2>
+
+            この命令はIDTRの値を6バイトのメモリに格納するために使用されます。この命令は、リング0とリング3の両方のアプリケーションで使用することができます。
+
+            <blockquote>
+              <pre><div class="code">sidt [idt_ptr]</div></pre>
+            </blockquote>
+
+            <h2 data-dl-uid="311" data-dl-original="true" data-dl-translated="true">
+              割り込みの仕組み詳細
+            </h2>
+
+            <h3 data-dl-uid="312" data-dl-original="true" data-dl-translated="true">
+              呼び出す割込みプロシージャを探す
+            </h3>
+
+            割り込みや例外が発生すると、プロセッサはその例外番号や割り込み番号をIDTのインデックスとして使用します。
+            ご存知のように、IDTは上図のような256個のディスクリプタの配列に過ぎません。IDTR.baseAddressはIDTRの上位ビットに格納されているIDTのベースアドレスで、IDTR.<b
+              data-dl-uid="313"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >indexは</b
+            >割込み番号です。これにより、プロセッサは割り込みハンドラのディスクリプタのインデックスのベースアドレスを取得することができます。ID<b
+              data-dl-uid="314"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >TR.limitに格納されているIDTのリミットサイズよりも計算値が大きい場合</b
+            >、プロセッサはIDTのサイズを超える呼び出しになるため、<b
+              data-dl-uid="314"
+              data-dl-translated="true"
+              >GPF(General Protection Fault)を実行</b
+            >します。
+            <p data-dl-uid="315" data-dl-original="true" data-dl-translated="true">
+              ディスクリプタは割込み、トラップ、タスクゲートのいずれかであることを忘れないでください。インデックスが割込みゲートまたはトラップゲートを指している場合、プロ
+              セッサは例外ハンドラまたは割込みハンドラを呼び出します。これはコールゲートをCALLするのと同じように行われます。インデックスがタスクゲートを指している場合、プロセッサはタスクゲートへのCALLと同様に、例外または割込みハンドラタスクへのタスクスイッチを実行します。
+            </p>
+            <p data-dl-uid="316" data-dl-original="true" data-dl-translated="true">
+              ハンドラの情報とアドレスは、この記述子内に格納されます。プロセッサがスイッチを実行するとき
+            </p>
+            <h3 data-dl-uid="317" data-dl-original="true" data-dl-translated="true">ハンドラの実行</h3>
+
+            <ul data-dl-uid="318" data-dl-original="true" data-dl-translated="true">
+              <li data-dl-uid="319" data-dl-original="true" data-dl-translated="true">
+                ハンドラが低権限レベル（ディスクリプタのビット42-45）で実行される場合、スタックスイッチが発生する。
+              </li>
+              <ol data-dl-uid="320" data-dl-original="true" data-dl-translated="true">
+                <li data-dl-uid="321" data-dl-original="true" data-dl-translated="true">
+                  ハンドラが使用するスタックのセグメントセレクタとスタックポインタは、現在実行中のタスクのTSSから取得されます。プロセッサは、割り込みハンドラのスタック・セグメント・セレクタとスタック・ポインタをこの新しいスタックにプッシュします。
+                </li>
+                <li data-dl-uid="322" data-dl-original="true" data-dl-translated="true">
+                  プロセッサは、EFLAGS、CS、EIPの現在の状態を新しいスタックに保存する。
+                </li>
+                <li data-dl-uid="323" data-dl-original="true" data-dl-translated="true">
+                  例外によって<b data-dl-uid="324" data-dl-original="true" data-dl-translated="true"
+                    >エラーコードが</b
+                  >保存される場合、<b data-dl-uid="325" data-dl-original="true" data-dl-translated="true"
+                    >エラーコードはEIPの後に新しいスタックにプッシュ</b
+                  >されます。
+                </li>
+              </ol>
+
+              <li data-dl-uid="326" data-dl-original="true" data-dl-translated="true">
+                ハンドラが同じ特権レベルで実行されようとしている場合（現在の特権レベル（cpl）が（ディスクリプタのビット42-45）と同じ場合
+              </li>
+              <ol data-dl-uid="327" data-dl-original="true" data-dl-translated="true">
+                <li data-dl-uid="328" data-dl-original="true" data-dl-translated="true">
+                  プロセッサは、EFLAGS、CS、EIPの現在の状態を<b
+                    data-dl-uid="329"
+                    data-dl-original="true"
+                    data-dl-translated="true"
+                    >現在のスタック</b
+                  >に保存する。
+                </li>
+                <li data-dl-uid="330" data-dl-original="true" data-dl-translated="true">
+                  例外によってエラーコードが保存される場合、<b
+                    data-dl-uid="331"
+                    data-dl-original="true"
+                    data-dl-translated="true"
+                    >エラーコードはEIPの後にカレントスタックにプッシュ</b
+                  >される
+                </li>
+              </ol>
+            </ul>
+
+            <p data-dl-uid="332" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="333" data-dl-original="true" data-dl-translated="true"
+                >割り込みハンドラが呼ばれたとき、スタックがどのようにプッシュされるのか、また、どのような例外がエラーコードをプッシュするのかを知ることは非常に重要なことです。</b
+              >この点については、次に説明します。
+            </p>
+            <h3 data-dl-uid="334" data-dl-original="true" data-dl-translated="true">
+              割込みハンドラの内部
+            </h3>
+
+            割込みハンドラの位置はディスクリプタに格納されているので、プロセッサはハンドラを実行することができるようになりました。
+            <p data-dl-uid="335" data-dl-original="true" data-dl-translated="true">
+              ご存知のように、プロセッサはハンドラを実行するとき、いくつかの特別な情報をスタックにプッシュします。もしハンドラが同じリングレベルで実行されているなら（そうなる）、<b
+                data-dl-uid="336"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >プロセッサは EFLAGS、CS、EIP</b
+              >、<b data-dl-uid="337" data-dl-original="true" data-dl-translated="true"
+                >エラーコードを</b
+              >
+              <b data-dl-uid="338" data-dl-original="true" data-dl-translated="true">現在の</b
+              >スタックに<b data-dl-uid="336" data-dl-translated="true">プッシュ</b
+              >することを覚えておく必要があります。これにより、もし実行可能であれば、実行を継続することができます。
+            </p>
+            <p data-dl-uid="339" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="340" data-dl-original="true" data-dl-translated="true"
+                >これらのことをまとめると、ハンドラが呼ばれたとき、スタックは次のようにセットアップされることになります。</b
+              >
+            </p>
+
+            <blockquote>
+              <pre><div class="code">+---------------+ -- Bottom of stack
+|   EFLAGS      |
++---------------+
+|   Return CS   |
++---------------+
+|  Return EIP   |
++---------------+
+|   Error Code  |
++---------------+ -- ESP points here when handler is executed.
+                    If there is no error code, ESP points to return EIP</div></pre>
+            </blockquote>
+
+            この情報を元にハンドラから戻り、何が原因で例外が発生したのか（エラーコードがある場合）を判断します。
+            <h3 data-dl-uid="344" data-dl-original="true" data-dl-translated="true">
+              割り込みハンドラ内部エラーコードの書式
+            </h3>
+
+            また、エラーコードがスタックに格納されている場合は、その情報を元にエラーの原因を特定します。
+            <p data-dl-uid="345" data-dl-original="true" data-dl-translated="true">
+              エラーコードは以下のようなフォーマットになっています。
+            </p>
+            <p data-dl-uid="346" data-dl-original="true" data-dl-translated="true"></p>
+            <ul data-dl-uid="347" data-dl-original="true" data-dl-translated="true">
+              <li data-dl-uid="348" data-dl-original="true" data-dl-translated="true">
+                ビット0：外部イベント
+              </li>
+              <ul data-dl-uid="349" data-dl-original="true" data-dl-translated="true">
+                <li data-dl-uid="350" data-dl-original="true" data-dl-translated="true">
+                  0: 内部またはソフトウェアイベントによってエラーが発生した。
+                </li>
+                <li data-dl-uid="351" data-dl-original="true" data-dl-translated="true">
+                  1：外部イベントまたはハードウェアイベントがエラーのトリガーとなった。
+                </li>
+              </ul>
+              <li data-dl-uid="352" data-dl-original="true" data-dl-translated="true">
+                ビット1：記述位置
+              </li>
+              <ul data-dl-uid="353" data-dl-original="true" data-dl-translated="true">
+                <li data-dl-uid="354" data-dl-original="true" data-dl-translated="true">
+                  0: エラーコードのインデックス部分は，GDT または現在の LDT のディスクリプタを参照する。
+                </li>
+                <li data-dl-uid="355" data-dl-original="true" data-dl-translated="true">
+                  1: エラーコードのインデックス部分は、IDTのゲートディスクリプタを参照する。
+                </li>
+              </ul>
+              <li data-dl-uid="356" data-dl-original="true" data-dl-translated="true">
+                ビット2：GDT/LDT。ディスクリプタの位置が0の場合のみ使用する。
+              </li>
+              <ul data-dl-uid="357" data-dl-original="true" data-dl-translated="true">
+                <li data-dl-uid="358" data-dl-original="true" data-dl-translated="true">
+                  0：エラーコードのインデックス部分が、現在のGDT内のディスクリプタを参照していることを示します。
+                </li>
+
+                <li data-dl-uid="359" data-dl-original="true" data-dl-translated="true">
+                  1：エラーコードのインデックス部分が、LDTのセグメントまたはゲートディスクリプタを参照していることを示します。
+                </li>
+              </ul>
+              <li data-dl-uid="360" data-dl-original="true" data-dl-translated="true">
+                ビット3～15セグメント・セレクタ・インデックス。これは、IDT、GDT、または現在のLDTにおける、エラーコードによって参照されるセグメントまたはゲートセレクタをもたらすインデックスである。
+              </li>
+              <li data-dl-uid="361" data-dl-original="true" data-dl-translated="true">
+                16-31ビット予約済み
+              </li>
+            </ul>
+
+            <p data-dl-uid="362" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="363" data-dl-original="true" data-dl-translated="true"
+                >エラーコードは、外部で発生した例外（INTR、LINT0、LINT1ピン経由）、またはINT
+                n命令ではスタックにプッシュされません。</b
+              >
+            </p>
+            <p data-dl-uid="364" data-dl-original="true" data-dl-translated="true">
+              ページフォルト例外エラーの場合、エラーコードの形式が異なります。それについては、次のセクションで見ていきます。
+            </p>
+            <h3 data-dl-uid="365" data-dl-original="true" data-dl-translated="true">
+              ハンドラからの復帰
+            </h3>
+
+            すべてのハンドラは、<b data-dl-uid="366" data-dl-original="true" data-dl-translated="true"
+              >IRETか</b
+            >
+            <b data-dl-uid="367" data-dl-original="true" data-dl-translated="true">IRETDの</b
+            >どちらかの命令を使って戻らなければなりません。IRETは、保存されたEFLAGS（ハンドラの実行時にスタックにプッシュされた）を復元することと、EFLAGSのIOPLフィールドが、現在の保護レベル（CPL）が0の場合にのみ0に設定されることを除いて、RETと同じです。
+            IFフラグは、CPLがIOPL以下の場合のみ変更されます。
+            <p data-dl-uid="368" data-dl-original="true" data-dl-translated="true">
+              ハンドラ実行時にスタックスイッチが発生した場合、IRETは中断された手順のスタックにも切り替えます。
+            </p>
+
+            <h1 data-dl-uid="369" data-dl-original="true" data-dl-translated="true">x86の例外</h1>
+
+            <h2 data-dl-uid="370" data-dl-original="true" data-dl-translated="true">
+              例外をリストアップ
+            </h2>
+
+            すべての例外は、IVTまたはIDT内の最初の数回の割り込みとして定義されています。x86クラスのプロセッサから生成される例外の完全なリストを以下に示します。
+            <p data-dl-uid="371" data-dl-original="true" data-dl-translated="true"></p>
+            <ul data-dl-uid="372" data-dl-original="true" data-dl-translated="true">
+              <li data-dl-uid="373" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="374" data-dl-original="true" data-dl-translated="true">エラー</b>-
+                リターンアドレス(ハンドラ呼び出し時にスタックにプッシュされたCS:EIPを返す。詳細は<b
+                  data-dl-uid="375"
+                  data-dl-original="true"
+                  data-dl-translated="true"
+                  >割込みハンドラの内部を</b
+                >参照)は、例外を発生させた命令を指す。例外ハンドラは、問題を修正した後、プログラムを再起動し、何事もなかったかのように見せかけることができる。
+              </li>
+              <li data-dl-uid="376" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="377" data-dl-original="true" data-dl-translated="true">Trap</b>-
+                リターンアドレスは、直前に終了した命令の次の命令を指します。
+              </li>
+              <li data-dl-uid="378" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="379" data-dl-original="true" data-dl-translated="true">Abort</b>-
+                リターンアドレスは常に確実に提供されるとは限りません。Abortするようなプログラムは、決して継続されることはない。
+              </li>
+            </ul>
+            <p data-dl-uid="380" data-dl-original="true" data-dl-translated="true"></p>
+
+            <center>
+              <table border="1" bgcolor="CCCCCC">
+                <tbody>
+                  <tr>
+                    <th colspan="5" bgcolor="FFFFFF">x86 Processor Exceptions</th>
+                  </tr>
+                  <tr bgcolor="AAAAAA">
+                    <td>Interrupt Number</td>
+                    <td>Class</td>
+                    <td>Description</td>
+                    <td>Error Code</td>
+                  </tr>
+
+                  <tr>
+                    <td bgcolor="ffffff">0</td>
+                    <td>Fault</td>
+                    <td>Divide by 0</td>
+                    <td>None</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="ffffff">1</td>
+                    <td>Trap or Fault</td>
+                    <td>Single step (Debugger)</td>
+                    <td>None. Can be retrived from debug registers</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="ffffff">2</td>
+                    <td>Unclassed</td>
+                    <td>Non Maskable Interrupt (NMI) Pin</td>
+                    <td>Not applicable</td>
+                  </tr>
+
+                  <tr>
+                    <td bgcolor="ffffff">3</td>
+                    <td>Trap</td>
+                    <td>Breakpoint (Debugger)</td>
+                    <td>None</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="ffffff">4</td>
+                    <td>Trap</td>
+                    <td>Overflow</td>
+                    <td>None</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="ffffff">5</td>
+                    <td>Fault</td>
+                    <td>Bounds check</td>
+                    <td>None</td>
+                  </tr>
+
+                  <tr>
+                    <td bgcolor="ffffff">6</td>
+                    <td>Fault</td>
+                    <td>Unvalid OPCode</td>
+                    <td>None</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="ffffff">7</td>
+                    <td>Fault</td>
+                    <td>Device not available</td>
+                    <td>None</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="ffffff">8</td>
+                    <td>Abort</td>
+                    <td>Double Fault</td>
+                    <td>Always 0</td>
+                  </tr>
+
+                  <tr>
+                    <td bgcolor="ffffff">9</td>
+                    <td>Abort (Reserved, do not use)</td>
+                    <td>Coprocessor Segment Overrun</td>
+                    <td>None</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="ffffff">10</td>
+                    <td>Fault</td>
+                    <td>Invalid Task State Segment (TSS)</td>
+                    <td>See error code below</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="ffffff">11</td>
+                    <td>Fault</td>
+                    <td>Segment Not Present</td>
+                    <td>See error code below</td>
+                  </tr>
+
+                  <tr>
+                    <td bgcolor="ffffff">12</td>
+                    <td>Fault</td>
+                    <td>Stack Fault Exception</td>
+                    <td>See error code below</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="ffffff">13</td>
+                    <td>Fault</td>
+                    <td>General Protection Fault (GPF)</td>
+                    <td>See error code below</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="ffffff">14</td>
+                    <td>Fault</td>
+                    <td>Page Fault</td>
+                    <td>See error code below</td>
+                  </tr>
+
+                  <tr>
+                    <td bgcolor="ffffff">15</td>
+                    <td>-</td>
+                    <td>Unassigned</td>
+                    <td>-</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="ffffff">16</td>
+                    <td>Fault</td>
+                    <td>x87 FPU Error</td>
+                    <td>None. x87 FPU provides own error information</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="ffffff">17</td>
+                    <td>Fault</td>
+                    <td>Alignment Check (486+ Only)</td>
+                    <td>Always 0</td>
+                  </tr>
+
+                  <tr>
+                    <td bgcolor="ffffff">18</td>
+                    <td>Abort</td>
+                    <td>Machine Check (Pentium/586+ Only)</td>
+                    <td>None. Error information abtained from MSRs</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="ffffff">19</td>
+                    <td>Fault</td>
+                    <td>SIMD FPU Exception</td>
+                    <td>None</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="ffffff">20-31</td>
+                    <td>-</td>
+                    <td>Reserved</td>
+                    <td>-</td>
+                  </tr>
+
+                  <tr>
+                    <td bgcolor="ffffff">32-255</td>
+                    <td>-</td>
+                    <td>Avilable for software use</td>
+                    <td>Not applicable</td>
+                  </tr>
+                </tbody>
+              </table>
+            </center>
+
+            <p data-dl-uid="501" data-dl-original="true" data-dl-translated="true"></p>
+            <h3 data-dl-uid="502" data-dl-original="true" data-dl-translated="true">
+              IRQ 0とシステムタイマ
+            </h3>
+
+            ご存知のように、プロテクトモードに入る場合、すべての割り込みは無効化されていなければなりません。これを行わないと、次のクロックティックですぐにトリプルフォルトが発生します。これはなぜでしょうか？
+            <p data-dl-uid="503" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="504" data-dl-original="true" data-dl-translated="true"
+                >システムタイマーは</b
+              >、通常<b data-dl-uid="505" data-dl-original="true" data-dl-translated="true"
+                >8253プログラマブルインターバルタイマー（PIT</b
+              >）の一形態で、<b data-dl-uid="506" data-dl-original="true" data-dl-translated="true"
+                >IRQ 0を</b
+              >使用して、クロックティックが発生したときにそれを知らせます。このデバイスは、システムBIOSによってこのように設定されています。
+            </p>
+            <p data-dl-uid="507" data-dl-original="true" data-dl-translated="true">
+              しかし、ちょっと待ってください。*上の表を見てください*、それは<b
+                data-dl-uid="508"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >Divide by 0</b
+              >エラーではありませんか？<b
+                data-dl-uid="509"
+                data-dl-original="true"
+                data-dl-translated="true"
+                ><i data-dl-uid="510" data-dl-original="true" data-dl-translated="true"
+                  >ビンゴです。</i
+                ></b
+              >
+            </p>
+            <p data-dl-uid="511" data-dl-original="true" data-dl-translated="true">
+              保護モードに切り替えたために、テーブルが無効になってしまったのですから、この先どうなることやら。このため、次のシステムティックで即トリプルフォルトとなり、切り替える前に割り込みを無効にしなければならない理由です。
+            </p>
+            <p data-dl-uid="512" data-dl-original="true" data-dl-translated="true">
+              また、<b data-dl-uid="513" data-dl-original="true" data-dl-translated="true"
+                >8253プログラマブルインターバルタイマ（PIT</b
+              >）は<b data-dl-uid="514" data-dl-original="true" data-dl-translated="true"
+                >ハードウェアデバイス</b
+              >であり、上の表で例外（IRQ
+              0）を発生させることがわかりますか？実際のエラーなのか、それとも単なるチックなのか、どうすればわかるのでしょうか？
+            </p>
+            <p data-dl-uid="515" data-dl-original="true" data-dl-translated="true">
+              もっと詳しく見てみましょう。
+            </p>
+            <h3 data-dl-uid="516" data-dl-original="true" data-dl-translated="true">
+              8259Aプログラマブル割り込みコントローラ(PIC)のリマッピング
+            </h3>
+
+            8259A
+            PICは、ハードウェア割り込みを制御するために使用される標準的なコントローラです。ハードウェアマイコンは、PICに接続されたそれぞれのIRラインでPICに信号を送ります。これにより、PICはハードウェアデバイスが注意を必要としていることを「知る」ことができ、デバイスの要求を処理するためにプロセッサに割り込みを発生させるよう信号を送ることができます。
+            <p data-dl-uid="517" data-dl-original="true" data-dl-translated="true">
+              上記の例では、8253 PITが8259A PICにシステムティックを処理するよう信号を送り、IRQ 0（8253
+              PITはIRQ
+              0を使用することを覚えておいてください）を発生させました。これは、a）0による除算例外と、b）まだ書いていないため無効なコードであり、トリプルフォルトを引き起こしました。
+            </p>
+            <p data-dl-uid="518" data-dl-original="true" data-dl-translated="true">
+              この問題を解決するには、8259A
+              PICマイクロコントローラーを再プログラムして、ハードウェアデバイスが異なるIRQを使用するように再マッピングする必要があります。
+            </p>
+            <p data-dl-uid="519" data-dl-original="true" data-dl-translated="true">
+              IFはハードウェア割り込みにしか適用されないため、IFが0（割り込み禁止）の場合でもソフトウェア割り込みを使用できることに留意してください。しかし、ハードウェア割り込みを再び有効にしたい場合は、PICを再プログラムする必要があります。
+            </p>
+            <p data-dl-uid="520" data-dl-original="true" data-dl-translated="true">
+              8259A
+              PICは、プログラムするのがかなり複雑なマイコンです。幸いなことに、そのモードのほとんどは私たちに適用されることはありません。
+            </p>
+            <p data-dl-uid="521" data-dl-original="true" data-dl-translated="true">
+              最後のデモは、PICを再プログラムし、割り込みを再有効化するものです。このチュートリアルを最大限に活用するために、<a
+                href="pic.html"
+                data-dl-uid="522"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >8259A Programmable Interrupt Controllerの</a
+              >チュートリアルを読むことをお勧めします。
+            </p>
+
+            <h2 data-dl-uid="543" data-dl-original="true" data-dl-translated="true">
+              ハードウェアの抽象化
+            </h2>
+
+            このデモには、今まで見たことのない多くの追加ファイルが含まれています。このため、コードダンプのようなもので、これはここで避けたいことです。その多くは非常にシンプルで、私たちがこれまで見てきたものであり、ブートローダにも実装されているものです。<b
+              data-dl-uid="544"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >idt.h</b
+            >と<b data-dl-uid="545" data-dl-original="true" data-dl-translated="true">idt.cpp の</b
+            >中には、ここで学んだことをカバーする新しいコードもあります:<b
+              data-dl-uid="546"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >割り込み記述子テーブル (IDT)</b
+            >.
+            <p data-dl-uid="547" data-dl-original="true" data-dl-translated="true">
+              これはまた、私たちの<b data-dl-uid="548" data-dl-original="true" data-dl-translated="true"
+                >ハードウェア抽象化レイヤ(HAL)</b
+              >の始まりでもあります!
+            </p>
+            <p data-dl-uid="549" data-dl-original="true" data-dl-translated="true">
+              ご存知のように、私はこの連載を始めるにあたって、ハードウェアの抽象化とその重要性を強調してきました。その理由は、HALの構築を続けていくうちに、すぐにおわかりいただけると思います。Hal
+              をカーネルから完全に独立させることの利点も、ここでわかるかもしれませんね。
+            </p>
+            <p data-dl-uid="550" data-dl-original="true" data-dl-translated="true">
+              さて、それでは HAL の主要なインターフェースの始まりを見てみましょう。
+            </p>
+            <h2 data-dl-uid="551" data-dl-original="true" data-dl-translated="true">
+              Hal - include/hal.h - HAL のためのプラットフォーム非依存型インターフェース
+            </h2>
+
+            これはHALとカーネルとの間のインターフェースです。これは標準のインクルードディレクトリの一部であり、その実装とは完全に分離されています。ヘッダーファイルは、その中のルーチンを定義する任意のインプリメンテーションによって使用されることを意図しているため、すべてのルーチンは<b
+              data-dl-uid="552"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >externと</b
+            >宣言されています。インプリメンテーションはアーキテクチャに依存しますが、インターフェースは特定のインプリメンテーションに結合されることはなく、完全にハードウェアに依存しないものとなっています。
+            <p data-dl-uid="553" data-dl-original="true" data-dl-translated="true">
+              実装自体はアーキテクチャに依存しますが、我々は単純に異なるアーキテクチャのための実装を構築することができます。各インプリメンテーションはこの共通のインターフェースを使い、(hal.dllのような)ダイナミックローディングをサポートできるので、a)異なるアーキテクチャ用に構築するときにどの静的HALインプリメンテーションを使うかリンクするか、b)
+              異なるHALを独立して構築し、スタートアップ時にどのHALを使用するかを選択できるのです。これらはすべて同じインタフェース
+              (Hal.h) を使っているので、異なる実装 (したがって異なるハードウェアセットアップ)
+              を使うためにカーネルを変更する必要はありません。
+            </p>
+            <p data-dl-uid="554" data-dl-original="true" data-dl-translated="true">
+              今のところ2つの関数しかありません。必要ならもっと追加する予定です。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">//! Initialize and shutdown hal
+extern int Hal_Initialize ();
+extern int Hal_Shutdown ();</div></pre>
+            </blockquote>
+
+            これらのルーチンのプロトタイプは、スタートアップとシャットダウンのパラメータを指定できるように変更する予定です。いずれにせよ、これらは非常に汎用的なルーチンで、インプリメンテーションのために必要であれば、ハードウェアのセットアップとシャットダウンの方法を提供することを意図しています。
+            <p data-dl-uid="558" data-dl-original="true" data-dl-translated="true">
+              halの中にはgdt, idt,
+              cpuとhal.cppのための非常にシンプルなレイヤーのソフトウェアがいくつか存在します。これらは下のレイヤーを初期化するだけなので（Hal.cppはcpu
+              initializeルーチンを呼び出し、それがgdtとidt
+              initializeメソッドを呼び出します）、このチュートリアルを必要以上に複雑にしてしまうかもしれないので、ここに掲載するつもりはありません。
+            </p>
+            <p data-dl-uid="559" data-dl-original="true" data-dl-translated="true">
+              代わりに、halの大部分に注目しましょう：gdtセットアップコード、idtセットアップコード（これはこのチュートリアルで見たものの大部分を含んでいます）、そしてkenrelのmain()ルーチンです。いかがですか？
+            </p>
+            <p data-dl-uid="560" data-dl-original="true" data-dl-translated="true">
+              GDTの詳細については説明しません。GDTの完全な説明については、<a
+                href="OSDev8.html"
+                data-dl-uid="561"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >チュートリアル8を</a
+              >参照してください。
+            </p>
+
+            <h2 data-dl-uid="562" data-dl-original="true" data-dl-translated="true">
+              Hal - hal/gdt.h - グローバルディスクリプタテーブル
+            </h2>
+
+            <h3 data-dl-uid="563" data-dl-original="true" data-dl-translated="true">
+              ディスクリプタテーブル ...再び
+            </h3>
+
+            そうです、GDTはあなたを悩ますために戻ってきたのです!...そうです、あなたです!
+
+            <p data-dl-uid="564" data-dl-original="true" data-dl-translated="true">
+              GDTはかなり複雑な構造をしていますね。ご存知のように、GDTはディスクリプタの配列です。GDTのディスクリプタの形式は何だったっけ？そう、じゃあ、いいや...。
+            </p>
+
+            <ul data-dl-uid="565" data-dl-original="true" data-dl-translated="true">
+              <li data-dl-uid="566" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="567" data-dl-original="true" data-dl-translated="true">ビット56-63</b
+                >ベースアドレスの24-32ビット
+              </li>
+              <li data-dl-uid="568" data-dl-original="true" data-dl-translated="true">
+                ビット<b data-dl-uid="569" data-dl-original="true" data-dl-translated="true">55：</b>粒度
+              </li>
+
+              <ul data-dl-uid="570" data-dl-original="true" data-dl-translated="true">
+                <li data-dl-uid="571" data-dl-original="true" data-dl-translated="true">
+                  <b data-dl-uid="572" data-dl-original="true" data-dl-translated="true">0：</b>なし
+                </li>
+                <li data-dl-uid="573" data-dl-original="true" data-dl-translated="true">
+                  <b data-dl-uid="574" data-dl-original="true" data-dl-translated="true">1</b>:
+                  制限値が4K倍される
+                </li>
+              </ul>
+              <li data-dl-uid="575" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="576" data-dl-original="true" data-dl-translated="true">ビット54</b
+                >：セグメントタイプ
+              </li>
+
+              <ul data-dl-uid="577" data-dl-original="true" data-dl-translated="true">
+                <li data-dl-uid="578" data-dl-original="true" data-dl-translated="true">
+                  <b data-dl-uid="579" data-dl-original="true" data-dl-translated="true">0:</b>16ビット
+                </li>
+                <li data-dl-uid="580" data-dl-original="true" data-dl-translated="true">
+                  <b data-dl-uid="581" data-dl-original="true" data-dl-translated="true">1:</b>32ビット
+                </li>
+              </ul>
+              <li data-dl-uid="582" data-dl-original="true" data-dl-translated="true">
+                ビット<b data-dl-uid="583" data-dl-original="true" data-dl-translated="true">53：</b
+                >予約-0でなければならない
+              </li>
+
+              <li data-dl-uid="584" data-dl-original="true" data-dl-translated="true">
+                ビット<b data-dl-uid="585" data-dl-original="true" data-dl-translated="true">52：</b
+                >OS用予約
+              </li>
+              <li data-dl-uid="586" data-dl-original="true" data-dl-translated="true">
+                ビット<b data-dl-uid="587" data-dl-original="true" data-dl-translated="true">48-51：</b
+                >セグメント制限のビット16-19
+              </li>
+              <li data-dl-uid="588" data-dl-original="true" data-dl-translated="true">
+                ビット<b data-dl-uid="589" data-dl-original="true" data-dl-translated="true">47</b
+                >セグメントはメモリ内にある（仮想メモリで使用）。
+              </li>
+              <li data-dl-uid="590" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="591" data-dl-original="true" data-dl-translated="true">ビット45-46</b
+                >ディスクリプタ特権レベル
+              </li>
+
+              <ul data-dl-uid="592" data-dl-original="true" data-dl-translated="true">
+                <li data-dl-uid="593" data-dl-original="true" data-dl-translated="true">
+                  <b data-dl-uid="594" data-dl-original="true" data-dl-translated="true">0:</b>(リング 0)
+                  最高
+                </li>
+                <li data-dl-uid="595" data-dl-original="true" data-dl-translated="true">
+                  <b data-dl-uid="596" data-dl-original="true" data-dl-translated="true">3:</b
+                  >(リング3)最低
+                </li>
+              </ul>
+              <li data-dl-uid="597" data-dl-original="true" data-dl-translated="true">
+                ビット<b data-dl-uid="598" data-dl-original="true" data-dl-translated="true">44：</b
+                >ディスクリプタ・ビット
+              </li>
+
+              <ul data-dl-uid="599" data-dl-original="true" data-dl-translated="true">
+                <li data-dl-uid="600" data-dl-original="true" data-dl-translated="true">
+                  <b data-dl-uid="601" data-dl-original="true" data-dl-translated="true">0：</b
+                  >システム記述子
+                </li>
+                <li data-dl-uid="602" data-dl-original="true" data-dl-translated="true">
+                  <b data-dl-uid="603" data-dl-original="true" data-dl-translated="true">1：</b
+                  >コードまたはデータディスクリプタ
+                </li>
+              </ul>
+              <li data-dl-uid="604" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="605" data-dl-original="true" data-dl-translated="true">ビット41～43</b
+                >ディスクリプタタイプ
+              </li>
+
+              <ul data-dl-uid="606" data-dl-original="true" data-dl-translated="true">
+                <li data-dl-uid="607" data-dl-original="true" data-dl-translated="true">
+                  <b data-dl-uid="608" data-dl-original="true" data-dl-translated="true">ビット43:</b
+                  >実行可能セグメント
+                </li>
+                <ul data-dl-uid="609" data-dl-original="true" data-dl-translated="true">
+                  <li data-dl-uid="610" data-dl-original="true" data-dl-translated="true">
+                    <b data-dl-uid="611" data-dl-original="true" data-dl-translated="true">0:</b
+                    >データセグメント
+                  </li>
+                  <li data-dl-uid="612" data-dl-original="true" data-dl-translated="true">
+                    <b data-dl-uid="613" data-dl-original="true" data-dl-translated="true">1:</b
+                    >コードセグメント
+                  </li>
+                </ul>
+                <li data-dl-uid="614" data-dl-original="true" data-dl-translated="true">
+                  ビット<b data-dl-uid="615" data-dl-original="true" data-dl-translated="true">42:</b
+                  >展開方向(データセグメント)、準拠(コードセグメント)
+                </li>
+                <li data-dl-uid="616" data-dl-original="true" data-dl-translated="true">
+                  ビット<b data-dl-uid="617" data-dl-original="true" data-dl-translated="true">41:</b
+                  >読み出し可能、書き込み可能
+                </li>
+                <ul data-dl-uid="618" data-dl-original="true" data-dl-translated="true">
+                  <li data-dl-uid="619" data-dl-original="true" data-dl-translated="true">
+                    <b data-dl-uid="620" data-dl-original="true" data-dl-translated="true">0：</b
+                    >読み出しのみ（データセグメント）、実行のみ（コードセグメント）
+                  </li>
+
+                  <li data-dl-uid="621" data-dl-original="true" data-dl-translated="true">
+                    <b data-dl-uid="622" data-dl-original="true" data-dl-translated="true">1：</b
+                    >読出しと書込み（データセグメント）、読出しと実行（コードセグメント）
+                  </li>
+                </ul>
+              </ul>
+              <li data-dl-uid="623" data-dl-original="true" data-dl-translated="true">
+                ビット<b data-dl-uid="624" data-dl-original="true" data-dl-translated="true">40：</b
+                >アクセスビット（仮想メモリで使用）
+              </li>
+              <li data-dl-uid="625" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="626" data-dl-original="true" data-dl-translated="true">ビット16～39</b
+                >ビット16～39：ベースアドレスのビット0～23
+              </li>
+
+              <li data-dl-uid="627" data-dl-original="true" data-dl-translated="true">
+                ビット<b data-dl-uid="628" data-dl-original="true" data-dl-translated="true">0-15</b
+                >：セグメントリミットのビット0-15
+              </li>
+            </ul>
+
+            *恐怖で悲鳴を上げながら走り去る*。
+            <p data-dl-uid="629" data-dl-original="true" data-dl-translated="true">
+              はいはい、もうやめときますね
+              :)しかし、真面目な話、Intelはこの構造をもっときれいに作れたと思いませんか？:)
+            </p>
+            <h3 data-dl-uid="630" data-dl-original="true" data-dl-translated="true">
+              C言語の構造体を作る
+            </h3>
+
+            この構造は、Cの組み込み型を使って、Cスタイルの素敵な構造の後ろに隠すことができます。最初の15ビットがセグメントの制限（uint16_tのサイズ）であることを知っている、<b
+              data-dl-uid="631"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >それがデータメンバ1</b
+            >である。次の16ビットはベースアドレスの0-23ビットで、これは1つのuint16_tまたは2つのuint8_tとして表現できます。次の16ビット（GDTの41-56ビット）は、16ビット<b
+              data-dl-uid="632"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >です</b
+            >。これはフラグ値を含む醜い構造の大部分で、もちろん2つのuint8_tまたは1つのuint16_tを使って表現することができる。<b
+              data-dl-uid="633"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >これが次のデータ・メンバーです。</b
+            >最後の1バイトはベースアドレスです。<b
+              data-dl-uid="634"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >これが最後のデータ・メンバーです。</b
+            >
+
+            <p data-dl-uid="635" data-dl-original="true" data-dl-translated="true">
+              以上のように、あの醜い構造体は、構造体の中の4〜5個の素敵なメンバーで表現することができます。これが私たちの構造体です。この構造体を上の説明や表と比較して、どこに何が収まっているかを確認してみてください。
+              また、この構造体は1バイトにパックされているので、64ビットの大きさが保証されていることも覚えておいてください。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">#ifdef _MSC_VER
+#pragma pack (push, 1)
+#endif
+ 
+//! gdt descriptor. A gdt descriptor defines the properties of a specific
+//! memory block and permissions.
+ 
+struct gdt_descriptor {
+ 
+	//! bits 0-15 of segment limit
+	uint16_t		limit;
+ 
+	//! bits 0-23 of base address
+	uint16_t		baseLo;
+	uint8_t			baseMid;
+ 
+	//! descriptor bit flags. Set using bit masks above
+	uint16_t		flags;
+ 
+	//! bits 24-32 of base address
+	uint8_t			baseHi;
+};
+ 
+#ifdef _MSC_VER
+#pragma pack (pop, 1)
+#endif</div></pre>
+            </blockquote>
+
+            簡単ですね。構造体内のフラグバイトを構築するために設定できるビットフラグがたくさんあります。
+            ヘッダーファイルを見て、それらがどのように機能するかを確認してください。基本的には、設定したいビットフラグをビットごとに
+            OR することになります。次のセクションで、この方法を説明します。
+            <h3 data-dl-uid="639" data-dl-original="true" data-dl-translated="true">gdtrの抽象化</h3>
+
+            <a href="06.html" data-dl-uid="640" data-dl-original="true" data-dl-translated="true"
+              >チュートリアルで</a
+            >、プロテクトモード、gdt、gdtrについて説明しました。
+            gdtrは、使用するGDTを指定するためのプロセッサ内部のレジスターです。48ビットのポインターで、次のような書式に従わなければなりません。
+
+            <ul>
+              <li><b>Bits 0-15:</b> size of entire gdt</li>
+
+              <li><b>Bits 16-48:</b> base address of gdt</li>
+            </ul>
+
+            なるほど、これはC言語の構造体に変換するのが簡単ですね。上記の形式に従っていることに注目してください。
+
+            <blockquote>
+              <pre><div class="code">#ifdef _MSC_VER
+#pragma pack (push, 1)
+#endif
+ 
+//! processor gdtr register points to base of gdt. This helps
+//! us set up the pointer
+struct gdtr {
+ 
+	//! size of gdt
+	uint16_t		m_limit;
+ 
+	//! base address of gdt
+	uint32_t		m_base;
+};
+ 
+#ifdef _MSC_VER
+#pragma pack (pop, 1)
+#endif
+ 
+// Global Descriptor Table (GDT)
+static struct gdt_descriptor			_gdt [MAX_DESCRIPTORS];
+ 
+//! gdtr data
+static struct gdtr				_gdtr;
+</div></pre>
+            </blockquote>
+
+            ここで新しいGDTと_gdtrを見ることができますが、これはプロセッサのGDTRレジスタをセットアップするときに参照するために使用されます。
+            <h3 data-dl-uid="649" data-dl-original="true" data-dl-translated="true">
+              gdt_install():gdtr に gdt をインストールする。
+            </h3>
+
+            このルーチンは非常に単純なものです。lgdt 命令を使用して GDTR を gdtr
+            ポインタでロードしているだけです。 CS は決して変化しないので、ここで far jump
+            を行う必要はありません。
+
+            <blockquote>
+              <pre><div class="code">//! installs gdtr
+static void gdt_install () {
+#ifdef _MSC_VER
+	_asm lgdt [_gdtr]
+#endif
+}</div></pre>
+            </blockquote>
+
+            <h3 data-dl-uid="653" data-dl-original="true" data-dl-translated="true">
+              gdt_set_descriptor():gdt に新しいディスクリプタを設定します。
+            </h3>
+
+            このルーチンはGDTに新しいディスクリプタをインストールするために使用されます。ほとんどの場合、これはそれほど難しいことではありません。
+
+            <blockquote>
+              <pre><div class="code">//! Setup a descriptor in the Global Descriptor Table
+void gdt_set_descriptor(uint32_t i, uint64_t base, uint64_t limit, uint8_t access, uint8_t grand)
+{
+	if (i &gt; MAX_DESCRIPTORS)
+		return;
+ 
+	//! null out the descriptor
+	memset ((void*)&amp;_gdt[i], 0, sizeof (gdt_descriptor));
+ 
+	//! set limit and base addresses
+	_gdt[i].baseLo	= base &amp; 0xffff;
+	_gdt[i].baseMid	= (base &gt;&gt; 16) &amp; 0xff;
+	_gdt[i].baseHi	= (base &gt;&gt; 24) &amp; 0xff;
+	_gdt[i].limit	= limit &amp; 0xffff;
+ 
+	//! set flags and grandularity bytes
+	_gdt[i].flags = access;
+	_gdt[i].grand = (limit &gt;&gt; 16) &amp; 0x0f;
+	_gdt[i].grand |= grand &amp; 0xf0;
+ 
+}</div></pre>
+            </blockquote>
+
+            <h3 data-dl-uid="657" data-dl-original="true" data-dl-translated="true">
+              i86_gdt_initialize() - gdt を初期化する。
+            </h3>
+
+            このルーチンはすべてを一つにまとめます。GDTR
+            構造を設定し、いくつかのデフォルトのディスクリプタを GDT にインストールし、最後に GDT
+            をインストールするだけです。この GDT
+            は、ブートローダと同じものです。ベースアドレスは0、リミット（最大アドレス）は4GB(0xffffff)です。フラグはすべて<b
+              data-dl-uid="658"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >gdt.hで</b
+            >定義されています。これらは可読性を高め、醜いマジックナンバーを取り除くために定義されています。フラグを使えば、ディスクリプタが何のためにあるのか、もっと簡単にわかるはずです!
+
+            <blockquote>
+              <pre><div class="code">//! initialize gdt
+int i86_gdt_initialize () {
+ 
+	//! set up gdtr
+	_gdtr.m_limit = (sizeof (struct gdt_descriptor) * MAX_DESCRIPTORS)-1;
+	_gdtr.m_base = (uint32_t)&amp;_gdt[0];
+ 
+	//! set null descriptor
+	gdt_set_descriptor(0, 0, 0, 0, 0);
+ 
+	//! set default code descriptor
+	gdt_set_descriptor (1,0,0xffffffff,
+		I86_GDT_DESC_READWRITE|I86_GDT_DESC_EXEC_CODE|I86_GDT_DESC_CODEDATA|I86_GDT_DESC_MEMORY,
+		I86_GDT_GRAND_4K | I86_GDT_GRAND_32BIT | I86_GDT_GRAND_LIMITHI_MASK);
+ 
+	//! set default data descriptor
+	gdt_set_descriptor (2,0,0xffffffff,
+		I86_GDT_DESC_READWRITE|I86_GDT_DESC_CODEDATA|I86_GDT_DESC_MEMORY,
+		I86_GDT_GRAND_4K | I86_GDT_GRAND_32BIT | I86_GDT_GRAND_LIMITHI_MASK);
+ 
+	//! install gdtr
+	gdt_install ();
+ 
+	return 0;
+}</div></pre>
+            </blockquote>
+
+            <h2 data-dl-uid="662" data-dl-original="true" data-dl-translated="true">
+              Hal: インタラプトディスクリプタテーブル
+            </h2>
+
+            ここが面白いところです!IDTインタフェースは、idt.hとidt.cppのソースファイルの中にあります。
+            <h3 data-dl-uid="663" data-dl-original="true" data-dl-translated="true">
+              hal.h - idt_descriptor
+            </h3>
+
+            これは割込みディスクリプタの構造です。このチュートリアルで見たディスクリプタの形式と比較してみてください。
+
+            <blockquote>
+              <pre><div class="code">#ifdef _MSC_VER
+#pragma pack (push, 1)
+#endif
+ 
+//! interrupt descriptor
+struct idt_descriptor {
+ 
+	//! bits 0-16 of interrupt routine (ir) address
+	uint16_t		baseLo;
+ 
+	//! code selector in gdt
+	uint16_t		sel;
+ 
+	//! reserved, shold be 0
+	uint8_t			reserved;
+ 
+	//! bit flags. Set with flags above
+	uint8_t			flags;
+ 
+	//! bits 16-32 of ir address
+	uint16_t		baseHi;
+};
+ 
+#ifdef _MSC_VER
+#pragma pack (pop, 1)
+#endif</div></pre>
+            </blockquote>
+
+            各メンバが何を表し、割込みディスクリプタのどの位置にあるかを見てみましょう。
+            <ul data-dl-uid="667" data-dl-original="true" data-dl-translated="true">
+              <li data-dl-uid="668" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="669" data-dl-original="true" data-dl-translated="true">baseLo</b>-
+                割り込みルーチン(IR)のベースアドレスの最初の16ビットです。
+              </li>
+              <ul data-dl-uid="670" data-dl-original="true" data-dl-translated="true">
+                <li data-dl-uid="671" data-dl-original="true" data-dl-translated="true">
+                  これは全体の割り込み記述子内のビット0～15です。割り込み<b
+                    data-dl-uid="672"
+                    data-dl-original="true"
+                    data-dl-translated="true"
+                    >ディスクリプタに</b
+                  >記載されている表と比較してください。<b data-dl-uid="672" data-dl-translated="true"
+                    >構造</b
+                  >
+                </li>
+              </ul>
+              <li data-dl-uid="673" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="674" data-dl-original="true" data-dl-translated="true">sel</b>-
+                セグメントセレクタ
+              </li>
+
+              <ul data-dl-uid="675" data-dl-original="true" data-dl-translated="true">
+                <li data-dl-uid="676" data-dl-original="true" data-dl-translated="true">
+                  割り込みディスクリプタ全体のうち、16～31ビット目です。
+                </li>
+              </ul>
+              <li data-dl-uid="677" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="678" data-dl-original="true" data-dl-translated="true">reserved</b>-
+                えー...非常に有用な情報です。）
+              </li>
+              <ul data-dl-uid="679" data-dl-original="true" data-dl-translated="true">
+                <li data-dl-uid="680" data-dl-original="true" data-dl-translated="true">
+                  これは、割り込みディスクリプタ全体の31-38ビットです。
+                </li>
+              </ul>
+              <li data-dl-uid="681" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="682" data-dl-original="true" data-dl-translated="true">flags</b>-
+                面白い情報があるところです!
+              </li>
+              <ul data-dl-uid="683" data-dl-original="true" data-dl-translated="true">
+                <li data-dl-uid="684" data-dl-original="true" data-dl-translated="true">
+                  割り込みディスクリプタの39-41ビットです。これは、ビットフラグがある場所です。
+                </li>
+                <li data-dl-uid="685" data-dl-original="true" data-dl-translated="true">
+                  インタラプトディスクリプタ ビート42-45。これはDPL(Descriptor Priveldge Level)です。
+                </li>
+              </ul>
+              <li data-dl-uid="686" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="687" data-dl-original="true" data-dl-translated="true">baseHi</b>-
+                IRのベースアドレスのビット16-31。
+              </li>
+              <ul data-dl-uid="688" data-dl-original="true" data-dl-translated="true">
+                <li data-dl-uid="689" data-dl-original="true" data-dl-translated="true">
+                  これは、全体の割り込みディスクリプタ内のビット46-64です。
+                </li>
+              </ul>
+            </ul>
+            簡単ですね。この構造体は、割り込みディスクリプタのレイアウトと完全に一致していることに注意してください。
+            さて、割り込みディスクリプタの説明ができたので、IDTをインストールする方法を見てみましょう。
+
+            <h3 data-dl-uid="690" data-dl-original="true" data-dl-translated="true">idt.cpp - idtr</h3>
+
+            gdtr 構造体と同じように、idtr 構造体も用意しました。この構造体は、idtr
+            レジスタの構造体と全く同じであることに注意してください。
+
+            <blockquote>
+              <pre><div class="code">#ifdef _MSC_VER
+#pragma pack (push, 1)
+#endif
+ 
+//! describes the structure for the processors idtr register
+struct idtr {
+ 
+	//! size of the interrupt descriptor table (idt)
+	uint16_t		limit;
+ 
+	//! base address of idt
+	uint32_t		base;
+};
+ 
+#ifdef _MSC_VER
+#pragma pack (pop, 1)
+#endif
+ 
+ 
+//! interrupt descriptor table
+static struct idt_descriptor	_idt [I86_MAX_INTERRUPTS];
+ 
+//! idtr structure used to help define the cpu's idtr register
+static struct idtr				_idtr;</div></pre>
+            </blockquote>
+
+            さて...IDT
+            は割り込みディスクリプタの配列に過ぎないことを思い出してください。これによって、_idtrは参照用として、プロセッサのIDTRレジスタに現在の情報を保存し、私たちが使用できるようにします。基本的に、私たちがここからしなければならないことは、IDTと_idtrをセットアップすることです;
+            それからIDTをインストールすることです!難しいことではありません :)
+            <h3 data-dl-uid="694" data-dl-original="true" data-dl-translated="true">
+              idt_install() - 新しい IDT をインストールします。
+            </h3>
+            これはIDTをIDTRにインストールするために使用されます。これは、コンパイラ間の移植性を高めるために、インラインアセンブリ言語(コンパイラに依存します)を共通のインターフェースの後ろに抽象化するために使用されるヘルパーメソッドです。
+
+            <blockquote>
+              <pre><div class="code">//! installs idtr into processors idtr register
+static void idt_install () {
+#ifdef _MSC_VER
+	_asm lidt [_idtr]
+#endif}</div></pre>
+            </blockquote>
+
+            <h3 data-dl-uid="698" data-dl-original="true" data-dl-translated="true">
+              i86_default_handler() - デフォルトのインタラプトハンドラ
+            </h3>
+
+            私たちのIDTインタフェースは、独自の割り込み処理ルーチンをIDTに直接インストールする方法を提供します。256個の割り込みがあるので、256個の割り込みハンドラがあります。そのため、256個の割り込みがあり、256個の割り込みハンドラがあります。では、カーネルがまだ扱っていない割り込みが発生した場合はどうなるのでしょうか？
+            <p data-dl-uid="699" data-dl-original="true" data-dl-translated="true">
+              これはそのためのものです!これは IDT
+              インターフェースがインストールする基本的な未処理の例外ハンドラです
+              (これについては後で説明します。)
+              このハンドラが行うことは、デバッグモード用にビルドされている場合、エラーを表示することだけです。そして、システムを停止させます。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">//! default handler to catch unhandled system interrupts.
+void i86_default_handler () {
+ 
+#ifdef _DEBUG
+	DebugClrScr (0x18);
+	DebugGotoXY (0,0);
+	DebugSetColor (0x1e);
+	DebugPrintf ("*** [i86 Hal] i86_default_handler: Unhandled Exception");
+#endif
+ 
+	for(;;);
+}</div></pre>
+            </blockquote>
+
+            <p data-dl-uid="703" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="704" data-dl-original="true" data-dl-translated="true"
+                >割り込みから復帰する...</b
+              >
+            </p>
+            <p data-dl-uid="705" data-dl-original="true" data-dl-translated="true">
+              CやC++では、IRから戻るときに自動的にスタックから値をポップアウトしてRET命令を発行しています。これはまずい!このため、IRET命令で復帰する方法を独自に発行する必要があります。
+            </p>
+            <h3 data-dl-uid="706" data-dl-original="true" data-dl-translated="true">
+              geninterrupt() - 割り込みコールを生成する
+            </h3>
+
+            これはちょっとやっかいです。これは、より多くのコンパイラの移植性を高めるために、インラインアセンブリ言語を共通のインタフェースの背後に抽象化するために提供される別のヘルパーメソッドです。しかし、それはまた、アブリタリ割り込みコールを生成するという課題を隠蔽するものでもあります。
+            <p data-dl-uid="707" data-dl-original="true" data-dl-translated="true">
+              問題は、割り込み（INT命令）のOPCodeは1つのフォーマットしかないことです。0xCDimm（immは中間値）です。このため、INT命令ではレジスタもメモリも使用することができません。もちろん、いろいろな方法があります。私は、自己修正コードという、早くて小さな解決策を選びました。
+            </p>
+            <p data-dl-uid="708" data-dl-original="true" data-dl-translated="true">
+              基本的には、INT
+              OPCodeの2バイト目を変更すればよいのです。これは常に2バイト（1バイト目は0xCD、2バイト目は呼び出す割り込み番号）であることを知っていれば、非常に簡単な解決方法です。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">//! generate interrupt call
+void geninterrupt (int n) {
+#ifdef _MSC_VER
+	_asm {
+		mov al, byte ptr [n]
+		mov byte ptr [genint+1], al
+		jmp genint
+	genint:
+		int 0	// above code modifies the 0 to int number to generate
+	}
+#endif
+}
+</div></pre>
+            </blockquote>
+
+            <h3 data-dl-uid="712" data-dl-original="true" data-dl-translated="true">
+              i86_install_ir () - 割り込みハンドラをIDTにインストールする
+            </h3>
+
+            これは少し厄介ですが、それほど難しいことではありません。構造体の<b
+              data-dl-uid="713"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >baseLo</b
+            >と<b data-dl-uid="714" data-dl-original="true" data-dl-translated="true">baseHi</b
+            >メンバは<b data-dl-uid="715" data-dl-original="true" data-dl-translated="true"
+              >割り込みルーチン (IR</b
+            >)
+            のハイビットとロービットを含んでいることを思い出してください。つまり、IR関数のアドレスを取得し、そのハイビットとロービットを格納するだけでよいのです。これは、<b
+              data-dl-uid="716"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >関数ポインタによって</b
+            >行われます。
+            <p data-dl-uid="717" data-dl-original="true" data-dl-translated="true">
+              パラメータとして関数ポインタを渡します。このルーチンはポインタが指す関数のアドレスを取得し、ロービットとハイビットをマスクして<b
+                data-dl-uid="718"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >_idt [i]</b
+              >
+              の構造体に格納します（i は IDT のディスクリプタオフセット（割り込み番号））。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">//! installs a new interrupt handler
+int i86_install_ir (uint32_t i, uint16_t flags, uint16_t sel, I86_IRQ_HANDLER irq) {
+ 
+	if (i&gt;I86_MAX_INTERRUPTS)
+		return 0;
+ 
+	if (!irq)
+		return 0;
+ 
+	//! get base address of interrupt handler
+	uint64_t		uiBase = (uint64_t)&amp;(*irq);
+ 
+	//! store base address into idt
+	_idt[i].baseLo		=	uiBase &amp; 0xffff;
+	_idt[i].baseHi		=	(uiBase &gt;&gt; 16) &amp; 0xffff;
+	_idt[i].reserved	=	0;
+	_idt[i].flags		=	flags;
+	_idt[i].sel		=	sel;
+ 
+	return	0;
+}</div></pre>
+            </blockquote>
+
+            これには少し意味があります。割り込みが発生したとき、プロセッサが情報をスタックにプッシュしてくれたのを覚えていますか？この情報は、このルーチンが呼び出されたときに、パラメータ・リストに表示されます。ただし、エラーコードをプッシュする割り込みもあれば、しない割り込みもあるので、注意が必要です。
+            <h3 data-dl-uid="722" data-dl-original="true" data-dl-translated="true">
+              i86_idt_initialize () - IDTインタフェースの初期化
+            </h3>
+
+            さて、すべてをまとめましょう。次のコードはIDTRをセットアップし、すべての割り込みをキャッチするデフォルトの割り込みハンドラをセットし（これはカーネルに必要な割り込みだけを定義するためです）、最後に上記のメソッドを使ってIDTをインストールするものです。
+            <p data-dl-uid="723" data-dl-original="true" data-dl-translated="true">
+              IDTのセットアップに使用するビット・フラグは<b
+                data-dl-uid="724"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >idt.hで</b
+              >定義されており、コードを読みやすく、修正しやすくするために提供されています。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">//! initialize idt
+int i86_idt_initialize (uint16_t codeSel) {
+ 
+	//! set up idtr for processor
+	_idtr.limit = sizeof (struct idt_descriptor) * I86_MAX_INTERRUPTS -1;
+	_idtr.base	= (uint32_t)&amp;_idt[0];
+ 
+	//! null out the idt
+	memset ((void*)&amp;_idt[0], 0, sizeof (idt_descriptor) * I86_MAX_INTERRUPTS-1);
+ 
+	//! register default handlers
+	for (int i=0; i&lt;I86_MAX_INTERRUPTS; i++)
+		i86_install_ir (i, I86_IDT_DESC_PRESENT | I86_IDT_DESC_BIT32,
+			codeSel, (I86_IRQ_HANDLER)i86_default_handler);
+ 
+	//! install our idt
+	idt_install ();
+ 
+	return 0;
+}</div></pre>
+            </blockquote>
+
+            <h2 data-dl-uid="729" data-dl-original="true" data-dl-translated="true">デモのまとめ</h2>
+
+            このデモは少し複雑です。少なくとも、醜い必要なものは手に入れました。INT
+            命令を発行すると、デフォルトのハンドラが呼び出されるのがわかると思います。もし、自分で割り込みハンドラをインストールしたら、エラーコードのあるものとないもの
+            の両方を試してみてください。割り込みが発生するのがわかると思います。geninterrupt() や INT
+            命令を呼び出すと、いつでも正しい割り込みハンドラ
+            (または割り込みハンドラが定義されていない場合はデフォルトのハンドラ)
+            が実行されるのがわかると思います。
+            <p data-dl-uid="730" data-dl-original="true" data-dl-translated="true">
+              このチュートリアルがもっと複雑にならないように、まだハードウェア割り込みを扱わないことにしました。次回のチュートリアルでは、カーネルのシステムタイマとして使用する<b
+                data-dl-uid="731"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >8253 Programmable Interval Timer (PIT)</b
+              >のコードと、ハードウェア割り込みに必要な<b
+                data-dl-uid="732"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >8259A Programmable Interrupt Controller</b
+              >
+              のコードを開発するのと同様に、これをカバーする予定です。
+            </p>
+            <p data-dl-uid="733" data-dl-original="true" data-dl-translated="true">
+              デモをよく研究し、すべてがどのように動くかを研究してください。<b
+                data-dl-uid="734"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >i86_install_ir()</b
+              >を使って独自の割り込みハンドラを登録し、割り込みを発生させるようにします。これを行うために必要なことは、以下の通りです。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">//! our uber 1337 interrupt handler. handles int 5 request
+void int_handler_5 () {
+ 
+	_asm add esp, 12
+	_asm pushad
+ 
+	// do whatever...
+ 
+	_asm popad
+	_asm iretd
+}
+ 
+//! registers our interrupt handler
+i86_install_ir (5, I86_IDT_DESC_PRESENT | I86_IDT_DESC_BIT32,
+	0x8, (I86_IRQ_HANDLER)int_handler_5);
+ 
+//! generates int 5 instruction. You can also use inline assembly, of course
+geninterrupt (5);</div></pre>
+            </blockquote>
+
+            割り込みハンドラのパラメータリストはフォーマットが変わる可能性があるので省くことにしました。
+            つまり、パラメータにアクセスするには、ESPからアクセスする必要があります。後で楽をするために、パラメータを与えることにするかもしれませんが。
+
+            <h1 data-dl-uid="740" data-dl-original="true" data-dl-translated="true">まとめ</h1>
+
+            今回は楽しいことがたくさんありましたね。
+            このチュートリアルでは、たくさんのことを学びました。このチュートリアルでは多くの重要なトピックを取り上げ、例外と割り込みの処理を取り上げ、システムで割り込みを再び有効にしました。
+            トリプルフォルトを見るのもこれが最後かもしれません。Woohoo!
+            <p data-dl-uid="741" data-dl-original="true" data-dl-translated="true">
+              このチュートリアルは少し複雑です。<i
+                data-dl-uid="742"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >OSのプログラミングは楽しいですよね。^_^</i
+              >
+            </p>
+            <p data-dl-uid="743" data-dl-original="true" data-dl-translated="true">
+              次のチュートリアルでは、カーネルをさらに発展させます。<b
+                data-dl-uid="744"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >8259A</b
+              >
+              PICチュートリアルと同様に、<b data-dl-uid="744" data-dl-translated="true"
+                >8254プログラマブルインターバルタイマ（PIT）マイクロコントローラ</b
+              >でタイミングを処理する予定です。その後、メモリ管理やプロセス管理を行う予定です。基本的なデバッグ用のテキストベースのコンソールを開発することもあるかもしれません。
+            </p>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </body>
+</html>
