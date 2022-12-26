@@ -18,7 +18,6 @@
         </tr>
       </tbody>
     </table>
-
     <table cellspacing="0" cellpadding="5" width="100%" border="0">
       <tbody>
         <tr>
@@ -26,7 +25,7 @@
             <!-- Title -->
 
             <div>
-              <span class="title">Kernel: Basic Concepts Part 2</span>
+              <span class="title">Prepare for the Kernel part 2</span>
 
               <br />
               <span class="author">by Mike, 2008, 2009</span>
@@ -35,509 +34,1404 @@
             <h1 data-dl-uid="7" data-dl-original="true" data-dl-translated="true">はじめに</h1>
             ようこそ!:)
             <p data-dl-uid="8" data-dl-original="true" data-dl-translated="true">
-              前回のチュートリアルで、多くの概念を取り上げました。このチュートリアルでは、これらの概念を引き続き見ていきます。
-              このチュートリアルでは、非常に重要な概念をたくさん見ていくことになります。今日のメニューは以下の通りです。
+              前回のチュートリアルでは、プロテクトモードでの基本的な VGA
+              プログラミングについて説明し、さらに 1337 のデモも作りました!
             </p>
-            <ul data-dl-uid="9" data-dl-original="true" data-dl-translated="true">
-              <li data-dl-uid="10" data-dl-original="true" data-dl-translated="true">
-                ハードウェアの抽象化
-              </li>
-              <li data-dl-uid="11" data-dl-original="true" data-dl-translated="true">
-                カーネル新しい視点
-              </li>
-              <li data-dl-uid="12" data-dl-original="true" data-dl-translated="true">
-                カーネル設計抽象化：主要な設計モデル
-              </li>
-              <li data-dl-uid="13" data-dl-original="true" data-dl-translated="true">
-                カーネルのデザイン概要: 二次設計モデル
-              </li>
-            </ul>
-
-            このチュートリアルでは、ブートローダとカーネル設計の初歩の間の接着剤について説明します。このチュートリアルは、カーネルが本当は何なのか、そして私たちが何をする必要があるのかを理解するために、すべてをまとめる接着剤となるでしょう。
-            <p data-dl-uid="14" data-dl-original="true" data-dl-translated="true">
-              ここで挙げたすべてのコンセプトは、次の数回のチュートリアルで非常に重要なものとなります。
+            <p data-dl-uid="9" data-dl-original="true" data-dl-translated="true">
+              このチュートリアルは、皆さんが待ち望んでいたものです。このチュートリアルは、以前のすべてのコードの上に直接構築され、1
+              MB のマークでカーネルをロードし、カーネルを実行します。
             </p>
-            <p data-dl-uid="15" data-dl-original="true" data-dl-translated="true">
-              それでは、快適なシートでくつろぎながら、もうひとつの楽しいチュートリアルを見てみましょう!そうそう、このチュートリアルはそんなに大きくないのがいいところです
-              :)
+            <p data-dl-uid="10" data-dl-original="true" data-dl-translated="true">
+              カーネルは私たちのOSの最も重要な部分です。カーネル...この謎の敵については、以前にも少しお話しましたね？これから数回のチュートリアルで、デザイン、構造、開発など、カーネルについてもっと詳しく説明します。
             </p>
-
-            <p data-dl-uid="19" data-dl-original="true" data-dl-translated="true">
-              <i data-dl-uid="20" data-dl-original="true" data-dl-translated="true"
-                >エキソカーネルについて説明するセクションを追加する予定です。これは本当に新しいカーネル設計の概念です。このシリーズでこの設計を実装する予定はありませんが、読者はこのカーネル設計に興味を持つかもしれないと感じています。もしかしたら、この設計を自分のOSで使うかもしれません。</i
+            <p data-dl-uid="11" data-dl-original="true" data-dl-translated="true">
+              今、私たちはすでにすべてのセットアップを終えています...カーネルをロードして、Stage 2
+              にサヨナラするときが来ました!
+            </p>
+            <p data-dl-uid="12" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="13" data-dl-original="true" data-dl-translated="true"
+                >注意：このチュートリアルは、ブートローダ 3 と 4
+                のチュートリアルの基本的な理解が必要です。ここでは、すべてを詳しく説明しますが、すべてのコンセプトは、ブートローダ
+                3 と 4
+                のチュートリアルで詳しく説明されています。もし、これらのチュートリアルを読んでいない場合は、まずこれらのチュートリアルを見てください。</b
               >
             </p>
-            <p data-dl-uid="21" data-dl-original="true" data-dl-translated="true">
-              <i data-dl-uid="22" data-dl-original="true" data-dl-translated="true"
+            <p data-dl-uid="14" data-dl-original="true" data-dl-translated="true">
+              <a href="03.html" data-dl-uid="15" data-dl-original="true" data-dl-translated="true"
+                >ブートローダ 3</a
+              >
+            </p>
+            <p data-dl-uid="16" data-dl-original="true" data-dl-translated="true">
+              <a href="04.html" data-dl-uid="17" data-dl-original="true" data-dl-translated="true"
+                >ブートローダ 4</a
+              >
+            </p>
+            <p data-dl-uid="18" data-dl-original="true" data-dl-translated="true">
+              これらのチュートリアルを読んでいれば、このチュートリアルはそれほど難しくはないはずです。
+            </p>
+            <p data-dl-uid="19" data-dl-original="true" data-dl-translated="true">
+              <i data-dl-uid="20" data-dl-original="true" data-dl-translated="true"
                 >準備はいいですか？</i
               >
             </p>
 
-            <h1 data-dl-uid="23" data-dl-original="true" data-dl-translated="true">
-              ハードウェアの抽象化
+            <h1 data-dl-uid="21" data-dl-original="true" data-dl-translated="true">
+              基本的なカーネルスタブ
             </h1>
 
-            ハードウェアの抽象化は非常に重要です。ここまでで、ハードウェアプログラミングがいかに複雑か、そしていかにハードウェアに依存しているか、おわかりいただけたと思います。そこで登場するのが、<b
-              data-dl-uid="24"
-              data-dl-original="true"
-              data-dl-translated="true"
-              >HAL（Hardware Abstraction Layer</b
-            >）です。
+            これがこれから読み込むカーネルです。
+            <blockquote>
+              <pre><div class="code">; We are still pure binary. We will fix this in the next few tutorials :)
+ 
+org	0x10000			; Kernel starts at 1 MB
+bits	32			; 32 bit code
+ 
+jmp	Stage3			; jump to stage 3
+ 
+%include "stdio.inc"		; Our stdio.inc file we developed from the previous tutorial
+ 
+msg db  0x0A, 0x0A, "Welcome to Kernel Land!!", 0x0A, 0
+ 
+Stage3:
+ 
+	;-------------------------------;
+	;   Set registers		;
+	;-------------------------------;
+ 
+	mov		ax, 0x10		; set data segments to data selector (0x10)
+	mov		ds, ax
+	mov		ss, ax
+	mov		es, ax
+	mov		esp, 90000h		; stack begins from 90000h
+ 
+	;---------------------------------------;
+	;   Clear screen and print success	;
+	;---------------------------------------;
+ 
+	call		ClrScr32
+	mov		ebx, msg
+	call		Puts32
+ 
+	;---------------------------------------;
+	;   Stop execution			;
+	;---------------------------------------;
+ 
+	cli
+	hlt</div></pre>
+            </blockquote>
+
+            さて、ここには何もありません。次のセクションでこのプログラムを大きく発展させます。
             <p data-dl-uid="25" data-dl-original="true" data-dl-translated="true">
-              HALは、物理的なハードウェアへのインタフェースを提供するために使われるソフトウェアの抽象化レイヤーです。特定のデバイスやコントローラの詳細を知らなくても、デバイスと対話できる方法を提供する抽象化レイヤーです。
+              すべて32ビットであることに注意してください。甘いだろ？これで16ビットの世界から完全に抜け出せます。
             </p>
             <p data-dl-uid="26" data-dl-original="true" data-dl-translated="true">
-              通常、最近のOSでは、HALは基本的な<b
-                data-dl-uid="27"
-                data-dl-original="true"
-                data-dl-translated="true"
-                >マザーボードのチップセットドライバ</b
-              >である。これは、カーネルと、プロセッサを含むマシンのハードウェアとの間の基本的なインターフェイスを提供します。これは、カーネルがハードウェアにアクセスする必要があるときにいつでもHALと対話することができるので、素晴らしいことです。これはまた、カーネルが完全にハードウェアから独立できることを意味する。
+              とりあえず、カーネルに到達したら、システムを停止させるだけです。
+            </p>
+            <p data-dl-uid="27" data-dl-original="true" data-dl-translated="true">
+              このファイルはおそらく、この後のシリーズでは一切使用しないことに注意してください。むしろ、32ビットC++コンパイラを使用する予定です。カーネルイメージをメモリにロードした後、カーネルエントルーチンのためにメモリ内のファイルをパースし、第2ステージのブートローダから直接Cのmain()ルーチンを呼び出します。
+              クールでしょう？言い換えれば、スタブファイルやプログラムなしで、第2ステージのブートローダから直接C++の世界に入ることができるのです。しかし、出発点が必要です。このため、このチュートリアルでは、基本的なスタブファイルを使用して、テストと動作のデモを行います。
             </p>
             <p data-dl-uid="28" data-dl-original="true" data-dl-translated="true">
-              また、特定のコントローラやマッピングではなく、デバイスそのもので考えることができます。これは、カーネル自体をよりクリーンにすることにもつながります。
-            </p>
-            <p data-dl-uid="29" data-dl-original="true" data-dl-translated="true">
-              もう一つの大きなメリットは、抽象化そのものにあります。もし、私たちのOSを異なるハードウェアを搭載したシステムに移植することになった場合、必要なのはそのシステム用に新しいHALを開発することだけです。これは、HALがこれを可能にするように非常にうまく設計されていることが前提です。
-            </p>
-            <p data-dl-uid="30" data-dl-original="true" data-dl-translated="true">
-              最近のOSのほとんどは、何らかの形でHALを利用しています。私たちはまた、チップセットのハードウェアとカーネルの間で、マザーボードのチップセットドライバとして機能するHALを開発する予定です。次のチュートリアルでは、HAL
-              の背後にあるプロセッサ自体を抽象化し、HAL の開発を開始する予定です。
+              次の数回のチュートリアルでは、コンパイラを立ち上げて動作させ、それを代わりに使用する予定です。しかし、今、私たちは自分たちを先取りしているのです
+              ;)
             </p>
 
-            <h1 data-dl-uid="31" data-dl-original="true" data-dl-translated="true">
-              カーネル新しい視点
+            <h1 data-dl-uid="29" data-dl-original="true" data-dl-translated="true">
+              フロッピーインターフェース
             </h1>
 
-            では、Kernelとはいったい何なのでしょうか。KernelはJohn N. Shutt (Serously ;)
-            によって開発されたSchemeライクなプログラミング言語です。）
-            <p data-dl-uid="32" data-dl-original="true" data-dl-translated="true">
-              ともかく、別の定義を見てみましょう。カーネル」とは、システムの中心的な構成要素です。カーネルはシステムの中核であり、システムの効率的な実行を管理するための非常に基本的な機能を提供するものです。
+            やったー!ステージ2を終わらせる時が来ました!カーネルをロードするために、もう一度FAT12を横断する必要があります。
+            しかし、その前にディスクからセクタを取得しなければなりません。
+            <p data-dl-uid="30" data-dl-original="true" data-dl-translated="true">
+              このコードはブートローダと全く同じで、BIOS INT
+              0x13を使用してディスクからセクタをロードします。
             </p>
-            <p data-dl-uid="33" data-dl-original="true" data-dl-translated="true">
-              オペレーティングシステムでは、この強力なカーネルが、システムのハードウェアとリソースに対する最も基本的なインターフェースを提供し、プロセッサ管理、I/O管理、メモリ管理、プロセス管理などの最も基本的な管理機能も提供します。カーネルは、開発するシステムの複雑さに応じて、より多くの機能を含むことができます。
+            <p data-dl-uid="31" data-dl-original="true" data-dl-translated="true">
+              このチュートリアルは完全な復習でもあるので、各ルーチンをセクションに分け、何が起こっているのかを正確に説明します。
             </p>
 
-            <p data-dl-uid="36" data-dl-original="true" data-dl-translated="true">
-              よりよく理解するために、もう少し詳しく見てみましょう。
-            </p>
-            <h2 data-dl-uid="37" data-dl-original="true" data-dl-translated="true">
-              カーネル。すべてを統合する
+            <h2 data-dl-uid="32" data-dl-original="true" data-dl-translated="true">
+              セクタの読み込み - BIOS INT 0x13
             </h2>
 
-            <h3 data-dl-uid="38" data-dl-original="true" data-dl-translated="true">メモリ管理</h3>
-
-            <p data-dl-uid="40" data-dl-original="true" data-dl-translated="true">
-              <b data-dl-uid="41" data-dl-original="true" data-dl-translated="true"
-                >メモリ管理とは、以下のようなものです。</b
-              >
-            </p>
-            <ul data-dl-uid="42" data-dl-original="true" data-dl-translated="true">
-              <li data-dl-uid="43" data-dl-original="true" data-dl-translated="true">
-                メモリを要求するプログラムに対して、動的にメモリを与えたり、使ったりすること。
-              </li>
-              <li data-dl-uid="44" data-dl-original="true" data-dl-translated="true">
-                ページングや仮想メモリを実装する。
-              </li>
-              <li data-dl-uid="45" data-dl-original="true" data-dl-translated="true">
-                OSカーネルが未知のメモリや無効なメモリに読み書きしないようにすること。
-              </li>
-              <li data-dl-uid="46" data-dl-original="true" data-dl-translated="true">
-                メモリフラグメンテーションの監視と処理
-              </li>
-            </ul>
-
-            <b data-dl-uid="47" data-dl-original="true" data-dl-translated="true"
-              >メモリ保護とは、以下のようなものです。</b
+            セクタのロードに必要なことは、<b
+              data-dl-uid="33"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >ブートローダ 3</b
             >
-            <ul data-dl-uid="48" data-dl-original="true" data-dl-translated="true">
-              <li data-dl-uid="49" data-dl-original="true" data-dl-translated="true">
-                プロテクトモードでの無効なディスクリプタへのアクセス（あるいは無効なセグメントアドレスへのアクセス）
-              </li>
-              <li data-dl-uid="50" data-dl-original="true" data-dl-translated="true">
-                プログラム自体の上書き
-              </li>
-              <li data-dl-uid="51" data-dl-original="true" data-dl-translated="true">
-                メモリ上の他のファイルの一部または全部を書き換える。
-              </li>
-            </ul>
-
-            <p data-dl-uid="54" data-dl-original="true" data-dl-translated="true">
-              カーネルはリング0で動作しているため、メモリ内のすべてのバイトを直接制御できることを忘れないでください。
-              また、これはすべて物理メモリ上で直接動作していることを忘れないでください。もし、メモリが足りなくなったらどうなるのでしょうか？存在しないメモリに書き込んだらどうなるのでしょう？ハードウェアデバイスが使用するメモリロケーションはどうなるのか？また、メモリ上に存在する「隙間」にも触れません。
+            で説明しました。チュートリアルを振り返って、<b
+              data-dl-uid="34"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >BIOS Interrupt 0x13 function 2</b
+            >を使ってセクタを読み込むことができることを思い出してください。さて、それでは。ここで問題なのは、<b
+              data-dl-uid="35"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >保護モードに入る前にセクタをロードしなければ</b
+            >ならないことです。もし、プロテクトモードからBIOS割り込みを呼び出そうとすると、プロセッサはトリプルフォルトになります、覚えていますか？
+            <p data-dl-uid="36" data-dl-original="true" data-dl-translated="true">
+              とにかく、割り込みは何だったのでしょうか？そうですね...。
             </p>
-            <p data-dl-uid="55" data-dl-original="true" data-dl-translated="true">
-              <b data-dl-uid="56" data-dl-original="true" data-dl-translated="true"
-                >警告。物理メモリにランダムに書き込むと、（書き込む場所にもよりますが）誤動作を引き起こしたり、（そのメモリ領域を使用しているハードウェアデバイスによっては）システムが起動できなくなり、全く使い物にならなくなる可能性があります。(BIOSのデータ領域に書き込むと、その領域によっては誤動作を起こす可能性があります。</b
+            <p data-dl-uid="37" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="38" data-dl-original="true" data-dl-translated="true"
+                >INT 0x13/AH=0x02 - DISK : セクタをメモリに読み込む</b
+              ><br data-dl-uid="39" data-dl-original="true" data-dl-translated="true" />
+              AH = 0x02<br data-dl-uid="40" data-dl-original="true" data-dl-translated="true" />
+
+              AL = 読み込むセクタ数<br
+                data-dl-uid="41"
+                data-dl-original="true"
+                data-dl-translated="true"
+              />
+              CH = シリンダ番号の下位8ビット<br
+                data-dl-uid="42"
+                data-dl-original="true"
+                data-dl-translated="true"
+              />
+              CL = セクタ番号(ビット0-5)。6-7ビットはハードディスク用のみ<br
+                data-dl-uid="43"
+                data-dl-original="true"
+                data-dl-translated="true"
+              />
+
+              DH = ヘッド番号<br data-dl-uid="44" data-dl-original="true" data-dl-translated="true" />
+              DL = ドライブ番号 (ハードディスクの場合はビット7がセットされます)<br
+                data-dl-uid="45"
+                data-dl-original="true"
+                data-dl-translated="true"
+              />
+              ES:BX = セクタを読み込むためのバッファ
+            </p>
+            <p data-dl-uid="46" data-dl-original="true" data-dl-translated="true">
+              を返します。<br data-dl-uid="47" data-dl-original="true" data-dl-translated="true" />
+              AH = ステータス・コード<br
+                data-dl-uid="48"
+                data-dl-original="true"
+                data-dl-translated="true"
+              />
+              AL = 読み込まれたセクタの数<br
+                data-dl-uid="49"
+                data-dl-original="true"
+                data-dl-translated="true"
+              />
+
+              CF = 失敗したらセット、成功したらクリア
+            </p>
+            <p data-dl-uid="50" data-dl-original="true" data-dl-translated="true">
+              これはそんなに難しいことではありません。しかし、ブートローダーのチュートリアルを思い出してください。つまり、セクタ、トラック、ヘッド番号を追跡し、トラックを超えてセクタをロードしようとしないことを確認する必要があります。つまり、<b
+                data-dl-uid="51"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >1つのトラックには18のセクタが</b
+              >あることを思い出してください。<b data-dl-uid="51" data-dl-translated="true"
+                >セクタ番号を18より大きく設定すると、コントローラが故障し、プロセッサがトリプルフォルトになります。</b
               >
             </p>
-            <p data-dl-uid="57" data-dl-original="true" data-dl-translated="true">
-              このようなことを考えると、物理メモリを適切に管理することがいかに重要であるかがわかると思います。
+            <p data-dl-uid="52" data-dl-original="true" data-dl-translated="true">
+              OK...1トラックあたり18セクタです。各セクタは512バイトであることを忘れないでください。また、片面80トラックであることも覚えておいてください。
             </p>
+            <p data-dl-uid="53" data-dl-original="true" data-dl-translated="true">
+              それじゃ！これらの情報はすべて...トラックあたりのセクタ数、トラック数、ヘッド数、セクタの大きさは、完全にディスクそのものに依存します。セクタは512バイトである必要はないことを思い出してください。
+            </p>
+            <p data-dl-uid="54" data-dl-original="true" data-dl-translated="true">
+              OEMパラメータ・ブロックにすべてを記述しています。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">bpbOEM			db "My OS   "
+bpbBytesPerSector:  	DW 512
+bpbSectorsPerCluster: 	DB 1
+bpbReservedSectors: 	DW 1
+bpbNumberOfFATs: 	DB 2
+bpbRootEntries: 	DW 224
+bpbTotalSectors: 	DW 2880
+bpbMedia: 		DB 0xf0  ;; 0xF1
+bpbSectorsPerFAT: 	DW 9
+bpbSectorsPerTrack: 	DW 18
+bpbHeadsPerCylinder: 	DW 2
+bpbHiddenSectors: 	DD 0
+bpbTotalSectorsBig:     DD 0
+bsDriveNumber: 	        DB 0
+bsUnused: 		DB 0
+bsExtBootSignature: 	DB 0x29
+bsSerialNumber:	        DD 0xa0a1a2a3
+bsVolumeLabel: 	        DB "MOS FLOPPY "
+bsFileSystem: 	        DB "FAT12   "</div></pre>
+            </blockquote>
+
+            これは見覚えがあるはずです!各メンバーはチュートリアル5で説明しました。ここでのすべての詳細な説明はチュートリアルをご覧ください。
             <p data-dl-uid="58" data-dl-original="true" data-dl-translated="true">
-              物理メモリを適切に管理するKernelは、アプリケーションとメモリとの間に仮想的なインタフェースを作ることができます。これは、<b
+              これで、ディスクからメモリ上の任意の場所に任意の数のセクタをロードできるメソッドができました。
+              しかし、すぐに問題にぶつかります。<b
                 data-dl-uid="59"
                 data-dl-original="true"
                 data-dl-translated="true"
-                >ユーザースペースと</b
-              >
-              <b data-dl-uid="60" data-dl-original="true" data-dl-translated="true">カーネルスペースの</b
-              >コードとデータを分離することと、<b
-                data-dl-uid="61"
+                >ロードしたいセクタは決まって</b
+              >います。しかし、<b data-dl-uid="60" data-dl-original="true" data-dl-translated="true"
+                >BIOSのINT 0x13はセクタを扱う</b
+              >ことができないのです。しかし、BIOSのINT 0x13はセクタには対応していません。
+            </p>
+            <p data-dl-uid="61" data-dl-original="true" data-dl-translated="true">
+              では、これが何か関係があるのでしょうか？もし私たちがセクタ20をロードしたいと想像してください。<b
+                data-dl-uid="62"
                 data-dl-original="true"
                 data-dl-translated="true"
-                >Virtual Addressingによって</b
-              >実現されます。
+                >1トラックには18セクタしか</b
+              >ありませんから、この数字を直接使うことはできません。現在のトラックの20番目のセクターから読み込もうとすると、そのセクターは存在しないので、フロッピーコントローラは失敗し、プロセッサはトリプルフォルトになります。20番目のセクタを読み出すには、<b
+                data-dl-uid="63"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >Track 2 Sector 2, Head 0を読み出す</b
+              >必要があるのです。
             </p>
-            <p data-dl-uid="62" data-dl-original="true" data-dl-translated="true">
-              物理メモリで直接実行することには多くの問題があるため、より良い方法でメモリをエミュレートすることができます。メモリエミュレーション（仮想メモリ）は、物理RAMよりもはるかに多くのメモリを持つシステムをエミュレートすることができ、各アプリケーションは独自の仮想メモリアドレス空間を使用します。
-            </p>
-            <h3 data-dl-uid="63" data-dl-original="true" data-dl-translated="true">プロセッサー管理</h3>
-
-            これは新しいものです。ご存知のように、BIOS
-            ROMはプライマリ・プロセッサを初期化し、起動させます。シングルコアしか起動しません。
-            もし、ミューティコアプロセッサを搭載したシステム、またはマルチプロセッサを搭載したシステムでOSを起動している場合は、他のプロセッサやコアを手動で起動させる必要があります。
             <p data-dl-uid="64" data-dl-original="true" data-dl-translated="true">
-              アプリケーションにいつでも異なるプロセッサを使わせると、システムの致命的な問題を引き起こす可能性があります。このため、アプリケーションにこのような機能を持たせてはいけません。
+              つまり、読み込むセクタを指定するには、リニアなセクタ番号を、ディスク上の正確なシリンダー、トラック、セクタの位置に変換する必要があるということです。
             </p>
-            <h3 data-dl-uid="65" data-dl-original="true" data-dl-translated="true">I/Oデバイス管理</h3>
-
-            物理メモリと同様に、アプリケーションがコントローラのポートやレジスタに直接アクセスすると、コントローラが誤動作したり、システムがクラッシュしたりする可能性があります。このため、デバイスの複雑さによっては、プログラミングが驚くほど複雑になり、数種類のコントローラを使用するデバイスもあります。このため、デバイスを管理するための抽象的なインタフェースを提供することが重要です。
-            このインタフェースは通常、<b
-              data-dl-uid="66"
-              data-dl-original="true"
-              data-dl-translated="true"
-              >デバイスドライバ</b
-            >または<b data-dl-uid="67" data-dl-original="true" data-dl-translated="true"
-              >ハードウェア抽象化レイヤによって</b
-            >行われます。これによって、デバイスの詳細ではなく、デバイスの観点から考えることができるようになります。
-            <p data-dl-uid="68" data-dl-original="true" data-dl-translated="true">
-              頻繁に、アプリケーションはこれらのデバイスへのアクセスを必要とします。カーネルは、何らかの方法でシステムに問い合わせることで、これらのデバイスのリストを管理しなければなりません。アプリケーションがデバイスに対する操作を要求すると（例えば、文字を表示するなど）、カーネルはこの要求を現在アクティブなビデオドライバに送信する必要があります。ビデオドライバは、この要求を実行する必要があります。これは、<b
-                data-dl-uid="69"
+            <p data-dl-uid="65" data-dl-original="true" data-dl-translated="true">
+              ちょっと待ってください、<b
+                data-dl-uid="66"
                 data-dl-original="true"
                 data-dl-translated="true"
-                >プロセス間通信（IPC</b
-              >）の例です。
+                >CHSからLBAへの</b
+              >変換ルーチンを覚えていますか？
             </p>
-            <h3 data-dl-uid="70" data-dl-original="true" data-dl-translated="true">プロセス管理</h3>
 
-            これが「カーネル」の最も重要な仕事であり、あらゆるコンピュータの仕事でもある。カーネルは、実行時間を割り当て、異なるアプリケーションやプロセスを実行・管理する方法を必要とします。
+            <h3 data-dl-uid="67" data-dl-original="true" data-dl-translated="true">
+              LBAからCHSへの変換
+            </h3>
 
-            <p data-dl-uid="73" data-dl-original="true" data-dl-translated="true">
-              <b data-dl-uid="74" data-dl-original="true" data-dl-translated="true"
-                >プログラム管理は次のような役割を担っています。</b
+            見覚えはありませんか？<b data-dl-uid="68" data-dl-original="true" data-dl-translated="true"
+              >リニアブロックアドレッシング(LBA)</b
+            >は単にディスク上のインデックスされた場所を表します。最初のブロックが0、2番目のブロックが1です。つまり、LBAは0から始まるセクタ番号を表すだけで、各「ブロック」は1つの「セクタ」なのです。
+            <p data-dl-uid="69" data-dl-original="true" data-dl-translated="true">
+              とにかく...このセクタ番号(LBA)をディスク上の正確なシリンダ/ヘッド/セクタの位置に変換する方法を探さなければなりません。<b
+                data-dl-uid="70"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >Bootloaders 4のチュートリアルにあった、この方法を覚えていますか？</b
               >
             </p>
-            <ul data-dl-uid="75" data-dl-original="true" data-dl-translated="true">
-              <li data-dl-uid="76" data-dl-original="true" data-dl-translated="true">
-                プログラムが他のプログラムの上に書き込まれないようにする。
-              </li>
-              <li data-dl-uid="77" data-dl-original="true" data-dl-translated="true">
-                プログラムが他のプログラムを上書きしないようにする。
-              </li>
-              <li data-dl-uid="78" data-dl-original="true" data-dl-translated="true">
-                プログラムからのタスク完了の要求（メモリの確保や解放など）を処理する。
-              </li>
-            </ul>
+            <p data-dl-uid="71" data-dl-original="true" data-dl-translated="true">
+              読者の中には、このコードはかなりトリッキーだと言う人がいました。そこで、ここで詳しく説明します。
+            </p>
+            <p data-dl-uid="72" data-dl-original="true" data-dl-translated="true">
+              まず、フォーラムラをもう一度見てみましょう。
+            </p>
 
-            <b data-dl-uid="79" data-dl-original="true" data-dl-translated="true"
-              >マルチタスクとは、以下のことを指します。</b
-            >
-            <ul data-dl-uid="80" data-dl-original="true" data-dl-translated="true">
-              <li data-dl-uid="81" data-dl-original="true" data-dl-translated="true">
-                複数のプログラムを切り替えて、一定の時間枠で実行させる。
-              </li>
-              <li data-dl-uid="82" data-dl-original="true" data-dl-translated="true">
-                スイッチングを可能にするタスクマネージャを提供する（Windowsタスクマネージャなど）。
-              </li>
-              <li data-dl-uid="83" data-dl-original="true" data-dl-translated="true">
-                TSS (Task State Segment) スイッチング。これも新語
-              </li>
-              <li data-dl-uid="84" data-dl-original="true" data-dl-translated="true">
-                複数のプログラムを同時に実行すること。
-              </li>
-            </ul>
+            <blockquote>
+              <pre><div class="code">absolute sector 	= 	(logical sector / sectors per track) + 1
+      absolute head   	= 	(logical sector / sectors per track) MOD number of heads
+      absolute track 	= 	 logical sector / (sectors per track * number of heads)</div></pre>
+            </blockquote>
 
-            アプリケーションを実行するために、カーネルはアプリケーション独自の<b
-              data-dl-uid="85"
+            なるほど!これはかなり簡単でしょう？論理セクタ "が実際のセクタ番号です。<b
+              data-dl-uid="76"
               data-dl-original="true"
               data-dl-translated="true"
-              >仮想アドレス空間（VAS</b
-            >）を設定し、VASにファイルをロードする必要があります。カーネルは次にアプリケーションのスタックを設定し、実行を開始するためにそれにジャンプします。
-            <p data-dl-uid="86" data-dl-original="true" data-dl-translated="true">
-              Virtual Addressingによって、アプリケーションがシステムメモリの問題に直面しないようにする。
+              >論理セクタ/トラックあたりのセクタは</b
+            >、上記のすべての式の中にあることに注意してください。
+            <p data-dl-uid="77" data-dl-original="true" data-dl-translated="true">
+              この除算はすべての式の中にあるので、その結果を保存して他の2つの式に使用することができます。
             </p>
-            <p data-dl-uid="87" data-dl-original="true" data-dl-translated="true">
-              マルチタスクシステムでは、タスクマネージャが各プロセスに一定の時間を割り当て、その時間内にのみ実行させる。そして、実行中のアプリケーションを切り替えていきます。このとき、割り当てられる時間が短いため、タスクマネージャは実行中のプロセスをすばやく切り替えることができ、複数のプロセスが同時に動作しているように見せかけることができます。
+            <p data-dl-uid="78" data-dl-original="true" data-dl-translated="true">
+              これを例にしてみましょう。20番目のセクタはトラック2、セクタ2だといいましたね。
+              では、この式を試してみましょう。
             </p>
+
+            <blockquote>
+              <pre><div class="code">absolute sector 	= 	(logical sector / sectors per track) + 1
+ 
+	2.1111111111111111111111111111111	=	20 / 18 (sectors per track) + 1</div></pre>
+            </blockquote>
+
+            私たちは絶対数(2)--嗚呼、セクタ2！--を保持するだけです。LBAアドレス指定は0から始まるので、ここで1を加える必要があることに注意してください。
+            基本式「論理セクタ/トラックあたりのセクタ」はこれらの式のすべてにあることを忘れないでください。
+            この例では単に1.111111111111111111111111（上の式ではさらに1を加えています。
+            整数を扱うので、これは単に1なのです）です。
+
+            <blockquote>
+              <pre><div class="code">absolute head   	= 	(logical sector / sectors per track) MOD number of heads
+ 
+				(1) MOD Number of heads (2)
+				= Head 1</div></pre>
+            </blockquote>
+
+            OEMブロックでは、1気筒あたり2個のヘッドを指定したことを思い出してください。これまでのところ、これはヘッド1のセクター2を示しています。
+            素晴らしい - しかし、我々はどのようなトラックにしている？
+
+            <blockquote>
+              <pre><div class="code">absolute track 	= 	 logical sector / (sectors per track * number of heads)
+ 
+				(1) * Number of heads (2)
+				= Track 2</div></pre>
+            </blockquote>
+
+            これは、上記と全く同じ式であることに注意してください。唯一の違いは、その単純な操作です。
             <p data-dl-uid="88" data-dl-original="true" data-dl-translated="true">
-              これは、ハードウェアまたはソフトウェアで行うことができます。プロセッサは、<b
+              とにかく...式に従うと、次のようになります。<b
                 data-dl-uid="89"
                 data-dl-original="true"
                 data-dl-translated="true"
-                >TSS（Task State Segment）</b
-              >レジスタを使用してハードウェアのタスク切り替えをサポートしています。
+                >論理セクタ20は、セクタ2トラック2ヘッド0に</b
+              >あることになります。
             </p>
-            <h3 data-dl-uid="90" data-dl-original="true" data-dl-translated="true">システムAPI</h3>
-
-            <p data-dl-uid="92" data-dl-original="true" data-dl-translated="true">
-              アプリケーションはどのようにしてデバイスやシステムリソースへのリクエストをカーネルに要求するのでしょうか？これまでOSがアプリケーションを管理・制御する方法について見てきましたが、アプリケーションはどのようにシステムを制御するのでしょうか。
+            <p data-dl-uid="90" data-dl-original="true" data-dl-translated="true">
+              さて、それではこれらの式をコードに適用してみましょう。
+            </p>
+            <p data-dl-uid="91" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="92" data-dl-original="true" data-dl-translated="true"
+                >LBACHSの説明です。詳細</b
+              >
             </p>
             <p data-dl-uid="93" data-dl-original="true" data-dl-translated="true">
-              そこで登場するのが、システムのAPI（<b
+              さて、このルーチンは1つのパラメータを取ります。この式<b
                 data-dl-uid="94"
                 data-dl-original="true"
                 data-dl-translated="true"
-                >Application Programming Interface</b
-              >）です。システムAPIは、アプリケーションがカーネルや他のシステムソフトウェアと対話するために使用するAPIです。
-            </p>
-            <p data-dl-uid="95" data-dl-original="true" data-dl-translated="true">
-              システムAPIを作成するための方法はたくさんあります。ほとんどのシステムは、割り込みを通じてシステムAPIルーチンをサポートしています。例えば、LinuxカーネルのシステムAPIは主にシステムルーチンのために割り込み番号0x80を使用します。
-            </p>
-            <h3 data-dl-uid="96" data-dl-original="true" data-dl-translated="true">まとめ</h3>
-
-            うわー、すごい量ですね。まだ理解できなくても心配しないでください。すぐに理解できるようになりますから
-            :)
-
-            <h1 data-dl-uid="97" data-dl-original="true" data-dl-translated="true">
-              カーネル設計 - 概要: 主な設計モデル
-            </h1>
-
-            ここまで来ると、カーネルがいかに重要か、そしてカーネルがどこに位置するのかが分かってくるかもしれません。
-            <p data-dl-uid="98" data-dl-original="true" data-dl-translated="true">
-              これまで多くのオペレーティングシステムが、多くの異なる設計とセットアップを用いて開発されてきました。これらの設計の多くは、いくつかの類似した基本的な概念を持っています。
-            </p>
-            <p data-dl-uid="99" data-dl-original="true" data-dl-translated="true">
-              カーネルを構築する方法は実にさまざまです。ここでは、より使用される設計のいくつかを見ていきます。
-            </p>
-            <h2 data-dl-uid="100" data-dl-original="true" data-dl-translated="true">
-              モノリシックカーネル設計
-            </h2>
-
-            <center>
-              <img src="./09_files/Monolithic.jpg" />
-              <p>
-                <i data-dl-uid="104" data-dl-translated="true"
-                  >Monolithic Kernelでは、すべてのシステムプロセスがRing
-                  0でKernelの一部として実行されます</i
-                >
-              </p>
-            </center>
-
-            最初の部分--「Mono」は「1つ」という意味だ。2つ目の「lithic」は「石の、石のような」という意味です。
-            <p data-dl-uid="105" data-dl-original="true" data-dl-translated="true">
-              Monolithicカーネルでは、全体のカーネルは、リング0のカーネル空間で実行されます。また、システムAPIを介して基本的なシステムコールのセットを提供します。
-            </p>
-            <p data-dl-uid="106" data-dl-original="true" data-dl-translated="true">
-              <b data-dl-uid="107" data-dl-original="true" data-dl-translated="true"
-                >モノリシックカーネルでは、（すべてではないにしても）ほとんどのカーネルサービスは、カーネル自体の一部です。</b
-              >これは、各サービスが互いに独立できないことを意味するものではありません。しかし、ソフトウェアはカーネルの残りの部分と非常に緊密に統合されています。このため、モノリシックカーネルは他の設計と比較して非常に高速で効率的です。
-            </p>
-            <p data-dl-uid="108" data-dl-original="true" data-dl-translated="true">
-              OSのサービスはすべてカーネルの一部として（あるいはカーネルの拡張として）カーネル空間で実行されるため、デバイスドライバやシステムサービスプログラムに問題があると、システム全体がクラッシュする可能性があります。
-            </p>
-            <p data-dl-uid="109" data-dl-original="true" data-dl-translated="true">
-              アプリケーションがシステムサービスを要求する場合、System
-              APIを通じてシステムコールを実行します。
-            </p>
-
-            <h3>Examples</h3>
-
-            いくつかの大規模なオペレーティングシステムはハイブリッドカーネルを使用していますが、これらに限定されるものではありません。
-
-            <ul>
-              <li>Unix-like kernels</li>
-              <ul>
-                <li>Linux</li>
-                <li>Syllable</li>
-                <li>Unix kernels</li>
-                <ul>
-                  <li>BSD</li>
-                  <ul>
-                    <li>FreeBSD</li>
-                    <li>NetBSD</li>
-                  </ul>
-                </ul>
-                <li>Solaris</li>
-                <li>AI</li>
-              </ul>
-              <li>DOS</li>
-              <ul>
-                <li>DR-DOS</li>
-                <li>MS-DOS</li>
-                <ul>
-                  <li>Microsoft Windows 9x series (95, 98, Windows 98SE, Me)</li>
-                </ul>
-              </ul>
-              <li>Mac OS kernel, up to Mac OS 8.6</li>
-              <li>OpenVMS</li>
-              <li>XTS-400</li>
-            </ul>
-
-            <h2 data-dl-uid="133" data-dl-original="true" data-dl-translated="true">
-              マイクロカーネルの設計
-            </h2>
-            <center>
-              <img src="./09_files/Microkernel.jpg" />
-              <p>
-                <i data-dl-uid="137" data-dl-original="true" data-dl-translated="true"
-                  >マイクロカーネル設計では、カーネルはユーザーモードシステムサービスに必要な基本的な機能のみを提供します。</i
-                >
-              </p>
-            </center>
-
-            マイクロカーネルは、OSのサービスを全く提供せず、それらのサービスを実現するために必要なメカニズムだけを提供するカーネル設計です。
-            このため、カーネル自体は通常、モノリシックカーネルと比較して非常に小さくなっています。例えば、マイクロカーネルは、低レベルのメモリ管理、スレッド管理、プロセス間通信（IPC）などを実装することができます。
-            <p data-dl-uid="138" data-dl-original="true" data-dl-translated="true">
-              上の画像は、マイクロカーネルを表示しています。このカーネルは、基本中の基本のものしか実装していないことに注意してください。この場合、基本的なプロセス管理とスケジューリング、プロセス間通信（IPC）、および基本的な仮想メモリ管理を含意しています。
-            </p>
-            <p data-dl-uid="139" data-dl-original="true" data-dl-translated="true">
-              <b data-dl-uid="140" data-dl-original="true" data-dl-translated="true"
-                >カーネルは、（モノリシックカーネルと同様に）カーネルの一部として実装されたすべてのものではなく、デバイスドライバやファイルシステムなどの外部のusermodeサービスを使用</b
-              >します。このため、外部サービスがクラッシュしても、システムはまだ機能している可能性があり、システムはクラッシュしません。
-            </p>
-            <p data-dl-uid="141" data-dl-original="true" data-dl-translated="true">
-              IPC（Inter Process
-              Communication）とサーバーとデバイスドライバーを理解することは、マイクロカーネルの仕組みを理解する上で重要です。
-            </p>
-
-            <h3 data-dl-uid="142" data-dl-original="true" data-dl-translated="true">
-              マイクロカーネルサーバー
-            </h3>
-
-            マイクロカーネルの「サーバー」は、通常のプログラムが持っていない特別な権限をカーネルから付与された外部プログラムです。この「特権」は、ハードウェアや物理メモリへの直接アクセスであったりする。これにより、サーバープログラムは、制御しているハードウェアデバイスと直接対話することができるようになります。待って、デバイスドライバのように聞こえるけど、そうなの？基本的にはそういうものです。
-            <p data-dl-uid="143" data-dl-original="true" data-dl-translated="true">
-              マイクロカーネルは非常に最小限のものであることを忘れないでください。彼らは外部のプログラム、つまりサーバに依存しています。
-            </p>
-            <p data-dl-uid="144" data-dl-original="true" data-dl-translated="true">
-              カーネル自身が必要とするサーバーは、通常、カーネルが実行される前にメモリにロードされます。例えば、ファイルシステムサーバは、ファイルシステムをパースするためのコードを含んでいる必要があります。カーネルはファイルシステムのコードを持たないので、ファイルシステムサーバをロードする方法がないのです!このため、カーネルが実行される<b
-                data-dl-uid="145"
+                >(論理セクタ/トラックあたりのセクタ数)</b
+              >は3つの式の一部であることに注意してください。これを何度も再計算するよりも、<b
+                data-dl-uid="95"
                 data-dl-original="true"
                 data-dl-translated="true"
-                >前に</b
-              >、ファイルシステムサーバをロードする必要があります。
+                >一度だけ</b
+              >計算し、その結果を他のすべての計算で使用する方が効率的です...このルーチンはこのように動作します。
             </p>
+
+            <blockquote>
+              <pre><div class="code">LBACHS:
+          xor     dx, dx                              ; prepare dx:ax for operation
+          div     WORD [bpbSectorsPerTrack]           ; calculate</div></pre>
+            </blockquote>
+
+            今、AXはトラック操作ごとの論理セクタ/セクタを含んでいます。
+            <p data-dl-uid="99" data-dl-original="true" data-dl-translated="true">
+              セクタ1から開始(論理セクタ/セクタ・パー・トラックの+1を覚えていますか？)
+            </p>
+
+            <blockquote>
+              <pre><div class="code">          inc     dl                                  ; adjust for sector 0
+          mov     BYTE [absoluteSector], dl</div></pre>
+            </blockquote>
+
+            DXをクリアします。AXにはまだ論理セクタ/トラックあたりのセクタの結果が入っています。
+
+            <blockquote>
+              <pre><div class="code">          xor     dx, dx                              ; prepare dx:ax for operation</div></pre>
+            </blockquote>
+
+            さて、次は計算式です。
+            <p data-dl-uid="106" data-dl-original="true" data-dl-translated="true">
+              絶対ヘッド = (論理セクタ / トラックあたりのセクタ数) MOD個のヘッド数
+            </p>
+            <p data-dl-uid="107" data-dl-original="true" data-dl-translated="true">
+              絶対トラック = 論理セクタ / (トラックあたりのセクタ数 * ヘッド数)
+            </p>
+            <p data-dl-uid="108" data-dl-original="true" data-dl-translated="true">
+              乗算の結果は、ヘッド数で<b
+                data-dl-uid="109"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >除算</b
+              >されます。つまり、この2つの違いは演算の仕方だけで、1つは除算、もう1つは除算の余り(モジュラス)なのです。
+            </p>
+            <p data-dl-uid="110" data-dl-original="true" data-dl-translated="true">
+              では、余り（MOD）と除算結果の両方を返せる命令は何でしょう？DIVです!
+            </p>
+            <p data-dl-uid="111" data-dl-original="true" data-dl-translated="true">
+              (論理セクタ数/トラックあたりのセクタ数)はAXのままなので、あとはシリンダあたりのヘッド数で割ればいいだけ...ということを覚えておいてください。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">          div     WORD [bpbHeadsPerCylinder]          ; calculate</div></pre>
+            </blockquote>
+
+            アブソリュートヘッドとアブソリュートトラックの式は非常に似ています。実際に違うのは動作だけです。<b
+              data-dl-uid="115"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >この単純なDIV命令は、DXとAXの両方を設定します。AXはHeadsPerCylinderのDIVを格納し、DXは同じ操作のREMAINDER（Modolus）を格納します。</b
+            >
+
+            <blockquote>
+              <pre><div class="code">          mov     BYTE [absoluteHead], dl
+          mov     BYTE [absoluteTrack], al
+          ret</div></pre>
+            </blockquote>
+
+            これで少しはすっきりしたでしょうか。そうでない場合は、私に教えてください;)
+            <h3 data-dl-uid="119" data-dl-original="true" data-dl-translated="true">
+              CHSをLBAに変換する
+            </h3>
+            これは、よりシンプルです。
+
+            <blockquote>
+              <pre><div class="code">ClusterLBA:
+	; LBA	=	(cluster - 2 ) * sectors per cluster
+ 
+          sub     ax, 0x0002                          ; subtract 2 from cluster number
+          xor     cx, cx
+          mov     cl, BYTE [bpbSectorsPerCluster]     ; get sectors per cluster
+          mul     cx                                  ; multply</div></pre>
+            </blockquote>
+
+            <h3 data-dl-uid="123" data-dl-original="true" data-dl-translated="true">セクタの読み込み</h3>
+
+            さて、これでセクタを読み込むためのすべてが揃いました。このコードもブートローダと全く同じです。
+
+            <blockquote>
+              <pre><div class="code">;************************************************;
+; Reads a series of sectors
+; CX=&gt;Number of sectors to read
+; AX=&gt;Starting sector
+; ES:BX=&gt;Buffer to read to
+;************************************************;
+ 
+ReadSectors:
+     .MAIN
+          mov     di, 0x0005                          ; five retries for error</div></pre>
+            </blockquote>
+
+            さて、ここでは5回セクタを読み込もうとしています。
+
+            <blockquote>
+              <pre><div class="code">     .SECTORLOOP
+          push    ax
+          push    bx
+          push    cx
+          call    LBACHS                              ; convert starting sector to CHS</div></pre>
+            </blockquote>
+
+            レジスタはスタックに格納されます。開始セクタはリニアなセクタ番号です(AXに格納)。 BIOSのINT
+            0x13を使用しているので、ディスクから読み込む前にこれをCHSに変換する必要があります。
+            そこで、LBAからCHSへの変換ルーチンを使用しています。ここで、<b
+              data-dl-uid="130"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >absoluteTrack</b
+            >にはトラック番号が、<b data-dl-uid="131" data-dl-original="true" data-dl-translated="true"
+              >absoluteSector</b
+            >にはトラック内のセクタが、<b
+              data-dl-uid="132"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >absoluteHead</b
+            >にはヘッド番号が入ります。 これらはすべて、LBA から CHA
+            への変換ルーチンによって設定されたものです。
+
+            <blockquote>
+              <pre><div class="code">          mov     ah, 0x02                            ; BIOS read sector
+          mov     al, 0x01                            ; read one sector
+          mov     ch, BYTE [absoluteTrack]            ; track
+          mov     cl, BYTE [absoluteSector]           ; sector
+          mov     dh, BYTE [absoluteHead]             ; head
+          mov     dl, BYTE [bsDriveNumber]            ; drive
+          int     0x13                                ; invoke BIOS</div></pre>
+            </blockquote>
+
+            さて、セクタを読み込むための設定を行い、BIOSに読み込むように要求します。簡単にするために、実行中のBIOS
+            INT 0x13ルーチンをもう一度見てみましょう。
+            <p data-dl-uid="136" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="137" data-dl-original="true" data-dl-translated="true"
+                >INT 0x13/AH=0x02 - DISK : セクタをメモリに読み込む</b
+              ><br data-dl-uid="138" data-dl-original="true" data-dl-translated="true" />
+              AH = 0x02<br data-dl-uid="139" data-dl-original="true" data-dl-translated="true" />
+              AL = 読み込むセクタ数<br
+                data-dl-uid="140"
+                data-dl-original="true"
+                data-dl-translated="true"
+              />
+              CH = シリンダ番号の下位8ビット<br
+                data-dl-uid="141"
+                data-dl-original="true"
+                data-dl-translated="true"
+              />
+              CL = セクタ番号(ビット0-5)。6-7ビットはハードディスク用のみ<br
+                data-dl-uid="142"
+                data-dl-original="true"
+                data-dl-translated="true"
+              />
+              DH = ヘッド番号<br data-dl-uid="143" data-dl-original="true" data-dl-translated="true" />
+
+              DL = ドライブ番号 (ハードディスクの場合はビット7がセットされます)<br
+                data-dl-uid="144"
+                data-dl-original="true"
+                data-dl-translated="true"
+              />
+              ES:BX = セクタの読み出し先となるバッファ
+            </p>
+            <p data-dl-uid="145" data-dl-original="true" data-dl-translated="true"></p>
             <p data-dl-uid="146" data-dl-original="true" data-dl-translated="true">
-              どうすればいいのでしょうか？いくつかの方法があります。ひとつは、カーネルとサポートされるサーバの両方を含む完全な
-              RAM
-              イメージをその中にロードする方法です。もう一つは、起動時にブートローダで必要なサーバをロードしておき、実行時に何らかの方法でサーバ情報をカーネルに与える方法です。どちらの場合も、ブートローダはどのファイルシステムローディングコードを使うかを決めることができますが、そのコードはそもそもロードする必要がなくファイルシステムサーバと対話することができます!クールでしょう？
+              上のコードの実行方法と比較してみてください。かなりシンプルでしょう？
             </p>
             <p data-dl-uid="147" data-dl-original="true" data-dl-translated="true">
-              <b data-dl-uid="148" data-dl-original="true" data-dl-translated="true"
-                ><i data-dl-uid="149" data-dl-original="true" data-dl-translated="true"
-                  >注意: 「サーバ」は「デーモン」とも呼ばれることがあります。</i
-                ></b
-              >
+              書き込むバッファはES:BXにあり、INT
+              0x13はバッファとして参照されていることを思い出してください。このルーチンにES:BXを渡したので、この場所がセクタをロードする場所となります。
             </p>
-            <h3 data-dl-uid="150" data-dl-original="true" data-dl-translated="true">
-              プロセス間通信(IPC)
-            </h3>
 
-            IPCはマイクロカーネルで非常に重要です。IPCは、別々のプロセスが互いに通信することを可能にします。通常はメッセージを送信しますが、共有メモリを使用することによっても可能です。
+            <blockquote>
+              <pre><div class="code">          jnc     .SUCCESS                            ; test for read error
+          xor     ax, ax                              ; BIOS reset disk
+          int     0x13                                ; invoke BIOS
+          dec     di                                  ; decrement error counter
+          pop     cx
+          pop     bx
+          pop     ax
+          jnz     .SECTORLOOP                         ; attempt to read again</div></pre>
+            </blockquote>
+
+            BIOS INT 0x13関数2は、エラーがあればキャリーフラグ（CF）をセットします。
+            エラーがあれば、カウンターをデクリメントし（5回試すようにループをセットしたのを覚えていますか）、再試行します！
+            ...これは再起動します。
             <p data-dl-uid="151" data-dl-original="true" data-dl-translated="true">
-              あるプロセスが他のプロセスに「シグナルを送る」方法はたくさんあります。マイクロカーネル・サーバーに関して言えば、最も一般的に使われているのは、最も理解しやすい方法の一つであるメッセージパッシングです。
-            </p>
-            <p data-dl-uid="152" data-dl-original="true" data-dl-translated="true">
-              IPCは、サーバとカーネルが相互に作用することを可能にします。
-            </p>
-            <p data-dl-uid="153" data-dl-original="true" data-dl-translated="true">
-              <b data-dl-uid="154" data-dl-original="true" data-dl-translated="true"
-                >同期型IPC（Synchronous IPC</b
-              >
-            </p>
-            <p data-dl-uid="155" data-dl-original="true" data-dl-translated="true">
-              <b data-dl-uid="156" data-dl-original="true" data-dl-translated="true">Synchronous IP</b
-              >Cでは、メッセージを送信したプロセスは、相手プロセスから応答があるまで中断されます。相手プロセスが忙しい場合、メッセージはキューに格納され、そのプロセスが準備ができ次第、対応できるようにする。
-            </p>
-            <p data-dl-uid="157" data-dl-original="true" data-dl-translated="true">
-              <b data-dl-uid="158" data-dl-original="true" data-dl-translated="true">非同期IPC</b>
-            </p>
-            <p data-dl-uid="159" data-dl-original="true" data-dl-translated="true">
-              <b data-dl-uid="160" data-dl-original="true" data-dl-translated="true">Synchronous IP</b
-              >Cに似ているが、両方のプロセスが実行され続ける。つまり、プロセスは中断されない。
+              5回とも失敗した場合（CX=0、Zeroフラグセット）、INT 0x18命令にフォールダウンします。
             </p>
 
-            <h1 data-dl-uid="161" data-dl-original="true" data-dl-translated="true">
-              カーネル設計 - 概要：二次設計モデル
+            <blockquote>
+              <pre><div class="code">          int     0x18</div></pre>
+            </blockquote>
+
+            ...これでコンピュータはリブートされます。
+            <p data-dl-uid="155" data-dl-original="true" data-dl-translated="true">
+              キャリーフラグがセットされていない場合（CF=0）、<b
+                data-dl-uid="156"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >jnz</b
+              >命令はエラーがなかったことを示すので、ここでジャンプします。セクタは正常に読み込まれました。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">     .SUCCESS
+          pop     cx
+          pop     bx
+          pop     ax
+          add     bx, WORD [bpbBytesPerSector]        ; queue next buffer
+          inc     ax                                  ; queue next sector
+          loop    .MAIN                               ; read next sector
+          ret</div></pre>
+            </blockquote>
+
+            あとは、レジスタを復元して、次のセクタに行くだけです。難しいことではありません
+            :)ES:BXにはセクタをロードするアドレスが含まれているので、次のセクタに行くにはBXをセクタごとにバイト単位でインクリメントする必要があることに注意してください。
+            <p data-dl-uid="160" data-dl-original="true" data-dl-translated="true">
+              AXには読み出し<b data-dl-uid="161" data-dl-original="true" data-dl-translated="true"
+                >開始のセクタが入って</b
+              >いましたので、これもインクリメントする必要があります。
+            </p>
+            <p data-dl-uid="162" data-dl-original="true" data-dl-translated="true">
+              以上です。このルーチンの完全な説明については、<b
+                data-dl-uid="163"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >Bootloaders 4を</b
+              >参照してください。
+            </p>
+            <p data-dl-uid="164" data-dl-original="true" data-dl-translated="true"></p>
+            <h3 data-dl-uid="165" data-dl-original="true" data-dl-translated="true">フロッピー16.inc</h3>
+
+            デモの例では、すべてのフロッピーアクセス・ルーチンは<b
+              data-dl-uid="166"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >Floppy16.inc</b
+            >
+            に含まれています。
+            <h1 data-dl-uid="167" data-dl-original="true" data-dl-translated="true">
+              FAT12 インタフェース
             </h1>
-            カーネルを設計する方法は無数にあることを忘れないでください。以下は、主要な設計モデル（モノリシックカーネルとマイクロカーネル）から派生した一般的な設計モデルです。
-            <h2 data-dl-uid="162" data-dl-original="true" data-dl-translated="true">
-              ハイブリッドカーネル
+
+            やった--セクタをロードできるぞ。Woohoo... :(
+            ご承知のように、これではたいしたことはできません。次に必要なことは、「ファイル」の基本的な定義と、「ファイル」とは何かということを作ることです。これは、<b
+              data-dl-uid="168"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >ファイル・システムによって</b
+            >行われます。
+            <p data-dl-uid="169" data-dl-original="true" data-dl-translated="true">
+              ファイルシステムは非常に複雑になることがあります。このコードがどのように動作するかを完全に理解するために、このコードを説明する間、ブート<b
+                data-dl-uid="170"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ローダ4</b
+              >を参照してください。
+            </p>
+            <h2 data-dl-uid="171" data-dl-original="true" data-dl-translated="true">定数</h2>
+
+            Fat12のパースでは、ルート・ディレクトリ・テーブルとFATテーブルをロードするための場所が必要になります。簡単にするために、これらの場所を定数の後ろに隠しておきましょう。
+
+            <blockquote>
+              <pre><div class="code">%define ROOT_OFFSET 0x2e00
+%define FAT_SEG 0x2c0
+%define ROOT_SEG 0x2e0</div></pre>
+            </blockquote>
+
+            ルート・ディレクトリ・テーブルを0x2e00に、FATを0x2c00にロードすることにします。FAT_SEGとROOT_SEGは、セグメントレジスタにロードするために使用されます。
+            <h2 data-dl-uid="175" data-dl-original="true" data-dl-translated="true">
+              FAT12をトラバースする
             </h2>
 
-            <center>
-              <img src="./09_files/Hybrid.jpg" />
-              <p>
-                <i data-dl-uid="166" data-dl-original="true" data-dl-translated="true"
-                  >ハイブリッドカーネルは、マイクロカーネルにモノリシックカーネルの側面を取り入れたものです</i
-                >
-              </p>
-            </center>
+            ご存知のように、OSのコードの中には単に醜いものがあります。ファイルシステムのコードもその一つだと私は考えています。これが、このレビューのようなチュートリアルで、このコードについて説明しようと思った理由の1つです。FAT12
+            のコードは基本的にブートローダと同じですが、メインプログラムとの依存関係を少なくするために、修正することにしました。このため、ここで詳しく説明することにしました。
+            <p data-dl-uid="176" data-dl-original="true" data-dl-translated="true">
+              注意：ここでは、FAT12について詳しく説明しません。詳細は<b
+                data-dl-uid="177"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ブートローダ4</b
+              >チュートリアルを参照してください。
+            </p>
+            <p data-dl-uid="178" data-dl-original="true" data-dl-translated="true">
+              とにかく、ご存知のように、FAT12をトラバースするために、最初にロードする必要があるのは、<b
+                data-dl-uid="179"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ルートディレクトリ</b
+              >・テーブルです。
+            </p>
+            <h3 data-dl-uid="180" data-dl-original="true" data-dl-translated="true">
+              Root Directory Tableのロード
+            </h3>
+            <i data-dl-uid="181" data-dl-original="true" data-dl-translated="true"
+              >ディスクの構造です。</i
+            >
 
-            。
-            <p data-dl-uid="167" data-dl-original="true" data-dl-translated="true">
-              ハイブリッドカーネルは、モノリシックカーネルとマイクロカーネル設計の両方の側面を組み合わせたカーネルです。
+            <table border="2">
+              <tbody>
+                <tr bgcolor="#CCCCCC">
+                  <td>Boot Sector</td>
+                  <td>Extra Reserved Sectors</td>
+                  <td>File Allocation Table 1</td>
+                  <td>File Allocation Table 2</td>
+                  <td bgcolor="#AAAAAA">Root Directory (FAT12/FAT16 Only)</td>
+                  <td>Data Region containng files and directories.</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <p data-dl-uid="191" data-dl-original="true" data-dl-translated="true">
+              ルートディレクトリ・テーブルは、FATのリザーブドセクタの直後に位置することを思い出してください。
             </p>
-            <p data-dl-uid="168" data-dl-original="true" data-dl-translated="true">
-              ハイブリッドカーネルは、通常、マイクロカーネルに似た構造を持っていますが、モノリシックカーネルとして実装されています。より良く理解するために、これを別の方法で見てみましょう。
+            <p data-dl-uid="192" data-dl-original="true" data-dl-translated="true">
+              ルート・ディレクトリ・テーブルを読み込むには、メモリ内で現在必要のない場所を探し、そこにコピーする必要があります。とりあえず、0x7E00
+              (リアルモード: 0x7E0:0)
+              を選びました。これはブートローダのすぐ上にあり、上書きしたことがないので<b
+                data-dl-uid="193"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >まだメモリ内に</b
+              >あります。
             </p>
-            <p data-dl-uid="169" data-dl-original="true" data-dl-translated="true">
-              <b data-dl-uid="170" data-dl-original="true" data-dl-translated="true"
-                >ハイブリッドカーネルは、マイクロカーネルと同様に、ファイルシステム、デバイスドライバなどのために別々のサーバープログラムを使用します。しかし、モノリシックカーネルと同様に、これらのサーバーはユーザースペースではなく、カーネルの一部として実行されます。</b
+            <p data-dl-uid="194" data-dl-original="true" data-dl-translated="true">
+              ここで、重要なコンセプトがあります。これは、物理的にどこに何があるかを追跡する必要があるため、非常に悪いことです。そこで、<b
+                data-dl-uid="195"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >低レベルメモリーマネージャの</b
+              >出番です。詳しくは後ほど...
+            </p>
+
+            <blockquote>
+              <pre><div class="code">;*******************************************
+; LoadRoot ()
+;	- Load Root Directory Table
+;*******************************************
+ 
+LoadRoot:
+ 
+	pusha						; store registers
+	push	es</div></pre>
+            </blockquote>
+
+            まず、現在のレジスタの状態を保存します。そうしないと、それを使っている他のプログラムに影響を与えるので、非常にまずい。
+            <p data-dl-uid="199" data-dl-original="true" data-dl-translated="true">
+              これで、ルートディレクトリテーブルのサイズがわかり、ロードするセクタの数がわかります。
+            </p>
+            <p data-dl-uid="200" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="201" data-dl-original="true" data-dl-translated="true">ブートローダ4で</b
+              >説明したように、各エントリは32バイトの大きさです。FAT12フォーマットのディスクに新しいファイルを追加すると、Windowsは自動的にルートディレクトリに追加し、<b
+                data-dl-uid="203"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >OEMパラメータブロックの</b
+              >
+              <b data-dl-uid="202" data-dl-original="true" data-dl-translated="true">bpbRootEntries</b
+              >バイトオフセット変数に追加します。
+            </p>
+            <p data-dl-uid="204" data-dl-original="true" data-dl-translated="true">
+              ほら、Windowsは親切でしょう?）
+            </p>
+            <p data-dl-uid="205" data-dl-original="true" data-dl-translated="true">
+              つまり...各エントリのサイズが32バイトだとすると、<b
+                data-dl-uid="206"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >32バイトにルートディレクトリの数を掛ければ、ルートディレクトリテーブルに何バイト</b
+              >あるかわかるということです。しかし、<b
+                data-dl-uid="207"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >セクタ</b
+              >数が必要なので、この結果をセクタ数で割る必要があります。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">     ; compute size of root directory and store in "cx"
+     
+	xor     cx, cx					; clear registers
+ 	xor     dx, dx
+	mov     ax, 32					; 32 byte directory entry
+	mul     WORD [bpbRootEntries]			; total size of directory
+	div     WORD [bpbBytesPerSector]		; sectors used by directory
+	xchg    ax, cx					; move into AX</div></pre>
+            </blockquote>
+
+            よし、これでAX=ルートディレクトリがとるセクタの数だ。さて、次は開始位置を探さなければなりません。
+            <p data-dl-uid="211" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="212" data-dl-original="true" data-dl-translated="true"
+                >ブートローダ4から思い出してください：ルートディレクトリのテーブルは、ディスク上のFATと予約セクタの両方の後に右です</b
+              >。
+              上のディスク構造表を見て、ルートディレクトリのテーブルがどこにあるのか確認してください。
+            </p>
+            <p data-dl-uid="213" data-dl-original="true" data-dl-translated="true">
+              つまり...FATのセクタ数を求め、それを予約セクタに加えれば、ディスク上の正確な位置がわかるということです。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">     ; compute location of root directory and store in "ax"
+     
+	mov     al, byte [bpbNumberOfFATs]		; number of FATs
+	mul     word [bpbSectorsPerFAT]			; sectors used by FATs
+	add     ax, word [bpbReservedSectors]		; adjust for bootsector
+	mov     word [datasector], ax			; base of root directory
+	add     word [datasector], cx</div></pre>
+            </blockquote>
+
+            さて、読み込むべきセクタ数と正確な開始セクタがわかったので、読み込んでみましょう!
+
+            <blockquote>
+              <pre><div class="code">     ; read root directory
+ 
+	push	word ROOT_SEG
+	pop	es
+	mov     bx, 0x0					; copy root dir
+	call    ReadSectors				; read in directory table
+	pop	es
+	popa						; restore registers and return
+	ret</div></pre>
+            </blockquote>
+
+            ROOT_SEG:0 に読み込むために、seg:offset ロケーションを設定したことに注意してください。
+            <p data-dl-uid="220" data-dl-original="true" data-dl-translated="true">
+              次は、FATの読み込みです
+            </p>
+            <h3 data-dl-uid="221" data-dl-original="true" data-dl-translated="true">FATの読み込み</h3>
+
+            <b data-dl-uid="222" data-dl-original="true" data-dl-translated="true">Bootloaders 4</b>
+            で、FAT12 フォーマットのディスク構造について説明しました。
+            時間をさかのぼって（tm）、もう一度見てみましょう。
+            <p data-dl-uid="223" data-dl-original="true" data-dl-translated="true">
+              <i data-dl-uid="224" data-dl-original="true" data-dl-translated="true"
+                >ディスクの構造です。</i
               >
             </p>
-            <p data-dl-uid="171" data-dl-original="true" data-dl-translated="true">
-              ハイブリッドカーネル」という用語が何に当てはまるかについては、いくつかの論争がある。マイクロカーネル」、「マクロカーネル」、「修正マイクロカーネル」、「修正マクロカーネル」と呼ばれることもある。ハイブリッドカーネルは、独自のデザインではなく、モノリシックカーネルからいくつかの側面を持つだけの変更されたマイクロカーネルです。そのため、ハイブリッドカーネルを何と呼ぶかについては、いくつかの論争がある。
-            </p>
-            <p data-dl-uid="172" data-dl-original="true" data-dl-translated="true">
-              MicrosoftのNTアーキテクチャは、彼らのカーネルデザインモデルにハイブリッドアプローチを使用しています。Microsoftは彼らのカーネルを「Modified
-              microkernel」と表現している。
+
+            <table border="2">
+              <tbody>
+                <tr bgcolor="#CCCCCC">
+                  <td>Boot Sector</td>
+                  <td>Extra Reserved Sectors</td>
+                  <td bgcolor="#AAAAAA">File Allocation Table 1</td>
+                  <td bgcolor="#AAAAAA">File Allocation Table 2</td>
+                  <td>Root Directory (FAT12/FAT16 Only)</td>
+                  <td>Data Region containng files and directories.</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <p data-dl-uid="234" data-dl-original="true" data-dl-translated="true">
+              FATは1つまたは2つあることを思い出してください。また、ディスク上の予約セクタの<b
+                data-dl-uid="235"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >すぐ後に</b
+              >あることにも注目してください。<b
+                data-dl-uid="236"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >これは見慣れた光景でしょう。</b
+              >
             </p>
 
-            <h3>Examples</h3>
+            <blockquote>
+              <pre><div class="code">;*******************************************
+; LoadFAT ()
+;	- Loads FAT table
+;
+;	Parm/ ES:DI =&gt; Root Directory Table
+;*******************************************
+ 
+LoadFAT:
+ 
+	pusha				; store registers
+	push	es</div></pre>
+            </blockquote>
 
-            いくつかの大規模なオペレーティングシステムはハイブリッドカーネルを使用していますが、これらに限定されません。
+            まず、ロードするセクタの数を知る必要があります。ディスクの構造をもう一度見てください。FAT
+            の数 (および FAT ごとのセクタ数) は OEM
+            パラメーター・ブロックに格納されています。したがって、総セクタ数を得るには、これらを掛け合わせればよいのです。
+
+            <blockquote>
+              <pre><div class="code">     ; compute size of FAT and store in "cx"
+     
+	xor     ax, ax
+	mov     al, BYTE [bpbNumberOfFATs]		; number of FATs
+	mul     word [bpbSectorsPerFAT]			; sectors used by FATs
+	mov     cx, ax</div></pre>
+            </blockquote>
+
+            さて、FATの前にある予約セクタを考慮する必要があります...
+
+            <blockquote>
+              <pre><div class="code">     ; compute location of FAT and store in "ax"
+ 
+	mov     ax, word [bpbReservedSectors]</div></pre>
+            </blockquote>
+
+            やったー!さて、CXはロードするセクタの数を含んでいるので、セクタをロードするためにルーチンを呼び出します!
+
+            <blockquote>
+              <pre><div class="code">     ; read FAT into memory (Overwrite our bootloader at 0x7c00)
+ 
+	push	word FAT_SEG
+	pop	es
+	xor	bx, bx
+	call  ReadSectors
+	pop	es
+	popa		; restore registers and return
+	ret</div></pre>
+            </blockquote>
+
+            これがすべてです。
+
+            <h3 data-dl-uid="249" data-dl-original="true" data-dl-translated="true">ファイルの検索</h3>
+            ファイルを検索するには、検索対象のファイル名が必要です。DOSでは8.3命名規則(8バイトのファイル名、3文字の拡張子)に従って11<b
+              data-dl-uid="250"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >バイトの</b
+            >ファイル名を使用することを覚えておいてください。
+            <p data-dl-uid="251" data-dl-original="true" data-dl-translated="true">
+              Root Directory Tableの形式を思い出してください。ファイル名はエントリの<b
+                data-dl-uid="252"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >最初の</b
+              >11バイトに格納されています。各ディレクトリエントリの形式をもう一度見てみましょう。
+            </p>
+            <p data-dl-uid="253" data-dl-original="true" data-dl-translated="true"></p>
 
             <ul>
-              <li>BeOS Kernel</li>
+              <li><b>Bytes 0-7 : DOS File name (Padded with spaces)</b></li>
+              <li><b>Bytes 8-10 : DOS File extension (Padded with spaces)</b></li>
+
+              <li><b>Bytes 11 :</b> File attributes. This is a bit pattern:</li>
+
               <ul>
-                <li>Haiku Kernel</li>
+                <li><b>Bit 0 :</b> Read Only</li>
+                <li><b>Bit 1 :</b> Hidden</li>
+
+                <li><b>Bit 2 :</b> System</li>
+
+                <li><b>Bit 3 :</b> Volume Label</li>
+                <li><b>Bit 4 :</b> This is a subdirectory</li>
+                <li><b>Bit 5 :</b> Archive</li>
+
+                <li><b>Bit 6 :</b> Device (Internal use)</li>
+
+                <li><b>Bit 6 :</b> Unused</li>
               </ul>
-              <li>BSD</li>
+              <li><b>Bytes 12 :</b> Unused</li>
+
+              <li><b>Bytes 13 :</b> Create time in ms</li>
+
+              <li><b>Bytes 14-15 :</b> Created time, using the following format:</li>
               <ul>
-                <li>DragonFly BSD Kernel</li>
-                <li>XNU Kernel</li>
+                <li><b>Bit 0-4 :</b> Seconds (0-29)</li>
+
+                <li><b>Bit 5-10 :</b> Minutes (0-59)</li>
+
+                <li><b>Bit 11-15 :</b> Hours (0-23)</li>
               </ul>
-              <li>NetWare Kernel</li>
-              <li>Plan 9 Kernel</li>
+              <li><b>Bytes 16-17 :</b> Created year in the following format:</li>
+
               <ul>
-                <li>Inferno Kernel</li>
+                <li><b>Bit 0-4 :</b> Year (0=1980; 127=2107</li>
+
+                <li><b>Bit 5-8 :</b> Month (1=January; 12=December)</li>
+                <li><b>Bit 9-15 :</b> Hours (0-23)</li>
               </ul>
-              <li>Windows (NT,2000,2003,XP,Vista) NT Kernel</li>
-              <ul>
-                <li>ReactOS Kernel</li>
-              </ul>
+              <li><b>Bytes 18-19 :</b> Last access date (Uses same format as above)</li>
+
+              <li><b>Bytes 20-21 :</b> EA Index (Used in OS/2 and NT, dont worry about it)</li>
+              <li><b>Bytes 22-23 :</b> Last Modified time (See byte 14-15 for format)</li>
+
+              <li><b>Bytes 24-25 :</b> Last modified date (See bytes 16-17 for format)</li>
+              <li><b>Bytes 26-27 :</b> <b>First Cluster</b></li>
+
+              <li><b>Bytes 28-32 :</b> <b>File Size</b></li>
             </ul>
 
-            <h2 data-dl-uid="189" data-dl-original="true" data-dl-translated="true">
-              Nanokernel（ナノカーネル
-            </h2>
-            ナノカーネルは、<b data-dl-uid="190" data-dl-original="true" data-dl-translated="true"
-              >ピコカーネルとも</b
-            >呼ばれ、非常に小さなカーネルです。通常、これは最小のマイクロカーネル構造になります。
-            カーネル自体が非常に小さいため、システム内の基本的なリソースは他のソフトウェアやドライバに依存する必要があります。
-
-            <h1 data-dl-uid="191" data-dl-original="true" data-dl-translated="true">おわりに</h1>
-
-            さて、このチュートリアルはそれほど複雑ではないことを認めざるを得ません。しかし、私たちがカバーする必要があった非常に重要なトピックをたくさんカバーしています。このチュートリアルが、カーネルとその役割について、読者がより良く理解するのに役立つことを期待しています。カーネルだけでなく、そのための基本的なハードウェア抽象化レイヤ(HAL)を構築することになるのです。
-            <p data-dl-uid="192" data-dl-original="true" data-dl-translated="true">
-              このシリーズでは、修正したマイクロカーネルを開発する予定です。これは、読者がモノリシックとマイクロカーネルの両方の設計の経験と理解を得ることができ、また、ハイブリッドマイクロカーネルへのアプローチを混合することができます。
-              実際、我々のカーネルは、このチュートリアルで表示されているものと似ているように見えるでしょう。次のチュートリアルでは、カーネルの完全な設計について触れ、C++
-              を使用してプロセッサの依存関係を抽象化するための HAL
-              の基本的なビルディングブロックを開発する予定です。
+            <p data-dl-uid="314" data-dl-original="true" data-dl-translated="true"></p>
+            <b data-dl-uid="315" data-dl-original="true" data-dl-translated="true">太字の</b
+            >項目はすべて重要な項目です。各エントリーの<b
+              data-dl-uid="316"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >最初の11バイトは</b
+            >、ファイル名を含んでいるので、比較しなければなりません。
+            <p data-dl-uid="317" data-dl-original="true" data-dl-translated="true">
+              一致するものが見つかったら、その<b
+                data-dl-uid="318"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >エントリのバイト26を参照して、現在のクラスタを取得</b
+              >する必要があります。 これらはすべて、見覚えがあるはずです。
             </p>
-            <p data-dl-uid="193" data-dl-original="true" data-dl-translated="true">
-              今後は、複数のコンパイラとプラットフォームをサポートするために、いくつかのバージョンのデモを作成する予定です。また、C++とC言語の両方をサポートする予定です。どうですか？
+            <p data-dl-uid="319" data-dl-original="true" data-dl-translated="true">
+              さて...次はコードです。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">;*******************************************
+; FindFile ()
+;	- Search for filename in root table
+;
+; parm/ DS:SI =&gt; File name
+; ret/ AX =&gt; File index number in directory table. -1 if error
+;*******************************************
+ 
+FindFile:
+ 
+	push	cx				; store registers
+	push	dx
+	push	bx
+	mov	bx, si				; copy filename for later</div></pre>
+            </blockquote>
+
+            まず、現在のレジスタの状態を保存します。SIを使用する必要があるので、現在のファイル名をどこかに保存する必要があります...BXでしょうか？
+            <p data-dl-uid="323" data-dl-original="true" data-dl-translated="true">
+              画像名を見つけるために、Root
+              Directoryテーブルを解析する必要があることを思い出してください。そのためには、ディレクトリテーブルの各エントリの最初の11バイトをチェックして、一致するものがあるかどうかを確認する必要があります。簡単そうでしょう？
+            </p>
+            <p data-dl-uid="324" data-dl-original="true" data-dl-translated="true">
+              これを行うには、エントリの数を知る必要があります。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">     ; browse root directory for binary image
+ 
+	mov     cx, word [bpbRootEntries]	; load loop counter
+	mov     di, ROOT_OFFSET			; locate first root entry
+	cld					; clear direction flag</div></pre>
+            </blockquote>
+
+            さて、これでCXには調べるべきエントリの数が格納されました。あとは、11バイト文字のファイル名をループして比較するだけです。文字列命令を使っているので、まず方向フラグがクリアされていることを確認したいのですが、これは<b
+              data-dl-uid="328"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >cldが</b
+            >行うことです。
+            <p data-dl-uid="329" data-dl-original="true" data-dl-translated="true">
+              DIには、ディレクトリテーブルの現在のオフセットが設定される。つまり、ES:DIはテーブルの開始位置を指しているので、これを解析してみましょう。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">.LOOP:
+	push    cx
+	mov     cx, 11				; eleven character name. Image name is in SI
+	mov	si, bx				; image name is in BX
+ 	push    di
+	rep  cmpsb				; test for entry match</div></pre>
+            </blockquote>
+
+            11バイトが一致すれば、ファイルが見つかったことになります。DIにはテーブル内のエントリーの位置が含まれているので、すぐに.Foundにジャンプします。
+            <p data-dl-uid="333" data-dl-original="true" data-dl-translated="true">
+              一致しない場合、テーブルの次のエントリを試す必要がある。DIに<b
+                data-dl-uid="334"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >32バイトを</b
+              >追加します<b data-dl-uid="335" data-dl-original="true" data-dl-translated="true"
+                >(各エントリが32バイトであることを思い出してください</b
+              >)。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">	pop     di
+	je      .Found
+	pop     cx
+	add     di, 32				; queue next directory entry
+	loop    .LOOP</div></pre>
+            </blockquote>
+
+            ファイルが見つからなかった場合、スタックに残っているレジスタのみをリストアし、-1（エラー）を返す。
+
+            <blockquote>
+              <pre><div class="code">.NotFound:
+	pop	bx				; restore registers and return
+	pop	dx
+	pop	cx
+	mov	ax, -1				; set error code
+	ret</div></pre>
+            </blockquote>
+
+            ファイルが見つかった場合は、すべてのレジスタをリストアする。AXには、ルートディレクトリテーブル内のエントリ位置が格納されているので、読み込むことができる。
+
+            <blockquote>
+              <pre><div class="code">.Found:
+	pop	ax				; return value into AX contains entry of file
+	pop	bx				; restore registers and return
+	pop	dx
+	pop	cx
+	ret</div></pre>
+            </blockquote>
+
+            やったー!これでファイルを見つけることができたので（Root Directory
+            Table内の位置も取得できた）、それをロードしてみましょう。
+            <h3 data-dl-uid="345" data-dl-original="true" data-dl-translated="true">ファイルのロード</h3>
+
+            これでようやくすべての設定が終わったので、いよいよファイルをロードする時が来ました!
+            <p data-dl-uid="346" data-dl-original="true" data-dl-translated="true">
+              このほとんどは、他のルーチンを呼び出しているので、非常に簡単です。ここでループし、ファイルのすべてのクラスタがメモリにロードされることを確認します。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">;*******************************************
+; LoadFile ()
+;	- Load file
+; parm/ ES:SI =&gt; File to load
+; parm/ BX:BP =&gt; Buffer to load file to
+; ret/ AX =&gt; -1 on error, 0 on success
+; ret/ CX =&gt; Number of sectors loaded
+;*******************************************
+ 
+LoadFile:
+ 
+	xor		ecx, ecx
+	push		ecx</div></pre>
+            </blockquote>
+
+            ここでは、レジスターを保存するだけです。バッファのコピーをどこかに書き込む必要があるので、それもスタックに保存しています。CXはロードしたセクタの数を記録するために使います。
+            これは後でスタックに保存します。
+            <p data-dl-uid="350" data-dl-original="true" data-dl-translated="true">
+              ファイルを読み込むには、まずファイルを見つける必要があります（当たり前といえば当たり前ですが
+              ^^）ここでは、FindFileルーチンを簡単に使うことができます。FindFileは、エラー時にはAXに-1をセットし<b
+                data-dl-uid="351"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >、成功時にはルートディレクトリテーブル内の開始エントリ</b
+              >位置をセットします。このインデックスを使って、ファイルについて知りたいと思ったことを何でも得ることができます。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">.FIND_FILE:
+ 
+	push	bx	; BX=&gt;BP points to buffer to write to; store it for later
+	push	bp
+ 
+	call	FindFile			; find our file. ES:SI contains our filename
+ 
+	cmp	ax, -1				; check for error
+	jne	.LOAD_IMAGE_PRE			; No error :) Load the FAT
+	pop	bp				; Nope :( Restore registers, set error code and return
+	pop	bx
+	pop	ecx
+	mov	ax, -1
+	ret</div></pre>
+            </blockquote>
+
+            さて、ここまでくれば、ファイルが見つかったことになります。ES:DIにはFindFile()で設定された最初のルートエントリの位置が含まれているので、ES:DIを参照することで事実上ファイルのエントリを取得することができるのです。
+            <p data-dl-uid="355" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="356" data-dl-original="true" data-dl-translated="true"
+                >前節の上のエントリ記述表を見返してください。</b
+              >0x1Aバイトをオフセットして26バイト目(開始クラスタ番号)に到達できることに注目し、それを格納します。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">.LOAD_IMAGE_PRE:
+ 
+	sub	edi, ROOT_OFFSET
+	sub	eax, ROOT_OFFSET
+ 
+	; get starting cluster
+ 
+	push	word ROOT_SEG
+	pop	es
+	mov     dx, word [es:di + 0x001A]; ES:DI points to file entry in root directory table.
+	mov     word [cluster], dx	; Refrence the table for file's first cluster
+	pop	bx			; get location to write to so we dont screw up the stack
+	pop	es
+	push    bx			; store location for later again
+	push	es</div></pre>
+            </blockquote>
+
+            上記は面倒なことだと思います。FindFileの呼び出しによってAXがエントリ番号に設定されたのを覚えていますか？それをここに保存する必要がありますが、書き込むためのバッファをまだスタックの<b
+              data-dl-uid="360"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >一番</b
+            >上に保持する必要があります。これが、ここでスタックを少し弄った理由です :)
+            <p data-dl-uid="361" data-dl-original="true" data-dl-translated="true">
+              とにかく、次はFATをロードします。これは信じられないほど簡単です。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">	call	LoadFAT			; Load the FAT to 0x7c00</div></pre>
+            </blockquote>
+
+            FATがロードされ、開始ファイルクラスタができたので、次は実際にファイルのセクタを読み込む番です
+
+            <blockquote>
+              <pre><div class="code">.LOAD_IMAGE:
+ 
+	mov     ax, WORD [cluster]		; cluster to read
+	pop	es
+	pop     bx
+	call    ClusterLBA			; convert cluster to LBA
+ 	xor     cx, cx
+	mov     cl, BYTE [bpbSectorsPerCluster]	; sectors to read
+	call    ReadSectors			; Read in cluster
+ 
+	pop	ecx				; increment sector count
+	inc	ecx
+	push	ecx
+ 
+	push    bx				; save registers for next iteration
+	push    es
+ 
+	mov	ax, FAT_SEG
+	mov	es, ax
+	xor	bx, bx</div></pre>
+            </blockquote>
+
+            このコードはそれほど悪いものではありません。FAT12では、<b
+              data-dl-uid="368"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >各クラスタはちょうど512バイトで</b
+            >あることを覚えていますか？
+            つまり、各クラスタは単に「セクタ」を表します。まず、開始クラスタ/セクタ番号を取得します。しかし、クラスタ番号は<b
+              data-dl-uid="369"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >線形</b
+            >番号なので、クラスタ番号だけでは大したことはできません。つまり、これは<b
+              data-dl-uid="370"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >CHS</b
+            >Not<b data-dl-uid="371" data-dl-original="true" data-dl-translated="true">LBA</b
+            >フォーマットのセクタ番号で、トラックとヘッドの情報があることが前提です。ReadSectors()はLBAのリニア・セクタ番号を必要とするので、<b
+              data-dl-uid="372"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >このCHSをLBAアドレスに変換</b
+            >します。そして、クラスタごとのセクタを取得し、それを読み込む!
+            <p data-dl-uid="373" data-dl-original="true" data-dl-translated="true">
+              ESとBXは最初からスタックにプッシュされているので、ポップすることに注意してください。<b
+                data-dl-uid="374"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ES:BX はこのルーチンに渡された ES:BP
+                バッファを指しており、セクタをロードするバッファを含んでいます。</b
+              >
+            </p>
+            <p data-dl-uid="375" data-dl-original="true" data-dl-translated="true">
+              さて、クラスタがロードされたので、ファイルの終端に達したかどうかをFATでチェックする必要があります。しかし、<b
+                data-dl-uid="376"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >FATの各エントリーは12バイト</b
+              >であることを思い出してください。<b
+                data-dl-uid="377"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >Bootloaders 4で</b
+              >、FATを読むときにある<b
+                data-dl-uid="378"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >パターンが</b
+              >あることがわかりました。
+            </p>
+            <p data-dl-uid="379" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="380" data-dl-original="true" data-dl-translated="true"
+                >偶数クラスタの場合は下位12ビット、上位クラスタの場合は上位12</b
+              >ビットを読み取ります。
+            </p>
+            <p data-dl-uid="381" data-dl-original="true" data-dl-translated="true">
+              詳しくは、<b data-dl-uid="382" data-dl-original="true" data-dl-translated="true"
+                >ブートローダーズ</b
+              >4をご覧ください。
+            </p>
+            <p data-dl-uid="383" data-dl-original="true" data-dl-translated="true">
+              偶数か奇数かの判断は2で割ればいいだけです。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">     ; compute next cluster
+ 
+	mov     ax, WORD [cluster]	; identify current cluster
+	mov     cx, ax			; copy current cluster
+	mov     dx, ax			; copy current cluster
+	shr     dx, 0x0001		; divide by two
+	add     cx, dx			; sum for (3/2)
+ 
+	mov     bx, 0			; location of FAT in memory
+	add     bx, cx			; index into FAT
+	mov     dx, WORD [es:bx]	; read two bytes from FAT
+	test    ax, 0x0001
+	jnz     .ODD_CLUSTER
+ 
+     .EVEN_CLUSTER:
+	and     dx, 0000111111111111b	; take low twelve bits
+	jmp     .DONE
+ 
+     .ODD_CLUSTER:
+	shr     dx, 0x0004		; take high twelve bits
+          
+     .DONE:
+	mov     WORD [cluster], dx	; store new cluster
+	cmp     dx, 0x0FF0		; test for end of file marker (0xFF)
+	jb      LOAD_IMAGE		; No? Go on to next cluster then
+ 
+     DONE:
+	pop	es			; restore all registers
+	pop	bx
+	pop     ecx
+	xor     ax, ax			; return success code
+	ret</div></pre>
+            </blockquote>
+
+            これで全部です!少し複雑ですが、それほど難しくはないと思います。）
+            <h3 data-dl-uid="387" data-dl-original="true" data-dl-translated="true">Fat12.inc</h3>
+
+            素晴らしい!FAT12のコードはすべて<b
+              data-dl-uid="388"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >Fat12.incに</b
+            >あります。
+            <h1 data-dl-uid="389" data-dl-original="true" data-dl-translated="true">ステージ2の終了</h1>
+
+            <h2 data-dl-uid="390" data-dl-original="true" data-dl-translated="true">
+              ステージ2に戻る - カーネルのロードと実行
+            </h2>
+            さて、面倒なコードは終わったので、あとはステージ2からカーネル・イメージをメモリにロードして、カーネルを実行するだけです。問題は、「どこで？どこで？
+            <p data-dl-uid="391" data-dl-original="true" data-dl-translated="true">
+              1MBにロードしたいところですが、まだ直接はできません。なぜなら、まだリアル・モードだからです。このため、まず最初にイメージをより低いアドレスにロードする必要があります。保護モードに切り替えた後、カーネルを新しい場所にコピーすることができます。これは1MBでも、ページングが有効であれば3GBでも構いません。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">	call	LoadRoot		; Load root directory table
+ 
+	mov	ebx, 0			; BX:BP points to buffer to load to
+   	mov	ebp, IMAGE_RMODE_BASE
+	mov	Esi, ImageName		; our file to load
+	call	LoadFile		; load our file
+	MOV	dword [ImageSize], ecx	; size of kernel
+	cmp	ax, 0			; Test for success
+	je	EnterStage3		; yep--onto Stage 3!
+	mov	si, msgFailure		; Nope--print error
+	call	Puts16
+	mov	ah, 0
+	int     0x16                    ; await keypress
+	int     0x19                    ; warm boot computer
+	cli				; If we get here, something really went wong
+	hlt</div></pre>
+            </blockquote>
+
+            今、私たちのカーネルはIMAGE_RMODE_BASE:0にロードされています。ImageSizeはロードされたセクタ数(カーネルのサイズ)を含んでいます。
+            <p data-dl-uid="395" data-dl-original="true" data-dl-translated="true">
+              プロテクトモード内で実行するために必要なことは、ジャンプするか、それを呼び出すだけです。カーネルを1MBにしたいので、実行する前にまずコピーする必要があります。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">bits 32
+ 
+Stage3:
+ 
+	mov	ax, DATA_DESC		; set data segments to data selector (0x10)
+	mov	ds, ax
+	mov	ss, ax
+	mov	es, ax
+	mov	esp, 90000h		; stack begins from 90000h
+ 
+; Copy kernel to 1MB (0x10000)
+ 
+CopyImage:
+  	 mov	eax, dword [ImageSize]
+  	 movzx	ebx, word [bpbBytesPerSector]
+  	 mul	ebx
+  	 mov	ebx, 4
+  	 div	ebx
+   	 cld
+   	 mov    esi, IMAGE_RMODE_BASE
+   	 mov	edi, IMAGE_PMODE_BASE
+   	 mov	ecx, eax
+   	 rep	movsd                   ; copy image to its protected mode address
+ 
+	  call	CODE_DESC:IMAGE_PMODE_BASE; execute our kernel!</div></pre>
+            </blockquote>
+
+            しかし、ここで少し問題があります。これは、カーネルが<b
+              data-dl-uid="399"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >純粋なバイナリファイル</b
+            >であると仮定しています。Cはこれをサポートしないので、これを持つことはできません。カーネルはCがサポートするバイナリ形式である必要があり、Cを使ってカーネルをロードするためにそれを解析する必要があります。今のところ、この純粋なバイナリを維持しますが、次の数回のチュートリアルでこれを修正する予定です。かっこいいですか？
+
+            <h1 data-dl-uid="407" data-dl-original="true" data-dl-translated="true">まとめ</h1>
+
+            <p data-dl-uid="409" data-dl-original="true" data-dl-translated="true">
+              このチュートリアルは多くの新しいコードをカバーしました。このチュートリアルのコンセプトのほとんどは以前に説明したものなので、このチュートリアルがそれほど難しいものでないことを願っています
+              ;)
+            </p>
+            <p data-dl-uid="410" data-dl-original="true" data-dl-translated="true">
+              しかし、このチュートリアルでは、これらの概念を新しい視点でカバーしました。これは、これらのトピックをもう少し理解するのに役立ち、また、それらが別々のルーチンに実装されるのを見ることができます。
+            </p>
+            <p data-dl-uid="411" data-dl-original="true" data-dl-translated="true">
+              ディスクからセクタをロードするコードを開発し、FAT12を解析して好きな場所にKernelをロードすることができました。クールでしょう？このシリーズでは、カーネルを1MBにロードしています。
+            </p>
+            <p data-dl-uid="412" data-dl-original="true" data-dl-translated="true">
+              基本的なフル 32 ビットカーネルがようやくロードされ、実行できるようになったので、オペ
+              レーティングシステムで最も重要な部分であるカーネルにようやく焦点を当てられるようになりました。
+            </p>
+            <p data-dl-uid="413" data-dl-original="true" data-dl-translated="true">
+              次の数回のチュートリアルでは、カーネルの理論、革命、および設計をカバーします。そして、<b
+                data-dl-uid="414"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >低レベルCプログラミングと</b
+              >、高レベル言語の概念と理論による低レベルプログラミングをカバーし始めます。
+            </p>
+            <p data-dl-uid="415" data-dl-original="true" data-dl-translated="true">
+              カーネルレベルのC言語プログラミングでは、他のプログラミング分野では許されない<b
+                data-dl-uid="416"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >多くの</b
+              >自由があります。例えば、「アクセス違反」は存在しないので、メモリ上のすべてのバイトを直接制御することができます。しかし、悪い点もあります。さらに悪いことに、C言語という抽象化されたレイヤーを使って、<b
+                data-dl-uid="417"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >低レベルの環境を</b
+              >プログラミングしていることも忘れてはいけません。
+            </p>
+            <p data-dl-uid="418" data-dl-original="true" data-dl-translated="true">
+              これから数回のチュートリアルですべてをカバーし、カーネルで動作するようにCをセットアップする予定です。待ち遠しいですね。
             </p>
           </td>
         </tr>
