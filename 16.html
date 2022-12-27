@@ -1,0 +1,1601 @@
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Cache-Control" content="no-cache" />
+    <title></title>
+    <link href="css/reference.css" rel="stylesheet" />
+  </head>
+  <body>
+    <table cellspacing="0" cellpadding="3" width="80%" border="0">
+      <tbody>
+        <tr>
+          <td class="tblhdr">Operating Systems Development Series</td>
+        </tr>
+        <tr>
+          <td align="middle" colspan="2"></td>
+        </tr>
+      </tbody>
+    </table>
+    <table cellspacing="0" cellpadding="5" width="100%" border="0">
+      <tbody>
+        <tr>
+          <td>
+            <!-- Title -->
+
+            <div>
+              <span class="title">Virtual Memory</span>
+
+              <br />
+              <span class="author">by Mike, 2008, 2009</span>
+            </div>
+            <h1 data-dl-uid="7" data-dl-original="true" data-dl-translated="true">はじめに</h1>
+
+            お帰りなさい!もうチュートリアルの18回目に突入したんですね。ほらね。OSの開発も悪くないでしょ？
+            <p data-dl-uid="8" data-dl-original="true" data-dl-translated="true">
+              前回のチュートリアルでは、物理メモリ管理について調べ、完全に動作する物理メモリ・マネージャを開発しました。このチュートリアルでは、ページングと仮想メモリを導入することで、新たなレベルへ挑戦します。このチュートリアルでは、ページングと仮想メモリを紹介し、どのように仮想アドレス空間を再現し、どのように仮想メモリを管理するのかを学びます。
+            </p>
+            <p data-dl-uid="9" data-dl-original="true" data-dl-translated="true">
+              この章のリストはこちらです。
+            </p>
+            <ul data-dl-uid="10" data-dl-original="true" data-dl-translated="true">
+              <li data-dl-uid="11" data-dl-original="true" data-dl-translated="true">仮想メモリ</li>
+              <li data-dl-uid="12" data-dl-original="true" data-dl-translated="true">
+                メモリ管理ユニット(MMU)
+              </li>
+              <li data-dl-uid="13" data-dl-original="true" data-dl-translated="true">
+                翻訳ルックサイドバッファ(TLB)
+              </li>
+              <li data-dl-uid="14" data-dl-original="true" data-dl-translated="true">PAEとPSE</li>
+              <li data-dl-uid="15" data-dl-original="true" data-dl-translated="true">ページング方式</li>
+              <li data-dl-uid="16" data-dl-original="true" data-dl-translated="true">
+                ページとページフォルト
+              </li>
+
+              <li data-dl-uid="17" data-dl-original="true" data-dl-translated="true">ページテーブル</li>
+              <li data-dl-uid="18" data-dl-original="true" data-dl-translated="true">
+                ページディレクトリテーブル
+              </li>
+              <li data-dl-uid="19" data-dl-original="true" data-dl-translated="true">
+                ページングを実装する
+              </li>
+            </ul>
+            ...そして、もっとたくさん!
+            <p data-dl-uid="20" data-dl-original="true" data-dl-translated="true">
+              このチュートリアルは、前章で開発した物理メモリマネージャを基に構成されています。
+              これは、メモリ管理に関する最後の章になるかもしれません!
+            </p>
+            <p data-dl-uid="21" data-dl-original="true" data-dl-translated="true">
+              <i data-dl-uid="22" data-dl-original="true" data-dl-translated="true"
+                >このことを念頭に置いて、さっそく始めましょう。</i
+              >
+            </p>
+            <h1 data-dl-uid="23" data-dl-original="true" data-dl-translated="true">仮想メモリの概念</h1>
+
+            <h2 data-dl-uid="24" data-dl-original="true" data-dl-translated="true">仮想化の必要性</h2>
+
+            なぜ「仮想メモリ」のことを気にしなければならないのか、不思議に思うかもしれません。結局のところ、私たちはすでにメモリを管理する素晴らしい効果的な方法を持っていますよね？まあ、そんなところです。メモリブロックをうまく管理することはできますが、物理メモリマネージャが行うことはそれだけです。これだけでは、かなり無駄だと思いませんか？
+            <p data-dl-uid="25" data-dl-original="true" data-dl-translated="true">
+              仮想メモリとその必要性をより良く理解するために、非常に重要なコンセプトがたくさんあります。
+            </p>
+            <p data-dl-uid="26" data-dl-original="true" data-dl-translated="true">
+              今のところ、物理メモリを直接、間接的に操作する方法しかありませんが、これには大きな問題がたくさんあります。その1つが、存在しないメモリブロックにアクセスする場合です。プログラムとデータの両方がメモリ上に存在するため、プログラムが互いのメモリ空間にアクセスしたり、知らないうちに自分自身や他のプログラムを破壊して上書きしてしまうこともあり得ます。何しろ、メモリの保護がないのですから。
+            </p>
+            <p data-dl-uid="27" data-dl-original="true" data-dl-translated="true">
+              また、ファイルやプログラムをメモリ上の連続した領域にロードできるとは限りません。
+              このような場合、フラグメンテーションが発生します。例えば、2つのプログラムを読み込んだとします。1つは0x0に、もう1つは0x900にあります。どちらのプログラムもファイルをロードするように要求しているので、データファイルをロードします。
+            </p>
+            <p data-dl-uid="28" data-dl-original="true" data-dl-translated="true"></p>
+            <p data-dl-uid="29" data-dl-original="true" data-dl-translated="true"></p>
+
+            <center><img src="./16_files/MemFrag.gif" /></center>
+            <p></p>
+
+            <p data-dl-uid="32" data-dl-original="true" data-dl-translated="true"></p>
+            <p data-dl-uid="33" data-dl-original="true" data-dl-translated="true">
+              ここで何が起こっているかに注目してください。これらのプログラムとファイルの間には、たくさんの未使用メモリがあります。さて、もし上記で収まりきらないような大きなファイルを追加したらどうなるでしょうか？このとき、現在の方式では大きな問題が発生します。現在実行中のプログラムや読み込んだファイルを壊してしまうので、特定の方法で直接メモリを操作することはできないのです。
+            </p>
+            <p data-dl-uid="34" data-dl-original="true" data-dl-translated="true">
+              このように、物理メモリを操作する際には多くの問題が発生します。
+              オペレーティングシステムがシングルタスク（一度に1つのリング0プログラムしか実行しない）であれば、これでよいかもしれません。もっと複雑なものであれば、システム内でメモリがどのように動作するかをもっと制御する必要があります。必要なのは、物理メモリを抽象化し、その詳細を気にする必要がないようにする方法です。そこで、仮想化の出番となるわけです。では、見てみましょう。
+            </p>
+            <h2 data-dl-uid="35" data-dl-original="true" data-dl-translated="true">仮想メモリ</h2>
+
+            <h3 data-dl-uid="36" data-dl-original="true" data-dl-translated="true">コンセプト</h3>
+
+            仮想メモリとは何かを理解するのは、少し難しいかもしれません。仮想メモリは、ハードウェアとソフトウェアの両方によって実装された特別なメモリアドレス指定スキームです。物理的に連続しないメモリを、連続したメモリであるかのように動作させることができます。
+            <p data-dl-uid="37" data-dl-original="true" data-dl-translated="true">
+              <i data-dl-uid="38" data-dl-original="true" data-dl-translated="true"
+                >メモリ・アドレス指定方式</i
+              >」と言ったことに注意してください。これは、仮想メモリによって、<b
+                data-dl-uid="39"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >メモリアドレスが</b
+              >何を指すかを制御できることを意味します。
+            </p>
+            <h3 data-dl-uid="40" data-dl-original="true" data-dl-translated="true">
+              仮想アドレス空間(VAS)
+            </h3>
+
+            <b data-dl-uid="41" data-dl-original="true" data-dl-translated="true"
+              >仮想アドレス空間は、プログラムのアドレス空間です。</b
+            >
+            <b data-dl-uid="42" data-dl-original="true" data-dl-translated="true">物理メモリとは</b
+            >関係ないことに注意する必要がある。各プログラムがそれぞれ<b
+              data-dl-uid="43"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >独立したアドレス空間を持つことで、あるプログラムが別のプログラムにアクセスしても、別のアドレス空間を使って</b
+            >いるため、アクセスできないようにするためのものです。
+            <p data-dl-uid="44" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="45" data-dl-original="true" data-dl-translated="true">VASは</b>
+              <b data-dl-uid="46" data-dl-original="true" data-dl-translated="true">仮想的な</b
+              >ものであり、物理的なメモリとは直接関係ないため、ディスクドライブなどの他のソースをメモリであるかのように使用できます。
+              つまり、<b data-dl-uid="47" data-dl-original="true" data-dl-translated="true"
+                >システムに物理的に搭載されている以上の「メモリ」を使用</b
+              >することができます。
+            </p>
+            <p data-dl-uid="48" data-dl-original="true" data-dl-translated="true">
+              これにより、「メモリが足りない」という問題を解決することができます。
+            </p>
+            <p data-dl-uid="49" data-dl-original="true" data-dl-translated="true">
+              また、各プログラムは独自のVASを使用するため、各プログラムは常にベース0x0000:0000で始まるようにすることができます。これにより、先に述べた再配置の問題や、メモリの断片化も解決され、各プログラムに連続した物理的なメモリブロックを割り当てる心配がなくなります。
+            </p>
+            <p data-dl-uid="50" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="51" data-dl-original="true" data-dl-translated="true">
+                仮想アドレスは、カーネルがMMUを介してマッピングします。これについては、もう少し後で説明します。</b
+              >
+            </p>
+            <h3 data-dl-uid="52" data-dl-original="true" data-dl-translated="true">
+              メモリ管理ユニット(MMU)
+            </h3>
+
+            <b data-dl-uid="53" data-dl-original="true" data-dl-translated="true"
+              >メモリ管理ユニット（MMU）</b
+            >（<b data-dl-uid="54" data-dl-original="true" data-dl-translated="true"
+              >ページドメモリ管理ユニット（PMMU）</b
+            >とも呼ばれる）は、<b data-dl-uid="55" data-dl-original="true" data-dl-translated="true"
+              >マイクロプロセッサと</b
+            >
+            <b data-dl-uid="56" data-dl-original="true" data-dl-translated="true">メモリコントロー</b
+            >ラの間に（またはその一部として）設定されます。<b
+              data-dl-uid="57"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >メモリコントローラの</b
+            >主な機能は、メモリアドレスを物理メモリロケーションに変換することですが、<b
+              data-dl-uid="58"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >MMUの</b
+            >目的は、仮想メモリアドレスを<b
+              data-dl-uid="59"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >メモリコントローラで</b
+            >使用するためのメモリアドレスに変換することです。
+            <p data-dl-uid="60" data-dl-original="true" data-dl-translated="true">
+              つまり、<b data-dl-uid="61" data-dl-original="true" data-dl-translated="true"
+                >ページングを有効にすると、すべてのメモリ参照はまずMMUを</b
+              >経由することになるのです。
+            </p>
+            <h3 data-dl-uid="62" data-dl-original="true" data-dl-translated="true">
+              翻訳ルックサイドバッファ(TLB)
+            </h3>
+
+            これは、仮想アドレス変換の速度を向上させるために使用されるプロセッサ内に格納されるキャッシュです。通常は<b
+              data-dl-uid="63"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >CAM（Content-Addressable Memory</b
+            >）の一種で、検索キーが変換する仮想アドレス、結果が物理フレームアドレスとなる。アドレスがTLBにない場合（<b
+              data-dl-uid="64"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >TLBミス</b
+            >）、MMUはページテーブルを検索してアドレスを見つけます。TLBで見つかった場合は、<b
+              data-dl-uid="65"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >TLBヒットと</b
+            >なります。TLBミス時にページが見つからなかったり、ページテーブルの内部が無効だったりすると、プロセッサは<b
+              data-dl-uid="66"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >ページフォルト</b
+            >例外を発生させます。
+            <p data-dl-uid="67" data-dl-original="true" data-dl-translated="true">
+              TLBは、RAMではなくキャッシュに格納されるページのテーブルだと考えてください。
+            </p>
+            <p data-dl-uid="68" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="69" data-dl-original="true" data-dl-translated="true"
+                >これは重要なことです。</b
+              >ページは<b data-dl-uid="70" data-dl-original="true" data-dl-translated="true"
+                >ページテーブルに</b
+              >格納されます。このページテーブルは、物理アドレスが仮想アドレスにどのように変換されるかを記述するために設定されています。言い換えれば<b
+                data-dl-uid="71"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >TLBは、私たちが設定したページテーブルを使って、仮想アドレスを物理アドレスに変換するのです。</b
+              >そう、その通りです。私たちは、どの仮想アドレスが何にマッピングされるかを設定します。この方法は後で少し見てみましょう。心配しないでください、そんなに悪いことではありませんよ。）
+            </p>
+            <h3 data-dl-uid="72" data-dl-original="true" data-dl-translated="true">
+              ページングされた仮想メモリ
+            </h3>
+
+            仮想メモリは、システム内に実際に存在する以上のメモリを間接的に使用する方法も提供します。一般的な方法としては、ハードディスクや<b
+              data-dl-uid="74"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >スワップパーティションに</b
+            >保存された<b data-dl-uid="73" data-dl-original="true" data-dl-translated="true">ページ</b
+            >ファイルを使用する方法があります。
+            <p data-dl-uid="75" data-dl-original="true" data-dl-translated="true">
+              仮想メモリはハードウェアレベルで処理されるため、動作させるにはハードウェアデバイスコントローラを介してマッピングされる必要があります。これは通常<b
+                data-dl-uid="76"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >MMUを通して</b
+              >行われますが、MMUについては後で説明します。
+            </p>
+            <p data-dl-uid="77" data-dl-original="true" data-dl-translated="true">
+              仮想メモリの使用例を見るために、実際に動作しているところを見てみましょう。
+            </p>
+            <p data-dl-uid="78" data-dl-original="true" data-dl-translated="true"></p>
+
+            <center><img src="./16_files/virtual-memory[1].png" /></center>
+            <p></p>
+
+            <p data-dl-uid="81" data-dl-original="true" data-dl-translated="true"></p>
+            <p data-dl-uid="82" data-dl-original="true" data-dl-translated="true">
+              ここで何が起こっているかに注目してください。仮想アドレス内の各メモリブロックはリニアです。各メモリブロックは、実際の物理RAM内の位置か、ハードディスクなどの別のデバイスにマッピングされます。ブロックは、これらのデバイス間で必要に応じてスワップされます。これは遅く見えるかもしれませんが、MMUのおかげで非常に高速です。
+            </p>
+            <p data-dl-uid="83" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="84" data-dl-original="true" data-dl-translated="true"
+                >覚えておいてください。各プログラムは、上に示したような独自の仮想アドレス空間を持っています。</b
+              >各アドレス空間はリニアで、0x0000:00000から始まるので、メモリの断片化やプログラムの再配置に関する問題の多くを解決することができます。
+            </p>
+            <p data-dl-uid="85" data-dl-original="true" data-dl-translated="true">
+              また、仮想メモリはメモリブロックを使用する際に異なるデバイスを使用するため、システム内のメモリ量以上を容易に管理することができます。もしメモリが足りなくなったら、このページファイルを必要に応じて増やすか、警告やエラーメッセージを表示することができます。
+            </p>
+            <p data-dl-uid="86" data-dl-original="true" data-dl-translated="true">
+              各メモリ「ブロック」は「<b
+                data-dl-uid="87"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ページ</b
+              >」と呼ばれ、通常4096バイトの大きさになっています。<b
+                data-dl-uid="88"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ページについては</b
+              >後で少し説明します。
+            </p>
+            <p data-dl-uid="89" data-dl-original="true" data-dl-translated="true">
+              さて、<b data-dl-uid="90" data-dl-original="true" data-dl-translated="true">ページとは</b
+              >メモリブロックのことです。<b
+                data-dl-uid="91"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >このメモリブロックは、メモリ内のある場所にマッピングされるか、ハードディスクのような他のデバイスの場所にマッピングされます。</b
+              >これは<b data-dl-uid="92" data-dl-original="true" data-dl-translated="true"
+                >マッピングされていない</b
+              >ページです。もしソフトウェアがマッピングされていないページにアクセスした場合（そのページは現在メモリ上にない）、何らかの方法で読み込む必要があります。これは<b
+                data-dl-uid="93"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ページフォルトハンドラによって</b
+              >行われます。
+            </p>
+            <p data-dl-uid="94" data-dl-original="true" data-dl-translated="true">
+              すべて後で説明しますので、難しく感じても心配しないでください :)
+            </p>
+            <p data-dl-uid="95" data-dl-original="true" data-dl-translated="true">
+              私たちは一般的なページングについて話しているので、ページングで使用されるかもしれないいくつかの拡張機能を見てみるのは良い考えだと思います。それでは見てみましょう!
+            </p>
+            <h2 data-dl-uid="96" data-dl-original="true" data-dl-translated="true">PAEとPSE</h2>
+
+            <h3 data-dl-uid="97" data-dl-original="true" data-dl-translated="true">
+              物理アドレス拡張(PAE)
+            </h3>
+
+            PAEはx86マイクロプロセッサの機能で、32ビットシステムが最大64GBの物理メモリにアクセスできるようにします。
+            PAEをサポートするマザーボードでは、これを実現するために36ラインのアドレスバスを使用します。PAEを有効にしたページングサポート(cr4レジスタのビット5)は、これまで見てきたものとは少し異なっています。しかし、このチュートリアルがさらに複雑になるのを防ぐため、今はまだ見ません。しかし、もし興味があれば、読者の皆さんも調べてみてください
+            ;)
+            <h3 data-dl-uid="98" data-dl-original="true" data-dl-translated="true">
+              ページサイズ拡張(PSE)
+            </h3>
+
+            PSE は x86 マイクロプロセッサの機能で、4KB
+            以上のサイズのページを許可します。これにより、x86アーキテクチャは、4KBのページとともに、4MBのページサイズ（「巨大ページ」または「ラージページ」とも呼ばれる）をサポートすることができるようになったのです。
+            <h1 data-dl-uid="99" data-dl-original="true" data-dl-translated="true">ページングの世界</h1>
+
+            <i data-dl-uid="100" data-dl-original="true" data-dl-translated="true"
+              >さあ、狂気の沙汰の始まりです!）</i
+            >
+
+            <h2 data-dl-uid="101" data-dl-original="true" data-dl-translated="true">はじめに</h2>
+
+            ページングの素晴らしく、ひねくれた世界へようこそ!すでに説明した基本的な概念により、ページングと仮想メモリが何であるかがよく理解できたと思います。これは素晴らしいスタートだと思いませんか？
+            <p data-dl-uid="102" data-dl-original="true" data-dl-translated="true">
+              OK、クール...でも、実際にどうやって実装するんだろう？x86
+              アーキテクチャでページングはどのように動作するのでしょうか?ちょっと見てみましょう。
+            </p>
+            <h2 data-dl-uid="103" data-dl-original="true" data-dl-translated="true">ページ</h2>
+
+            <b data-dl-uid="104" data-dl-original="true" data-dl-translated="true">ページ</b>（<b
+              data-dl-uid="105"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >メモリページ</b
+            >または<b data-dl-uid="106" data-dl-original="true" data-dl-translated="true"
+              >仮想ページとも</b
+            >呼ばれる）は、固定長のメモリブロックです。
+            このメモリブロックは物理メモリに常駐させることができます。このように考えてください。ページはメモリブロックと、それがどこにあるかを記述します。ページのマッピングとページングの実装方法については、後ほど説明します。
+            <p data-dl-uid="107" data-dl-original="true" data-dl-translated="true">
+              i86アーキテクチャでは、このために特定の形式を使用しています。これにより、1つのページと、それが現在どの位置にあるのかを追跡することができます。では、見てみましょう。
+            </p>
+            <h3 data-dl-uid="108" data-dl-original="true" data-dl-translated="true">
+              ページテーブルエントリ(PTE)
+            </h3>
+
+            ページテーブルのエントリーは、1つのページを表します。ページテーブルについては少し後で説明しますので、あまり気にしないでください。しかし、ページテーブルのエントリがどのようなものかを見ておく必要があります。x86
+            アーキテクチャでは、ページを扱うための特定のビットフォーマットが定義されているので、それを見てみましょう。
+
+            <ul>
+              <li><b>Bit 0 (P):</b> Present flag</li>
+              <ul>
+                <li>0: Page is not in memory</li>
+                <li>1: Page is present (in memory)</li>
+              </ul>
+
+              <li><b>Bit 1 (R/W):</b> Read/Write flag</li>
+              <ul>
+                <li>0: Page is read only</li>
+                <li>1: Page is writable</li>
+              </ul>
+              <li><b>Bit 2 (U/S):</b>User mode/Supervisor mode flag</li>
+              <ul>
+                <li>0: Page is kernel (supervisor) mode</li>
+
+                <li>1: Page is user mode. Cannot read or write supervisor pages</li>
+              </ul>
+              <li><b>Bits 3-4 (RSVD):</b> Reserved by Intel</li>
+              <li><b>Bit 5 (A):</b> Access flag. Set by processor</li>
+              <ul>
+                <li>0: Page has not been accessed</li>
+                <li>1: Page has been accessed</li>
+              </ul>
+              <li><b>Bit 6 (D):</b> Dirty flag. Set by processor</li>
+
+              <ul>
+                <li>0: Page has not been written to</li>
+                <li>1: Page has been written to</li>
+              </ul>
+              <li><b>Bits 7-8 (RSVD):</b> Reserved</li>
+              <li><b>Bits 9-11 (AVAIL):</b> Available for use</li>
+
+              <li><b>Bits 12-31 (FRAME):</b> Frame address</li>
+            </ul>
+
+            Cooldos!これだけ？まあ...難しいとは言ってませんよ;)
+            <p data-dl-uid="143" data-dl-original="true" data-dl-translated="true">
+              ここで最も重要なのは、おそらく<b
+                data-dl-uid="144"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >フレームアドレス</b
+              >である。<b data-dl-uid="145" data-dl-original="true" data-dl-translated="true"
+                >フレームアドレスは、ページが管理する4KBの物理メモリ位置を表しています。</b
+              >これはページングを理解する上で<i
+                data-dl-uid="146"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >非常に重要な</i
+              >ことですが、なぜそうなのかを今すぐ説明するのは難しいです。とりあえず、<b
+                data-dl-uid="147"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >1つ1つのページがメモリブロックを管理して</b
+              >いることだけは覚えておいてください。<b data-dl-uid="147" data-dl-translated="true"
+                >ページが存在すれば、それは物理メモリ内の4KBの物理アドレス空間を管理します。</b
+              >
+            </p>
+            <p data-dl-uid="148" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="149" data-dl-original="true" data-dl-translated="true"
+                >ダーティフラグとアクセスフラグは、ソフトウェアではなく、プロセッサが設定</b
+              >します。プロセッサがどのビットを設定するか、つまりメモリ上のどこに位置するかをどうやって知るのか、不思議に思うかもしれません。これについては、後で少し説明します。ただ、これによってソフトウェアやエグゼクティブは、あるページがアクセスされたかどうかをテストすることができる、ということだけは覚えておいてください。
+            </p>
+            <p data-dl-uid="150" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="151" data-dl-original="true" data-dl-translated="true">現在フラグは</b
+              >重要なものです。この1ビットで、あるページが現在物理メモリ内にあるかどうかを判断します。物理メモリにある場合は、フレームアドレスが32ビットのリニアアドレスになります。物理メモリにない場合、そのページはハードディスクなどの別の場所に存在する必要があります。
+            </p>
+            <p data-dl-uid="152" data-dl-original="true" data-dl-translated="true">
+              現在フラグが設定されていない場合、プロセッサは構造体の残りのビットを無視します。このため、残りのビットをどのような目的にも使用することができます。これによって、ページフォルトハンドラが呼ばれたときに、ディスク上のページの位置を確認し、必要なときにページをメモリにスワップすることができるようになります。
+            </p>
+            <p data-dl-uid="153" data-dl-original="true" data-dl-translated="true">
+              簡単な例を挙げましょう。このページが、物理的な位置1MB（0x100000）から始まる4KBのアドレス空間を管理することを望むとします。これはつまり、このページが<b
+                data-dl-uid="154"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >1MBのアドレスに<i data-dl-uid="155" data-dl-original="true" data-dl-translated="true"
+                  >「マッピング</i
+                ></b
+              >」されていることを意味します。
+            </p>
+            <p data-dl-uid="156" data-dl-original="true" data-dl-translated="true">
+              このページを作るには、ページの12〜31ビット（フレームアドレス）に0x100000をセットし、presentビットをセットするだけでよい。ほら、このページは1MBにマップされています。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">%define		PRIV		3
+ 
+mov		ebx, 0x100000 | PRIV	; this page is mapped to 1MB</div></pre>
+            </blockquote>
+
+            <b data-dl-uid="160" data-dl-original="true" data-dl-translated="true"
+              >0x100000は4KBアラインであることに注意してください。</b
+            >これは3（最初の2ビットを設定する11バイナリ）とORしています。上の表から、このページが物理メモリに存在することを意味する、存在フラグと読み書きフラグが設定されていることがわかります。これは、物理アドレス0x100000からマッピングされているためです）、書き込み可能になっています。
+            <p data-dl-uid="161" data-dl-original="true" data-dl-translated="true">
+              これで終わりです。この例は次の数節でさらに拡張され、すべてがどのように組み合わされるかがわかるようになります。
+            </p>
+            <p data-dl-uid="162" data-dl-original="true" data-dl-translated="true">
+              また、PTEは何も特別なものではありません。PTEについて特別なのは、それをどのように<i
+                data-dl-uid="163"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >使うか</i
+              >です。これについては、後で少し見てみましょう。
+            </p>
+            <h3 data-dl-uid="164" data-dl-original="true" data-dl-translated="true">
+              pte.hとpte.cpp - ページテーブルエントリとページの抽象化
+            </h3>
+
+            このデモでは、ページテーブルエントリの個々のプロパティを設定したり取得したりするコードはすべて、この2つのファイルに隠されています。これらはすべて、上記のリストで見てきた32ビットパターンから、ビットとフレームアドレスを設定・取得するものです。このインターフェースは若干のオーバーヘッドがありますが、可読性を大幅に向上させ、作業を容易にします。
+            <p data-dl-uid="165" data-dl-original="true" data-dl-translated="true">
+              まず最初に行うのは、ページテーブルエントリで使用されるビットパターンを抽象化することです。これは簡単すぎる。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">enum PAGE_PTE_FLAGS {
+ 
+	I86_PTE_PRESENT			=	1,		//0000000000000000000000000000001
+	I86_PTE_WRITABLE		=	2,		//0000000000000000000000000000010
+	I86_PTE_USER			=	4,		//0000000000000000000000000000100
+	I86_PTE_WRITETHOUGH		=	8,		//0000000000000000000000000001000
+	I86_PTE_NOT_CACHEABLE		=	0x10,		//0000000000000000000000000010000
+	I86_PTE_ACCESSED		=	0x20,		//0000000000000000000000000100000
+	I86_PTE_DIRTY			=	0x40,		//0000000000000000000000001000000
+	I86_PTE_PAT			=	0x80,		//0000000000000000000000010000000
+	I86_PTE_CPU_GLOBAL		=	0x100,		//0000000000000000000000100000000
+	I86_PTE_LV4_GLOBAL		=	0x200,		//0000000000000000000001000000000
+   	I86_PTE_FRAME			=	0x7FFFF000 	//1111111111111111111000000000000
+};</div></pre>
+            </blockquote>
+
+            上のリストで見たビットフォーマットとどのように一致しているかに注目してください。
+            私たちが欲しいのは、これらのプロパティ（つまりビット）の設定と取得をインターフェイスの後ろに抽象化する方法です。
+            <p data-dl-uid="169" data-dl-original="true" data-dl-translated="true">
+              これを行うには、まず、ページテーブルのエントリを格納するために使用されるデータ型を抽象化します。この例では、単純な
+              uint32_t です。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">//! page table entry
+typedef uint32_t pt_entry;</div></pre>
+            </blockquote>
+
+            簡単なことです。次に、これらのビットを設定したり取得したりするために使用されるインターフェイス・ルーチンです。その代わりに、インターフェイスに焦点を当てたいと思います。
+
+            <blockquote>
+              <pre><div class="code">extern void 		pt_entry_add_attrib (pt_entry* e, uint32_t attrib);
+extern void 		pt_entry_del_attrib (pt_entry* e, uint32_t attrib);
+extern void 		pt_entry_set_frame (pt_entry*, physical_addr);
+extern bool 		pt_entry_is_present (pt_entry e);
+extern bool 		pt_entry_is_writable (pt_entry e);
+extern physical_addr	pt_entry_pfn (pt_entry e);</div></pre>
+            </blockquote>
+
+            <b data-dl-uid="176" data-dl-original="true" data-dl-translated="true"
+              >pt_entry_add_attrib()</b
+            >は pt_entry 内の 1 つのビットを設定します。pt_entry_add_attrib() は pt_entry
+            内の単一のビットを設定します。設定するためにマスク (I86_PTE_PRESENT ビットマスクのように)
+            を渡します。<b data-dl-uid="177" data-dl-original="true" data-dl-translated="true"
+              >pt_entry_del_attrib()</b
+            >も同じですがビットはクリアされます。
+            <p data-dl-uid="178" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="180" data-dl-original="true" data-dl-translated="true"
+                >pt_entry_set_frame</b
+              ><b data-dl-uid="179" data-dl-original="true" data-dl-translated="true">()</b
+              >はフレームアドレス (I86_PTE_FRAME mask) をマスクして、フレームアドレスを設定します。
+            </p>
+            <p data-dl-uid="181" data-dl-original="true" data-dl-translated="true">
+              これらのルーチンには特別なものはありません。ビットマスクやビットフィールドを使用すれば、これらの属性を簡単に手動で設定したり取得したりすることができます。私は個人的には、このセットアップの方がずっと作業がしやすいと感じています;)
+            </p>
+            <p data-dl-uid="182" data-dl-original="true" data-dl-translated="true">
+              さて、このセットアップによって、1つのページを追跡できるようになるのは素晴らしいことです。しかし、典型的なシステムでは多くのページを持つ必要があるため、これだけでは意味がありません。そこで、ページテーブルの出番です。
+            </p>
+            <h2 data-dl-uid="183" data-dl-original="true" data-dl-translated="true">ページテーブル</h2>
+            ページテーブル...うーん...この言葉、どこかで聞いたことがあるような?*1行上を見てください*。ああ、そうだった;)
+            <p data-dl-uid="184" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="185" data-dl-original="true" data-dl-translated="true"
+                >ページ・テーブルとは</b
+              >、そう、ページの表です。(ページテーブルは、ページが物理アドレスと仮想アドレスの間にどのようにマッピングされるかを追跡することができます。<b
+                data-dl-uid="186"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >このテーブルの各ページエントリは、前のセクションで示した形式に従っています。</b
+              >つまり、<b data-dl-uid="187" data-dl-original="true" data-dl-translated="true"
+                >ページテーブルはページテーブルエントリ(PTE)の配列</b
+              >です。
+            </p>
+            <p data-dl-uid="188" data-dl-original="true" data-dl-translated="true">
+              非常にシンプルな構造ですが、非常に重要な目的を持っています。ページテーブルは、それが含むすべてのページのリストと、それらがどのようにマッピングされるかを含んでいます。マッピング」とは、仮想アドレスが物理フレームアドレスにどのように「マッピング」されるかを意味します。ページテーブルはまた、ページ、それらが存在する天気、それらがどのように格納されているか、あるいはそれらがどのプロセスに属しているか（これはページのAVAILビットを使用することによって設定することができる）を管理する。これはシステムの実装に依存し、必要ないかもしれません)。
+            </p>
+            <p data-dl-uid="189" data-dl-original="true" data-dl-translated="true">
+              ちょっと立ち止まってみましょう。<b
+                data-dl-uid="190"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >1ページが4KBの物理アドレス空間を管理することを思い出してください。</b
+              >それ自体は、物理メモリの特定の4KBの領域のプロパティを記述する32ビットのデータ構造以外の何ものでもありません（前にこれを覚えていますか？）各ページは物理メモリの4KBを「管理」するので、1024ページをまとめると、1024*4KB=4MBの管理仮想メモリとなります。では、どのようにセットアップされているのか見てみましょう。
+            </p>
+            <p data-dl-uid="191" data-dl-original="true" data-dl-translated="true"></p>
+
+            <center><img src="./16_files/paging.jpg" /></center>
+
+            <p data-dl-uid="194" data-dl-original="true" data-dl-translated="true">
+              これがページテーブルの例です。これはページテーブルの例で、1024ページのエントリーが配列されているだけです。各ページが4KBの物理メモリを管理することを知っていれば、この小さなテーブルをそれ自身の<b
+                data-dl-uid="195"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >仮想アドレス</b
+              >空間に変えることができます。どうすればいいのでしょう？簡単です。<b
+                data-dl-uid="196"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >仮想アドレスの</b
+              >形式を決めればいいのです。
+            </p>
+            <p data-dl-uid="197" data-dl-original="true" data-dl-translated="true">
+              例えば、次のような例があります。例えば、次のような仮想アドレスの形式を設計したとしましょう。
+            </p>
+            <p data-dl-uid="198" data-dl-original="true" data-dl-translated="true"></p>
+
+            <blockquote>
+              <pre><div class="code">AAAAAAAAAA        BBBBBBBBBBBB
+page table index  offset into page</div></pre>
+            </blockquote>
+
+            これは、仮想アドレスのフォーマットです。つまり、ページングを有効にすると、すべてのメモリアドレスは上記の形式に従うようになります。例えば、次のような命令があったとします。
+
+            <blockquote>
+              <pre><div class="code">mov	ecx, [0xc0000]</div></pre>
+            </blockquote>
+
+            <p data-dl-uid="205" data-dl-original="true" data-dl-translated="true">
+              ここで、<b data-dl-uid="206" data-dl-original="true" data-dl-translated="true"
+                >0xc0000は</b
+              >
+              <b data-dl-uid="207" data-dl-original="true" data-dl-translated="true">仮想アドレスの</b
+              >ように扱われます。分解してみましょう。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">  11000000        000000000000	; 0xc0000 in binary form
+AAAAAAAAAA        BBBBBBBBBBBB
+page table index  offset into page</div></pre>
+            </blockquote>
+
+            <p data-dl-uid="211" data-dl-original="true" data-dl-translated="true">
+              今やっていることは、<b data-dl-uid="212" data-dl-original="true" data-dl-translated="true"
+                >アドレス変換の</b
+              >一例です。この仮想アドレスがどの物理的な場所を指しているかを確認するために、実際に変換しているのです。ページ・テーブル・インデックス、11000000b
+              =
+              192。これは、ページ・テーブルのページ・エントリです。これで、このページが管理する4KBのベース物理アドレスがわかります。このページが存在する場合（ページ<b
+                data-dl-uid="213"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >存在</b
+              >フラグが設定されている）、メモリにアクセスするために必要なのはページの<b
+                data-dl-uid="214"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >フレームアドレスに</b
+              >アクセスするだけです。このページが存在しない場合、ページフォルトを発生させます--ページデータはディスクのどこかにあるかもしれません。ページフォルトハンドラによって、ページの
+              4KB データをどこかのメモリにコピーし、ページを<b
+                data-dl-uid="215"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >present</b
+              >に設定し、物理メモリのこの新しい 4KB ブロックを指すようにその<b
+                data-dl-uid="216"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >フレーム</b
+              >アドレスを更新することができるのです。
+            </p>
+            <p data-dl-uid="217" data-dl-original="true" data-dl-translated="true">
+              OK
+              OK、わかっています。この「仮想アドレス」を作成する小さな例は馬鹿げていると思われるかもしれませんが、どうでしょう？
+              これが<i data-dl-uid="218" data-dl-original="true" data-dl-translated="true"
+                ><b data-dl-uid="219" data-dl-original="true" data-dl-translated="true"
+                  >実際のやり方</b
+                ></i
+              >なのです。実際の仮想アドレスの形式は<i
+                data-dl-uid="220"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >もう少し</i
+              >複雑で、2つのセクションの代わりに<i
+                data-dl-uid="221"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >3</i
+              >つのセクションがあります。
+            </p>
+            <p data-dl-uid="223" data-dl-original="true" data-dl-translated="true">
+              ここまでで、すべてがどのように組み合わされるのか、そしてページテーブルの重要性がわかってきたと思います。
+            </p>
+            <h3 data-dl-uid="224" data-dl-original="true" data-dl-translated="true">ページサイズ</h3>
+
+            ページサイズが小さいシステムは、ページサイズが大きいシステムよりも多くのページを必要とします。テーブルがすべてのページを追跡するため、ページサイズが小さいシステムでは、追跡するページが多くなるため、より大きなページテーブルが必要になります。簡単でしょう？
+            <p data-dl-uid="225" data-dl-original="true" data-dl-translated="true">
+              i86アーキテクチャは4MB（<b
+                data-dl-uid="226"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ページアドレス拡張（PAE</b
+              >）を使用する場合は2MBページ）および4KBサイズのページをサポートしています。
+            </p>
+            <p data-dl-uid="227" data-dl-original="true" data-dl-translated="true">
+              注意すべき点は以下の通りです。ページサイズがページテーブルのサイズにどのように影響するかに注目する。
+            </p>
+            <h2 data-dl-uid="228" data-dl-original="true" data-dl-translated="true">
+              ページディレクトリテーブル(PDT)
+            </h2>
+
+            よし...これでほぼ完成です。ページテーブルは非常に強力な構造体であることがおわかりいただけたと思います。前回の仮想アドレスの例を覚えていますか？各仮想アドレスが2つの部分で構成されている仮想アドレスシステムの例を挙げました。ページテーブルエントリと、そのページへのオフセットです。
+            <p data-dl-uid="229" data-dl-original="true" data-dl-translated="true">
+              x86アーキテクチャでは、仮想アドレス形式は2つのセクションではなく、3つのセクションを使用します。ページディレクトリ<b
+                data-dl-uid="230"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >テーブルの</b
+              >エントリ番号、ページテーブルインデックス、そのページへのオフセットです。
+            </p>
+            <p data-dl-uid="231" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="232" data-dl-original="true" data-dl-translated="true"
+                >ページディレクトリ</b
+              >・テーブルは、<b data-dl-uid="233" data-dl-original="true" data-dl-translated="true"
+                >ページディレクトリ・エントリの</b
+              >配列にほかなりません。そうなんです、そうなんです...。最後の文章は役に立たないし、情報でもないでしょう?
+            </p>
+            <p data-dl-uid="234" data-dl-original="true" data-dl-translated="true">
+              とにかく、まずページディレクトリエントリを見てみましょう。次に、ディレクトリテーブルとその構成について見ていきましょう。
+            </p>
+            <h3 data-dl-uid="235" data-dl-original="true" data-dl-translated="true">
+              ページ・ディレクトリ・エントリ (PDEs)
+            </h3>
+
+            ページディレクトリエントリは、1つのページテーブルを管理する方法を提供するのに役立ちます。ページテーブルエントリーは、ページテーブルのアドレスを含むだけでなく、それらを管理するために使用できるプロパティを提供します。次のセクションで、このすべてがどのように組み合わされるかを見ることになりますから、まだ理解していなくても心配しないでください。
+            <p data-dl-uid="236" data-dl-original="true" data-dl-translated="true">
+              ページ・ディレクトリ・テーブルは、ページ・テーブルと非常によく似た構造になっています。1024個のエントリーの配列で、エントリーは特定のビットフォーマットに従っています。ページディレクトリエントリ(PDE)の形式の良いところは、ページテーブルエントリ(PTE)とほとんど同じ形式に従っていることです（実際、これらは交換可能です）。ほんの少し、細かい部分があるだけです
+              (シャレです ;) )。
+            </p>
+            <p data-dl-uid="237" data-dl-original="true" data-dl-translated="true">
+              以下は、ページディレクトリエントリのフォーマットです。
+            </p>
+
+            <ul>
+              <li><b>Bit 0 (P):</b> Present flag</li>
+              <ul>
+                <li>0: Page is not in memory</li>
+                <li>1: Page is present (in memory)</li>
+              </ul>
+
+              <li><b>Bit 1 (R/W):</b> Read/Write flag</li>
+
+              <ul>
+                <li>0: Page is read only</li>
+                <li>1: Page is writable</li>
+              </ul>
+              <li><b>Bit 2 (U/S):</b>User mode/Supervisor mode flag</li>
+              <ul>
+                <li>0: Page is kernel (supervisor) mode</li>
+                <li>1: Page is user mode. Cannot read or write supervisor pages</li>
+              </ul>
+              <li><b>Bit 3 (PWT):</b>Write-through flag</li>
+
+              <ul>
+                <li>0: Write back caching is enabled</li>
+                <li>1: Write through caching is enabled</li>
+              </ul>
+              <li><b>Bit 4 (PCD):</b>Cache disabled</li>
+              <ul>
+                <li>0: Page table will not be cached</li>
+                <li>1: Page table will be cached</li>
+              </ul>
+              <li><b>Bit 5 (A):</b> Access flag. Set by processor</li>
+
+              <ul>
+                <li>0: Page has not been accessed</li>
+                <li>1: Page has been accessed</li>
+              </ul>
+              <li><b>Bit 6 (D):</b> Reserved by Intel</li>
+              <li><b>Bit 7 (PS):</b> Page Size</li>
+
+              <ul>
+                <li>0: 4 KB pages</li>
+
+                <li>1: 4 MB pages</li>
+              </ul>
+              <li><b>Bit 8 (G):</b> Global Page (Ignored)</li>
+              <li><b>Bits 9-11 (AVAIL):</b> Available for use</li>
+              <li><b>Bits 12-31 (FRAME):</b> Page Table Base address</li>
+            </ul>
+
+            <p data-dl-uid="282" data-dl-original="true" data-dl-translated="true">
+              ここでのメンバーの多くは、以前見たページテーブルエントリ（PTE）のリストで見覚えがあるはずです。
+            </p>
+            <p data-dl-uid="283" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="284" data-dl-original="true" data-dl-translated="true">現在値</b>、<b
+                data-dl-uid="285"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >リード/ライト</b
+              >、<b data-dl-uid="286" data-dl-original="true" data-dl-translated="true">アクセス</b
+              >フラグはPTEと同じですが、これらは<b
+                data-dl-uid="288"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ページではなく</b
+              >、<b data-dl-uid="287" data-dl-original="true" data-dl-translated="true">ページ</b
+              >テーブルに適用されます。
+            </p>
+            <p data-dl-uid="289" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="290" data-dl-original="true" data-dl-translated="true">ページサイズは</b
+              >、ページテーブルの中のページが<b
+                data-dl-uid="291"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >4KBか</b
+              >
+              <b data-dl-uid="292" data-dl-original="true" data-dl-translated="true">4MBかを</b
+              >決定します。
+            </p>
+            <p data-dl-uid="293" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="294" data-dl-original="true" data-dl-translated="true"
+                >ページテーブルベースアドレスビットは</b
+              >、<b data-dl-uid="295" data-dl-original="true" data-dl-translated="true"
+                >ページテーブルの</b
+              >4Kアラインドアドレスを含んでいます。
+            </p>
+            <h3 data-dl-uid="296" data-dl-original="true" data-dl-translated="true">
+              pde.h と pde.cpp - ページディレクトリエントリの抽象化
+            </h3>
+
+            PTEでやったのと同じように、PDEを抽象化するためのインターフェイスを作りました。
+
+            <blockquote>
+              <pre><div class="code">enum PAGE_PDE_FLAGS {
+ 
+	I86_PDE_PRESENT			=	1,		//0000000000000000000000000000001
+	I86_PDE_WRITABLE		=	2,		//0000000000000000000000000000010
+	I86_PDE_USER			=	4,		//0000000000000000000000000000100
+	I86_PDE_PWT			=	8,		//0000000000000000000000000001000
+	I86_PDE_PCD			=	0x10,		//0000000000000000000000000010000
+	I86_PDE_ACCESSED		=	0x20,		//0000000000000000000000000100000
+	I86_PDE_DIRTY			=	0x40,		//0000000000000000000000001000000
+	I86_PDE_4MB			=	0x80,		//0000000000000000000000010000000
+	I86_PDE_CPU_GLOBAL		=	0x100,		//0000000000000000000000100000000
+	I86_PDE_LV4_GLOBAL		=	0x200,		//0000000000000000000001000000000
+   	I86_PDE_FRAME			=	0x7FFFF000 	//1111111111111111111000000000000
+};
+ 
+//! a page directery entry
+typedef uint32_t pd_entry;
+</div></pre>
+            </blockquote>
+
+            難しいことではありません。新しいタイプpd_entryを使って、ページディレクトリエントリを表現しています。また、PTEインターフェースで、ページディレクトリエントリ内のビットを設定したり取得したりするのに使用されるルーチンの小さなセットを提供します。
+
+            <blockquote>
+              <pre><div class="code">extern void		pd_entry_add_attrib (pd_entry* e, uint32_t attrib);
+extern void		pd_entry_del_attrib (pd_entry* e, uint32_t attrib);
+extern void		pd_entry_set_frame (pd_entry*, physical_addr);
+extern bool		pd_entry_is_present (pd_entry e);
+extern bool		pd_entry_is_user (pd_entry);
+extern bool		pd_entry_is_4mb (pd_entry);
+extern bool		pd_entry_is_writable (pd_entry e);
+extern physical_addr	pd_entry_pfn (pd_entry e);
+extern void		pd_entry_enable_global (pd_entry e);</div></pre>
+            </blockquote>
+
+            <h3 data-dl-uid="303" data-dl-original="true" data-dl-translated="true">
+              ページディレクトリ・テーブルを理解する
+            </h3>
+
+            ページディレクトリテーブルは1024個のページテーブルの配列のようなものです。各ページテーブルが4MBの仮想アドレス空間を管理することを覚えていますか？では...1024個のページテーブルを組み合わせれば、4GBの仮想アドレスを管理することができるのです。すごいでしょう？
+            <p data-dl-uid="304" data-dl-original="true" data-dl-translated="true">
+              さて、少し複雑ですが、それほどでもありません。<b
+                data-dl-uid="305"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ページ・ディレクトリ</b
+              >・テーブルは、実際には<b
+                data-dl-uid="306"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >1024個のページ・ディレクトリ・エントリーの</b
+              >配列であり、上記のフォーマットに従っています。エントリーの形式を振り返って、<b
+                data-dl-uid="307"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ページテーブルベースアドレスビットに</b
+              >注目してください。これは、このディレクトリエントリが管理するページテーブルのアドレスです。
+            </p>
+            <p data-dl-uid="308" data-dl-original="true" data-dl-translated="true">
+              視覚的に見た方がわかりやすいかもしれませんので、ご紹介します。
+            </p>
+            <p data-dl-uid="309" data-dl-original="true" data-dl-translated="true"></p>
+
+            <center><img src="./16_files/paging2.jpg" /></center>
+
+            <p data-dl-uid="312" data-dl-original="true" data-dl-translated="true">
+              ここで何が起こっているかに注目してください。各ページのディレクトリエントリは、ページテーブルを指しています。各ページは
+              4KB の物理メモリ (つまり仮想メモリ)
+              を管理することを覚えていますか?また、ページテーブルは1024ページの配列に過ぎないことを思い出してください。1024*4kb
+              =
+              4mbです。つまり、それぞれのページテーブルが4MBのアドレス空間を管理していることになります。
+            </p>
+            <p data-dl-uid="313" data-dl-original="true" data-dl-translated="true">
+              各ページディレクトリのエントリーは、各ページテーブルをより簡単に管理する方法を提供してくれます。ページディレクトリ・テーブルは1024個のディレクトリ・エントリの配列であり、各エントリはそれ自身のテーブルを管理するため、実質的に1024個のページ・テーブルを持つことになります。先ほどの計算で、各ページテーブルは4MBのアドレス空間を管理することが分かっています。つまり、1024個のページテーブル*4MBのサイズ=4GBの仮想アドレス空間ということになります。
+            </p>
+            <p data-dl-uid="314" data-dl-original="true" data-dl-translated="true">
+              これで......信じられないかもしれませんが......全部です。ほら、そんなに難しくなさそうでしょう？次の章では、x86の仮想アドレスの<i
+                data-dl-uid="315"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >本当の</i
+              >形式を再確認し、すべてがどのように連動しているかを理解します。
+            </p>
+            <h3 data-dl-uid="316" data-dl-original="true" data-dl-translated="true">
+              マルチタスクでの使用
+            </h3>
+
+            しかし、ここでちょっとした問題が発生します。1つのページディレクトリ・テーブルが4GBのアドレス空間を表していることを思い出してください。一度に1つのページディレクトリしか持てないなら、どうやって複数のプログラムに4GBのアドレス空間を持たせるのでしょうか？
+            <p data-dl-uid="317" data-dl-original="true" data-dl-translated="true">
+              できない。とにかく、ネイティブではありません。多くのマルチタスクOSは、上位2GBを「カーネル空間」、下位2GBを「ユーザー空間」として、自分用のアドレス空間をマッピングしています。ユーザースペースはカーネルスペースに触れることができません。カーネルのアドレス空間が各プロセスの4GBの仮想アドレス空間にマッピングされているため、現在どのプロセスが実行されていても、カーネルを使用してエラーなく現在のページディレクトリを切り替えることができます。これは、カーネルが常にプロセスのアドレス空間の同じ場所に位置しているために可能なことです。また、これによってスケジューリングも可能になります。詳しくは後述しますが...
+            </p>
+            <h1 data-dl-uid="318" data-dl-original="true" data-dl-translated="true">仮想メモリ管理</h1>
+
+            ここまでで、優れた仮想メモリマネージャを開発するために必要なことはすべて網羅しました。仮想メモリマネージャはページ、ページテーブル、ページディレクト
+            リテーブルを割り当て、管理する方法を提供しなければなりません。これらのそれぞれを別々に見てきましたが、それらがどのように一緒に働くかについては見てきませんでした。
+            <h2 data-dl-uid="319" data-dl-original="true" data-dl-translated="true">
+              ハイヤーハーフカーネル
+            </h2>
+
+            <h3 data-dl-uid="320" data-dl-original="true" data-dl-translated="true">概要</h3>
+
+            <p data-dl-uid="321" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="322" data-dl-original="true" data-dl-translated="true"
+                >ハイヤーハーフカーネルは</b
+              >、2GB以上の仮想ベースアドレスを持つカーネルです。多くのオペレーティングシステムがハイヤーハーフカーネルを備えています。Windowsカーネルは2GBまたは3GBの仮想アドレスにマッピングされ（/3gbカーネルスイッチが使用されているかどうかに依存）、Linuxカーネルは3GBの仮想アドレスにマッピングされます。
+              このシリーズは3GBにマッピングされたハイハーイフカーネルを使用します。
+              ハイハーイフカーネルは仮想アドレス空間に適切にマッピングされなければなりません。これを実現する方法はいくつかありますが、そのいくつかをここで紹介します。
+            </p>
+            <p data-dl-uid="323" data-dl-original="true" data-dl-translated="true">
+              なぜハイハーフカーネルが必要なのか、興味を持たれるかもしれません。カーネルをもっと低い仮想アドレスで動作させることは十分に可能です。その理由のひとつは
+              v86 タスクに関係しています。v86 タスクをサポートする場合、v86
+              タスクはユーザモードで、リアルモードのアドレス制限 (0xffff:0xffff) 内、つまり約 1MB+64k
+              のリニアアドレス内でしか実行することができません。また、ソフトウェアは通常、高いメモリ位置にアクセスする必要がないため、最初の2GB（一部のOSでは3GB）でユーザーモードのプログラムを実行するのが一般的です。
+            </p>
+
+            <h3 data-dl-uid="324" data-dl-original="true" data-dl-translated="true">方法1</h3>
+
+            <p data-dl-uid="325" data-dl-original="true" data-dl-translated="true">
+              最初の設計は、ブートローダに一時ページディレクトリを設定させるというものです。
+              これを使えば、カーネルのベースアドレスは3GBにすることができます。ブートローダはこのベースアドレスに物理アドレス（通常1MB）をマッピングし、カーネルのエントリポイントを呼び出します。
+            </p>
+            <p data-dl-uid="326" data-dl-original="true" data-dl-translated="true">
+              この方法は有効ですが、カーネルが仮想メモリを管理する際にどのように動作させるかという問題が発生します。カーネルは、ブートローダが設定したページディレクトリとテーブルで動作させようとするか、新しいページディレクトリを作って管理するか、どちらかです。新しいページディレクトリを作成する場合、カーネルは自分自身を再マッピング（1MBの物理アドレスとカーネルのベース仮想アドレス）するか、既存の一時ページディレクトリを新しいページディレクトリにクローンする必要があります。
+            </p>
+            <p data-dl-uid="327" data-dl-original="true" data-dl-translated="true">
+              現時点では、この方法がシリーズで採用されています。シリーズのブートローダは、一時的なページディレクトリを設定し、カーネルを3GBの仮想にマッピングします。その後、カーネルはVMM初期化中に新しいページディレクトリを作成し、自分自身を再マップします。カーネルはこのセットアップ段階でも位置非依存でなければなりません。
+              この方法は、当社の社内OSで使用している方法です。
+            </p>
+
+            <h3 data-dl-uid="328" data-dl-original="true" data-dl-translated="true">方法2</h3>
+            <p data-dl-uid="329" data-dl-original="true" data-dl-translated="true">
+              もう1つの可能な設計は、ブートローダがカーネルを物理メモリロケーションにロードし、ページングを無効にしたままにすることです。カーネルの仮想ベースアドレスは、そのカーネルが実行すべき仮想アドレスになります。たとえば、ブートローダはカーネルのベースアドレスが3GBであるにもかかわらず、物理的に1MBの場所にカーネルをロードして実行することができるのです。
+            </p>
+            <p data-dl-uid="330" data-dl-original="true" data-dl-translated="true">
+              この方法は少し厄介です。ブートローダがカーネルをどの物理アドレスでロードし実行するかを知る方法がなければならず、カーネルはそれ自体を実際のベース仮想アドレスにマップしなければならないのです。これは通常、位置非依存なコードでカーネル起動時に行われます。位置依存のコードでも使えるが、カーネルはデータへのアクセスや関数の呼び出しの際にアドレスを固定できるようにしなければならない。弊社内製OSではこの方式を採用しています。
+            </p>
+
+            <h3 data-dl-uid="331" data-dl-original="true" data-dl-translated="true">方法3</h3>
+            <p data-dl-uid="332" data-dl-original="true" data-dl-translated="true">
+              Tim Robinson氏のGDTトリックを利用した方法です。<a
+                href="http://www.osdever.net/tutorials/pdf/memory1.pdf"
+                target="_blank"
+                data-dl-uid="333"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >この</a
+              >方法を使うと、カーネルがロードされていないにもかかわらず、より高いアドレス（ベースアドレス）で動作させることができます。このトリックは、アドレスの回り込みによって機能します。例えば、カーネルが1MBの物理アドレスにロードされているが、3GBの仮想アドレスで動作しているように見せかけるとします。この場合、X
+              + 3GB = 1MB が基本です。もっと詳しく見てみましょう。
+            </p>
+            <p data-dl-uid="334" data-dl-original="true" data-dl-translated="true">
+              GDTディスクリプタのベースアドレスはDWORDであることを思い出してください。この値が0xffffffより大きくなると、ラップアラウンドして0に戻ります。0xffffff
+              - 0xc0000000 = 0x3FFFFFFF
+              バイトがラップするまで残っています。このアドレスが物理的な位置（1MB）を指すようにするために、アドレスを追加する必要があります。DWORDがラップして0に戻るまで0x3FFFFFFバイト残っているので、0x100000（1MB）＋0x3FFFFFF＝0x400FFFFF＋1＝0x40100000を追加すればいいのです。
+            </p>
+            <p data-dl-uid="335" data-dl-original="true" data-dl-translated="true">
+              つまり、上記の例では、カーネルが1MBの物理アドレスでロードされているが、実際のベースアドレスは3GBの仮想アドレスである場合、ベースコードとデータセレクタが0x40100000であるテンポラリGDTを作成することができるのです。プロセッサは、アクセスしているアドレスにベースセレクタのアドレスを自動的に追加します。LGDTを使用して、この新しいGDTをインストールした後。この後、我々は3GBで動作するようになりました。これは、プロセッサがcsとdsセレクタのベース（40100000）を、参照されているアドレスに追加するからです。
+              たとえば、3GBは、この例では3GB+ベースセレクタ（（40100000）=1MB物理）とプロセッサによって1MBに変換されるのです。
+            </p>
+            <p data-dl-uid="336" data-dl-original="true" data-dl-translated="true">
+              このトリックはかなり簡単に実装でき、うまく機能しますが、64ビット（ロングモード）には使えません。カーネルはこのトリックを実行した後、ページディレクトリをセットアップし、ページングを有効にすることができますし、簡単に自分自身をマップすることができます。
+            </p>
+
+            <h2 data-dl-uid="337" data-dl-original="true" data-dl-translated="true">
+              仮想アドレスとマッピングアドレス
+            </h2>
+
+            ページングを有効にすると、<b
+              data-dl-uid="338"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >すべてのメモリ参照は</b
+            >
+            <b data-dl-uid="339" data-dl-original="true" data-dl-translated="true">仮想アドレスとして</b
+            >扱われます。これは非常に重要なことです。つまり、ページングを有効にする前に、まず構造体を適切にセットアップしなければならないのです。そうしないと、有効な例外ハンドラの有無にかかわらず、没個性的なトリプルフォールトに遭遇する可能性があります。
+            <p data-dl-uid="340" data-dl-original="true" data-dl-translated="true">
+              仮想アドレスの形式を覚えていますか？これは<b
+                data-dl-uid="341"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >x86の仮想アドレスの形式</b
+              >です。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">AAAAAAAAAA         BBBBBBBBBB        CCCCCCCCCCCC
+directory index    page table index  offset into page</div></pre>
+            </blockquote>
+
+            <b data-dl-uid="345" data-dl-original="true" data-dl-translated="true"
+              >これは非常に重要なことです。</b
+            >これは、プロセッサ（そして私たち）にとって、とても重要な情報です。
+            <p data-dl-uid="346" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="347" data-dl-original="true" data-dl-translated="true">ディレクトリ・</b
+              >インデックスの部分は、現在の<b
+                data-dl-uid="348"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ページ・ディレクトリの</b
+              >どのインデックスを見ればよいかを示しています。前のセクションのディレクトリエントリ構造形式まで振り返ってみてください。<b
+                data-dl-uid="349"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >各ディレクトリテーブルエントリは、ページテーブルへのポインタを含んで</b
+              >いることに注意してください。また、そのセクションの画像内でも見ることができます。
+            </p>
+            <p data-dl-uid="350" data-dl-original="true" data-dl-translated="true">
+              ディレクトリテーブル内の各インデックスはページテーブルを指しているので、どのページテーブルにアクセスしているかが分かります。
+            </p>
+            <p data-dl-uid="351" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="352" data-dl-original="true" data-dl-translated="true"
+                >ページテーブルインデックスの</b
+              >部分は、このページテーブルの中のどの<b
+                data-dl-uid="353"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ページエントリに</b
+              >アクセスしているのかを教えてくれます。
+            </p>
+            <p data-dl-uid="354" data-dl-original="true" data-dl-translated="true">
+              ...そして、各ページエントリは4KBの物理アドレス空間を管理することを思い出してください。<b
+                data-dl-uid="355"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ページへのオフセットは</b
+              >、このページの物理アドレス空間内のどのバイトを参照しているかを教えてくれます。
+            </p>
+            <p data-dl-uid="356" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="357" data-dl-original="true" data-dl-translated="true"
+                >ここで何が起こったかに注目してください。</b
+              >ページテーブルを使って仮想アドレスを物理アドレスに変換しているのです。
+              そう、とても簡単なのです。何のトリックもありません。
+            </p>
+            <p data-dl-uid="358" data-dl-original="true" data-dl-translated="true">
+              別の例を見てみましょう。仮想アドレス0xC0000000が物理アドレス0x100000にマップされたと仮定します。どうすればいいのでしょう？0xC0000000が参照しているページを構造体の中から探す必要があります。この場合、0xC0000000は仮想アドレスなので、その形式を見てみましょう。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">1100000000         0000000000        000000000000		; 0xC0000000 in binary form
+ 
+AAAAAAAAAA         BBBBBBBBBB        CCCCCCCCCCCC
+directory index    page table index  offset into page</div></pre>
+            </blockquote>
+
+            <p data-dl-uid="362" data-dl-original="true" data-dl-translated="true">
+              ディレクトリインデックスが、ページディレクトリテーブルの中でどのページテーブルにアクセスしているのかを教えてくれることを覚えていますか？つまり...
+              1100000000b (ディレクトリインデックス) = 768番目のページテーブルです。
+            </p>
+            <p data-dl-uid="363" data-dl-original="true" data-dl-translated="true">
+              ページテーブルインデックスは、このページテーブルの中でアクセスしているページであることを思い出してください。これは0なので、最初のページということになります。また、このページのオフセットバイトは0であることに注意してください。
+            </p>
+            <p data-dl-uid="364" data-dl-original="true" data-dl-translated="true">
+              あとは、768 番目のページ・テーブルの最初のページの<b
+                data-dl-uid="365"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >フレーム・</b
+              >アドレスを 0x100000
+              に設定すれば、できあがりです。これで、3GBの仮想アドレスが1MBの物理アドレスにマッピングされたことになります!各ページは4KBアラインメントなので、これを4KBの物理アドレス単位で続けていけばよいのです。
+            </p>
+            <h2 data-dl-uid="366" data-dl-original="true" data-dl-translated="true">IDマッピング</h2>
+
+            IDマッピングは、仮想アドレスを同じ物理アドレスにマッピングすることに他なりません。例えば、仮想アドレス0x100000は物理アドレス0x100000にマッピングされます。そう、それがすべてなのです。実際にこの作業が必要なのは、ページングを最初に設定するときだけです。これは、ページングを有効にしたときに、現在実行中のコードのメモリアドレスが同じままであることを保証するのに役立ちます。これを行わないと、すぐにトリプルフォールトが発生します。この例は、Virtual
+            Memory Managerの初期化ルーチンで見ることができます。
+            <h2 data-dl-uid="367" data-dl-original="true" data-dl-translated="true">
+              メモリ管理。インプリメンテーション
+            </h2>
+
+            <h3 data-dl-uid="368" data-dl-original="true" data-dl-translated="true">
+              インプリメンテーション
+            </h3>
+
+            これですべてだと思います。次に見るのは、このチュートリアルのために開発された仮想メモリマネージャ（VMM）そのものです。このチュートリアルのために開発された仮想メモリマネージャ（VMM）そのものを紹介します。
+            <p data-dl-uid="369" data-dl-original="true" data-dl-translated="true">
+              ルーチンを小さくして、一度に1つのトピックに集中できるようにしました。
+            </p>
+            <p data-dl-uid="370" data-dl-original="true" data-dl-translated="true">
+              さて、まずページテーブルとディレクトリテーブルを見てみましょう。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">//! virtual address
+typedef uint32_t virtual_addr;
+ 
+//! i86 architecture defines 1024 entries per table--do not change
+#define PAGES_PER_TABLE 1024
+#define PAGES_PER_DIR	1024
+
+#define PAGE_DIRECTORY_INDEX(x) (((x) &gt;&gt; 22) &amp; 0x3ff)
+#define PAGE_TABLE_INDEX(x) (((x) &gt;&gt; 12) &amp; 0x3ff)
+#define PAGE_GET_PHYSICAL_ADDRESS(x) (*x &amp; ~0xfff)
+
+//! page table represents 4mb address space
+#define PTABLE_ADDR_SPACE_SIZE 0x400000
+
+//! directory table represents 4gb address space
+#define DTABLE_ADDR_SPACE_SIZE 0x100000000
+
+//! page sizes are 4k
+#define PAGE_SIZE 4096
+ 
+//! page table
+struct ptable {
+ 
+	pt_entry m_entries[PAGES_PER_TABLE];
+};
+ 
+//! page directory
+struct pdirectory {
+ 
+	pd_entry m_entries[PAGES_PER_DIR];
+};</div></pre>
+            </blockquote>
+
+            <b data-dl-uid="374" data-dl-original="true" data-dl-translated="true">physical_addr</b
+            >タイプと同様に、仮想メモリ用に新しいアドレスタイプ、virtual_addr を作成しました。
+            ページテーブルは 1024
+            個のページテーブルエントリの配列に過ぎないことに注意してください？ページ・ディレクトリ・テーブルも同じですが、代わりにページ・ディレクトリ・エントリの配列になっています。まだ特別なことは何もありません
+            ;)
+            <p data-dl-uid="376" data-dl-original="true" data-dl-translated="true"></p>
+            <p data-dl-uid="377" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="378" data-dl-original="true" data-dl-translated="true"
+                >PAGE_DIRECTORY_INDEX, PAGE_TABLE_INDEX, PAGE_GET_PHYSICAL_ADDRESS</b
+              >は仮想アドレスの各部分を返すだけのマクロである。仮想アドレスは特定のフォーマットを持っていることを覚えておいてください。これらのマクロは、仮想アドレスから情報を取得することを可能にします。
+            </p>
+            <p data-dl-uid="379" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="380" data-dl-original="true" data-dl-translated="true"
+                >PTABLE_ADDR_SPACE_SIZEは</b
+              >、ページテーブルが表すサイズ(バイト数)を表します。ページテーブルは1024ページで、1ページの大きさは4Kなので、1024
+              * 4k = 4MBとなります。<b
+                data-dl-uid="381"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >DTABLE_ADDR_SPACE_SIZEは</b
+              >、ページディレクトリが管理するバイト数を表し、これは仮想アドレス空間のサイズである。ページテーブルがアドレス空間の4MBを占め、ページディレクトリが1024個のページテーブルを含むとすると、4MB
+              * 1024 = 4GBとなります。
+            </p>
+            <p data-dl-uid="382" data-dl-original="true" data-dl-translated="true">
+              ここで紹介する仮想メモリマネージャは、<b
+                data-dl-uid="383"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >大きな</b
+              >ページを扱うことはありません。その代わり、4Kページのみを管理します。
+            </p>
+
+            私たちが使っている仮想メモリマネージャ(VMM)は、これらの構造に大きく依存しています。VMM
+            のルーチンのいくつかを見て、それらがどのように動作するかを学びましょう。
+            <h3 data-dl-uid="384" data-dl-original="true" data-dl-translated="true">
+              vmmngr_alloc_page () - 物理メモリにページを割り当てる．
+            </h3>
+
+            ページを割り当てるために必要なことは、そのページが参照する物理メモリの 4K
+            ブロックを割り当て、そこからページテーブルエントリを作成するだけです。
+
+            <blockquote>
+              <pre><div class="code">bool vmmngr_alloc_page (pt_entry* e) {
+ 
+	//! allocate a free physical frame
+	void* p = pmmngr_alloc_block ();
+	if (!p)
+		return false;
+ 
+	//! map it to the page
+	pt_entry_set_frame (e, (physical_addr)p);
+	pt_entry_add_attrib (e, I86_PTE_PRESENT);
+ 
+	return true;
+}</div></pre>
+            </blockquote>
+
+            PTEルーチンのおかげで、この作業がずっと簡単になったことにお気づきでしょうか。上記は、ページテーブルエントリにPRESENTビットをセットし、そのFRAMEアドレスが割り当てられたメモリブロックを指すようにセットしています。こうしてページは存在し、物理メモリの有効なブロックを指すようになり、使用できるようになりました。クールでしょう？
+            <p data-dl-uid="388" data-dl-original="true" data-dl-translated="true">
+              また、物理アドレスをページに「マッピング」していることに注目してください。これは、物理アドレスを指すようにページを設定することを意味します。したがって、ページはそのアドレスに「マップ」されます。
+            </p>
+            <h3 data-dl-uid="389" data-dl-original="true" data-dl-translated="true">
+              vmmngr_free_page () - 物理メモリ内のページを解放する
+            </h3>
+
+            ページを解放するのはもっと簡単です。物理メモリ・マネージャを使ってメモリ・ブロックを解放し、ページ・テーブル・エントリのPRESENTビットをクリア（NOT
+            PRESENTをマーク）するだけです。
+
+            <blockquote>
+              <pre><div class="code">void vmmngr_free_page (pt_entry* e) {
+ 
+	void* p = (void*)pt_entry_pfn (*e);
+	if (p)
+		pmmngr_free_block (p);
+ 
+	pt_entry_del_attrib (e, I86_PTE_PRESENT);
+}</div></pre>
+            </blockquote>
+
+            これで完了です。さて、1つのページを割り当てたり解放したりする方法ができたので、それらをフルページテーブルにまとめることができるかどうか見てみましょう...
+            <h3 data-dl-uid="393" data-dl-original="true" data-dl-translated="true">
+              vmmngr_ptable_lookup_entry () -
+              ページテーブルからアドレス指定でページテーブルエントリを取得する。
+            </h3>
+
+            さて、仮想アドレスからページテーブルのエントリ番号を取得する方法ができたので、ページテーブルからそれを取得する方法が必要です。このルーチンはまさにそれを行います!これは上記の関数を使って仮想アドレスをページテーブル配列のインデックスに変換し、そこからページテーブルエントリを返します。
+
+            <blockquote>
+              <pre><div class="code">inline pt_entry* vmmngr_ptable_lookup_entry (ptable* p,virtual_addr addr) {
+ 
+	if (p)
+		return &amp;p-&gt;m_entries[ PAGE_TABLE_INDEX (addr) ];
+	return 0;
+}</div></pre>
+            </blockquote>
+
+            このルーチンはポインタを返すので、必要なだけエントリを変更することができます。どうです？
+            <p data-dl-uid="397" data-dl-original="true" data-dl-translated="true">
+              ページテーブルルーチンは以上です。ページングがいかに簡単か、おわかりいただけたでしょうか?）
+            </p>
+            <p data-dl-uid="398" data-dl-original="true" data-dl-translated="true">
+              次は...ページディレクトリのルーチンです。
+            </p>
+            <h3 data-dl-uid="399" data-dl-original="true" data-dl-translated="true">
+              vmmngr_pdirectory_lookup_entry () -
+              ディレクトリテーブルからアドレスでディレクトリエントリを取得する。
+            </h3>
+
+            さて、仮想アドレスをページディレクトリ・テーブルのインデックスに変換する方法を得たので、そこからページディレクトリ・エントリを取得する方法を提供する必要があります。これはページテーブルルーチンの対応するものと全く同じです。
+
+            <blockquote>
+              <pre><div class="code">inline pd_entry* vmmngr_pdirectory_lookup_entry (pdirectory* p, virtual_addr addr) {
+ 
+	if (p)
+		return &amp;p-&gt;m_entries[ PAGE_TABLE_INDEX (addr) ];
+	return 0;
+}</div></pre>
+            </blockquote>
+
+            <h3 data-dl-uid="403" data-dl-original="true" data-dl-translated="true">
+              vmmngr_switch_pdirectory () - 新しいページディレクトリに切り替えます。
+            </h3>
+
+            これらのルーチンのすべてがいかに小さいかに注目してください。これらのルーチンは、ページテーブルとディレクトリを簡単に扱うための最小限の、しかし非常に効果的なインタフェースを提供します。ページディレクトリをセットアップするとき、私たちの使用のためにそれをインストールする方法を提供する必要があります。
+            <p data-dl-uid="404" data-dl-original="true" data-dl-translated="true">
+              前のチュートリアルでは、<b
+                data-dl-uid="407"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ページ・ディレクトリ・ベース・レジスタ（PDBR</b
+              >）を設定および取得するために<b
+                data-dl-uid="405"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >pmmngr_load_PDBR()</b
+              >および<b data-dl-uid="406" data-dl-original="true" data-dl-translated="true"
+                >pmmngr_get_PDBR()</b
+              >の 2
+              つのルーチンを追加しました。これは、現在のページ・ディレクトリ・テーブルを格納するレジスタです。x86アーキテクチャでは、PDBRは<b
+                data-dl-uid="408"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >cr3</b
+              >プロセッサレジスタである。したがって、これらのルーチンは、単にcr3レジスタを設定および取得します。
+            </p>
+            <p data-dl-uid="409" data-dl-original="true" data-dl-translated="true">
+              vmmngr_switch_pdirectory () は、これらのルーチンを使用して PDBR
+              をロードし、カレントディレクトリを設定します。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">//! current directory table (global)
+pdirectory*		_cur_directory=0;
+ 
+inline bool vmmngr_switch_pdirectory (pdirectory* dir) {
+ 
+	if (!dir)
+		return false;
+ 
+	_cur_directory = dir;
+	pmmngr_load_PDBR (_cur_pdbr);
+	return true;
+}
+ 
+pdirectory* vmmngr_get_directory () {
+ 
+	return _cur_directory;
+}</div></pre>
+            </blockquote>
+
+            <h3 data-dl-uid="413" data-dl-original="true" data-dl-translated="true">
+              vmmngr_flush_tlb_entry () - TLB エントリをフラッシュする。
+            </h3>
+
+            TLB がどのように現在のページテーブルをキャッシュするか覚えていますか？時には、TLB
+            や個々のエントリをフラッシュ（無効化）して、現在の値
+            に更新できるようにする必要があるかもしれません。
+            これはプロセッサによって自動的に行われるかもしれません（制御レジスタを含む mov
+            命令の間など）。
+            <p data-dl-uid="414" data-dl-original="true" data-dl-translated="true">
+              プロセッサは、個々のTLBエントリを自分で手動でフラッシュする方法を提供します。 これは<b
+                data-dl-uid="415"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >INVLPG</b
+              >命令を使用して行われます。
+            </p>
+            <p data-dl-uid="416" data-dl-original="true" data-dl-translated="true">
+              この命令に仮想アドレスを渡すだけで、結果としてページ・エントリが無効になります。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">void vmmngr_flush_tlb_entry (virtual_addr addr) {
+ 
+#ifdef _MSC_VER
+	_asm {
+		cli
+		invlpg	addr
+		sti
+	}
+#endif
+}</div></pre>
+            </blockquote>
+
+            <b data-dl-uid="420" data-dl-original="true" data-dl-translated="true">INVLPGは</b>
+            <b data-dl-uid="421" data-dl-original="true" data-dl-translated="true">特権的な命令</b
+            >であることに留意してください。したがって、これを使用するには、<b
+              data-dl-uid="422"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >スーパーバイザモードで</b
+            >実行する必要があります。
+            <h3 data-dl-uid="423" data-dl-original="true" data-dl-translated="true">
+              vmmngr_map_page () - マップページ
+            </h3>
+
+            これは最も重要なルーチンの1つです。このルーチンを使うと、任意の物理アドレスを仮想アドレスにマッピングすることができます。少し複雑なので、分解して説明します。
+
+            <blockquote>
+              <pre><div class="code">void vmmngr_map_page (void* phys, void* virt) {
+
+   //! get page directory
+   pdirectory* pageDirectory = vmmngr_get_directory ();
+
+   //! get page table
+   pd_entry* e = &amp;pageDirectory-&gt;m_entries [PAGE_DIRECTORY_INDEX ((uint32_t) virt) ];
+   if ( (*e &amp; I86_PTE_PRESENT) != I86_PTE_PRESENT) {</div></pre>
+            </blockquote>
+
+            <p data-dl-uid="427" data-dl-original="true" data-dl-translated="true">
+              パラメータとして、物理アドレスと仮想アドレスが与えられています。最初にしなければならないのは、この仮想アドレスが位置するページディレクトリ・エントリーが有効かどうか（つまり、以前に割り当てられ、そのPRESENTビットが設定されているかどうか）を確認することです。
+            </p>
+            <p data-dl-uid="428" data-dl-original="true" data-dl-translated="true">
+              ページディレクトリのインデックスは仮想アドレスの一部なので、PAGE_DIRECTORY_INDEX()を使用してページディレクトリのインデックスを取得します。それから、ページディレクトリの配列にインデックスを付けて、ページディレクトリエントリへのポインタを取得するだけです。I86_PTE_PRESENT
+              ビットが設定されているかどうかを確認します。
+              設定されていない場合、ページディレクトリのエントリが存在しないため、作成する必要があります。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">      //! page table not present, allocate it
+      ptable* table = (ptable*) pmmngr_alloc_block ();
+      if (!table)
+         return;
+
+      //! clear page table
+      memset (table, 0, sizeof(ptable));
+
+      //! create a new entry
+      pd_entry* entry =
+         &amp;pageDirectory-&gt;m_entries [PAGE_DIRECTORY_INDEX ( (uint32_t) virt) ];
+
+      //! map in the table (Can also just do *entry |= 3) to enable these bits
+      pd_entry_add_attrib (entry, I86_PDE_PRESENT);
+      pd_entry_add_attrib (entry, I86_PDE_WRITABLE);
+      pd_entry_set_frame (entry, (physical_addr)table);
+   }
+</div></pre>
+            </blockquote>
+
+            <p data-dl-uid="432" data-dl-original="true" data-dl-translated="true">
+              まず、新しいページテーブル用に新しいページを確保し、クリアします。
+              その後、再びPAGE_DIRECTORY_INDEX()を使用して仮想アドレスからディレクトリインデックスを取得し、ページディレクトリにインデックスを作成してページテーブルエントリへのポインタを取得します。そして、新しいallocateページテーブルを指すようにページテーブルエントリを設定し、それが使用できるようにそのPRESENTビットとWRITABLEビットを設定します。
+            </p>
+            <p data-dl-uid="433" data-dl-original="true" data-dl-translated="true">
+              この時点で、ページテーブルはその仮想アドレスで有効であることが保証されます。ですから、ルーチンは今、アドレスをマップする必要があるだけです...
+            </p>
+
+            <blockquote>
+              <pre><div class="code">   //! get table
+   ptable* table = (ptable*) PAGE_GET_PHYSICAL_ADDRESS ( e );
+
+   //! get page
+   pt_entry* page = &amp;table-&gt;m_entries [ PAGE_TABLE_INDEX ( (uint32_t) virt) ];
+
+   //! map it in (Can also do (*page |= 3 to enable..)
+   pt_entry_set_frame ( page, (physical_addr) phys);
+   pt_entry_add_attrib ( page, I86_PTE_PRESENT);
+}</div></pre>
+            </blockquote>
+
+            <p data-dl-uid="437" data-dl-original="true" data-dl-translated="true">
+              上記では、ページテーブルエントリを取得するために、PAGE_GET_PHYSICAL_ADDRESS()を呼び出して、ページディレクトリエントリが指す物理フレームを取得しています。次に、<b
+                data-dl-uid="438"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >PAGE_TABLE_INDEXを</b
+              >使用して仮想アドレスからページテーブルインデックスを取得し、ページテーブルにインデックスを付けて、ページテーブルエントリを取得する。そして、物理アドレスを指すようにページを設定し、ページのPRESENTビットを設定します。
+            </p>
+
+            <h3 data-dl-uid="439" data-dl-original="true" data-dl-translated="true">
+              vmmngr_initialize () - VMMを初期化する。
+            </h3>
+
+            これは重要なルーチンです。これは上記のルーチンのすべて(まあ、そのほとんど;)を使って、デフォルトのページディレクトリを設定し、それをインストールし、ページングを有効にします。また、このルーチンは、すべてがどのように機能し、組み合わされるかの例として使用することもできます。このルーチンは新しいページディレクトリを作成するので、カーネルのために、1MBの物理を3GBの仮想にマッピングする必要もあります。
+            <p data-dl-uid="440" data-dl-original="true" data-dl-translated="true">
+              これはかなり大きなルーチンなので、分解して何が起こっているのか見てみましょう。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">void vmmngr_initialize () {
+ 
+	//! allocate default page table
+	ptable* table = (ptable*) pmmngr_alloc_block ();
+	if (!table)
+		return;
+ 
+	//! allocates 3gb page table
+	ptable* table2 = (ptable*) pmmngr_alloc_block ();
+	if (!table2)
+		return;
+
+	//! clear page table
+	vmmngr_ptable_clear (table);</div></pre>
+            </blockquote>
+
+            ページテーブルが4Kアラインドアドレスに配置されなければならないことを思い出してください。物理メモリマネージャ（PMM）のおかげで、私たちの<b
+              data-dl-uid="444"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >pmmngr_alloc_block()</b
+            >はすでにこれを実行しているので、心配する必要はありません。割り当てられた1つのブロックはすでに4Kのサイズなので、ページテーブルはそのエントリにも十分なストレージスペースを持っています（1024ページテーブルエントリ*エントリあたり4バイト（ページテーブルエントリのサイズ）=4K）ので、必要なのは1ブロックのみです。
+            <p data-dl-uid="445" data-dl-original="true" data-dl-translated="true">
+              その後、ページテーブルをクリアして、使用するためにきれいにします。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">	//! 1st 4mb are idenitity mapped
+	for (int i=0, frame=0x0, virt=0x00000000; i&lt;1024; i++, frame+=4096, virt+=4096) {
+
+ 		//! create a new page
+		pt_entry page=0;
+		pt_entry_add_attrib (&amp;page, I86_PTE_PRESENT);
+ 		pt_entry_set_frame (&amp;page, frame);
+
+		//! ...and add it to the page table
+		table2-&gt;m_entries [PAGE_TABLE_INDEX (virt) ] = page;
+	}</div></pre>
+            </blockquote>
+
+            この部分は少しトリッキーです。<b
+              data-dl-uid="449"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >ページングが有効になると同時に、すべてのアドレスが仮想的になることを思い出してください。</b
+            >
+            これが問題になります。これを解決するには、仮想アドレスを同じ物理アドレスにマッピングして、同じものを参照するようにする必要があります。これが<b
+              data-dl-uid="450"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >アイデニティ・マッピング</b
+            >です。
+            <p data-dl-uid="451" data-dl-original="true" data-dl-translated="true">
+              上記のコードでは、ページテーブルを物理メモリの最初の4MB（ページテーブル全体）にマッピングしています。新しいページを作成し、そのPRESENTビットに続いて、ページが参照したいフレームアドレスを設定します。その後、マッピングしている現在の仮想アドレス（「frame」に格納）をページテーブルインデックスに変換し、そのページテーブルエントリを設定します。
+            </p>
+            <p data-dl-uid="452" data-dl-original="true" data-dl-translated="true"></p>
+            <p data-dl-uid="453" data-dl-original="true" data-dl-translated="true">
+              i "に格納されている）ページテーブルの各ページについて、"frame
+              "を4K（4096）ずつインクリメントしています。(ページテーブルインデックス0はアドレス0-4093を参照し、インデックス1はアドレス4096を参照する...と覚えていますか？)
+            </p>
+            <p data-dl-uid="454" data-dl-original="true" data-dl-translated="true">
+              ここで問題にぶつかります。ブートローダはカーネルを直接3gbの仮想空間にマッピングしてロードするので、カーネルがある領域も再マッピングする必要があるのです。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">	//! map 1mb to 3gb (where we are at)
+	for (int i=0, frame=0x100000, virt=0xc0000000; i&lt;1024; i++, frame+=4096, virt+=4096) {
+
+		//! create a new page
+		pt_entry page=0;
+		pt_entry_add_attrib (&amp;page, I86_PTE_PRESENT);
+		pt_entry_set_frame (&amp;page, frame);
+
+		//! ...and add it to the page table
+		table-&gt;m_entries [PAGE_TABLE_INDEX (virt) ] = page;
+	}
+</div></pre>
+            </blockquote>
+
+            <p data-dl-uid="458" data-dl-original="true" data-dl-translated="true">
+              このコードは上記のループとほぼ同じで、1MBの物理を3GBの仮想にマッピングしています。これは、カーネルをアドレス空間にマッピングし、カーネルが3GBの仮想アドレスで動作し続けることを可能にするものです。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">	//! create default directory table
+	pdirectory*	dir = (pdirectory*) pmmngr_alloc_blocks (3);
+	if (!dir)
+		return;
+ 
+	//! clear directory table and set it as current
+	memset (dir, 0, sizeof (pdirectory));</div></pre>
+            </blockquote>
+
+            上記は新しいページディレクトリを作成し、私たちが使用するためにそれをクリアします。
+
+            <blockquote>
+              <pre><div class="code">	pd_entry* entry = &amp;dir-&gt;m_entries [PAGE_DIRECTORY_INDEX (0xc0000000) ];
+	pd_entry_add_attrib (entry, I86_PDE_PRESENT);
+	pd_entry_add_attrib (entry, I86_PDE_WRITABLE);
+	pd_entry_set_frame (entry, (physical_addr)table);
+
+	pd_entry* entry2 = &amp;dir-&gt;m_entries [PAGE_DIRECTORY_INDEX (0x00000000) ];
+	pd_entry_add_attrib (entry2, I86_PDE_PRESENT);
+	pd_entry_add_attrib (entry2, I86_PDE_WRITABLE);
+	pd_entry_set_frame (entry2, (physical_addr)table2);</div></pre>
+            </blockquote>
+
+            各ページテーブルは4MBの仮想アドレス空間全体を表していることを思い出してください。各ページディレクトリのエントリがページテーブルを指していることを知っていれば、各ページディレクトリのエントリはディレクトリテーブル全体の4GB仮想アドレス空間の中の同じ4MBアドレス空間を表していると安全に言うことができます。ページディレクトリの最初のエントリは最初の4MBを、2番目のエントリは次の4MBを、といった具合です。今は最初の
+            4MB
+            しかマッピングしていないので、必要なのは最初のエントリをページテーブルを指すように設定することだけです。
+            <p data-dl-uid="465" data-dl-original="true" data-dl-translated="true"></p>
+            <p data-dl-uid="466" data-dl-original="true" data-dl-translated="true">
+              同様に、3GBのページディレクトリエントリを設定します。これは、カーネルをマップするために必要です。
+            </p>
+            <p data-dl-uid="467" data-dl-original="true" data-dl-translated="true">
+              また、ページディレクトリエントリPAGEとPRESENTビットも設定していることに注意してください。これは、ページテーブルが存在し、書き込み可能であることをプロセッサに伝えます。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">	//! store current PDBR
+	_cur_pdbr = (physical_addr) &amp;dir-&gt;m_entries;
+ 
+	//! switch to our page directory
+	vmmngr_switch_pdirectory (dir);
+ 
+	//! enable paging
+	pmmngr_paging_enable (true);
+}</div></pre>
+            </blockquote>
+
+            これでページディレクトリが設定されたので、ページディレクトリをインストールし、ページングを有効にします。すべてが期待通りに動けば、プログラムはクラッシュしないはずです。もしうまくいかなければ、おそらくトリプルフォールトになるでしょう。
+            <h2 data-dl-uid="471" data-dl-original="true" data-dl-translated="true">ページフォルト</h2>
+
+            ご存知のように、ページングを有効にするとすぐにすべてのアドレスが仮想化されます。これらの仮想アドレスはすべて、ページテーブルとページディレクトリのデータ構造に大きく依存しています。これはいいのですが、仮想アドレスがまだ有効でないページにアクセスすることをCPUに要求する場合がたくさんあります。このような場合、プロセッサは<b
+              data-dl-uid="472"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >ページ障害例外（#PF</b
+            >）を発生させます。 PFは、ページが<b
+              data-dl-uid="474"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >存在</b
+            >しないとマークされた場合のみ発生します。
+            <b data-dl-uid="475" data-dl-translated="true">GPFは</b
+            >、ページが適切にマッピングされていないにもかかわらず、存在するとマークされ、アクセス可能である場合に発生します。<b
+              data-dl-uid="476"
+              data-dl-translated="true"
+              >GPFは</b
+            >、ページがアクセス可能でない場合にも発生します。
+            <p data-dl-uid="477" data-dl-translated="true">
+              ページフォルトは、CPU割り込み14で、情報を取得できるようにエラーコードをプッシュします。
+              プロセッサがプッシュするエラーコードは、次の形式です。
+            </p>
+
+            <ul>
+              <li><b>Bit 0:</b></li>
+              <ul>
+                <li>0: ページが存在したので#PFが発生した</li>
+                <li>1: ページが存在しなかったので#PFが発生した</li>
+              </ul>
+              <li><b>Bit 1:</b></li>
+              <ul>
+                <li>0: #PFが発生した操作は読み出しである</li>
+                <li>1: #PFが発生した操作は書き込みである</li>
+              </ul>
+              <li><b>Bit 2:</b></li>
+              <ul>
+                <li>0: プロセッサがリング0（カーネルモード）で動作していた</li>
+                <li>1: プロセッサがリング3（ユーザーモード）で動作していた</li>
+              </ul>
+              <li><b>Bit 3:</b></li>
+              <ul>
+                <li>0: 予約ビットが書き込まれたため、#PFは発生しなかった</li>
+                <li>1: 予約ビットが書き込まれたため、#PFが発生した</li>
+              </ul>
+              <li><b>Bit 4:</b></li>
+              <ul>
+                <li>0: #PFは命令フェッチ中に発生しなかった</li>
+                <li>1: #PFは命令フェッチ中に発生した</li>
+              </ul>
+            </ul>
+
+            <p data-dl-uid="505" data-dl-translated="true">その他のビットは0</p>
+            <p data-dl-uid="506" data-dl-translated="true">
+              PFが発生すると、プロセッサは<b data-dl-uid="507" data-dl-translated="true">CR2</b
+              >レジスタに故障の原因となったアドレスも格納します。
+            </p>
+
+            <p></p>
+
+            <p data-dl-uid="508" data-dl-translated="true">
+              通常、#PFが発生すると、OSは現在実行中のプログラムの故障したアドレスからページをディスクからフェッチする必要があります。
+            </p>
+
+            <p data-dl-uid="508" data-dl-translated="true">
+              これには、OSのいくつかの異なる構成要素（ディスクドライバ、ファイルシステムドライバ、ボリューム/マウントポイント管理）が必要であり、我々はまだ持っていない。このため、ページフォルトの処理については、もう少し進化した
+              OS ができたときに、また取り上げることにします。
+            </p>
+
+            <h1>まとめ</h1>
+            このチュートリアルを終えて、とてもうれしいです。このチュートリアルでは、多くの情報と領域をカバーしました。仮想メモリ、仮想アドレッシングと変換、ページング、メソッド、その他。このチュートリアルで、私たちはまだページングという言葉から抜け出してはいません。このチュートリアルで、私たちはまだページングという言葉から抜け出してはいません！しかし、私たちは、それがどのように動作し、それを使用するためのホットについて、より良い理解を持っていることを知っているので、安全に今夜眠りにつくことができます。ほらね？そんなに悪くないでしょう?）
+            次のチュートリアルの中では、キーボードドライバの開発という楽しいことに戻ろうと考えています。すでに出力の形があり、入力を取り出すことができるので、簡単なコマンドラインも作ることができるかもしれません;)
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </body>
+</html>
