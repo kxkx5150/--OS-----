@@ -1,0 +1,2219 @@
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Cache-Control" content="no-cache" />
+    <title></title>
+    <link href="css/reference.css" rel="stylesheet" />
+  </head>
+  <body>
+    <table cellspacing="0" cellpadding="3" width="80%" border="0">
+      <tbody>
+        <tr>
+          <td class="tblhdr">Operating Systems Development Series</td>
+        </tr>
+        <tr>
+          <td align="middle" colspan="2"></td>
+        </tr>
+      </tbody>
+    </table>
+    <table cellspacing="0" cellpadding="5" width="100%" border="0">
+      <tbody>
+        <tr>
+          <td>
+            <!-- Title -->
+
+            <div>
+              <span class="title">FDC Programming</span>
+
+              <br />
+              <span class="author">by Mike, 2008, 2009</span>
+            </div>
+            <p>
+              This series is intended to demonstrate and teach operating system development from the
+              ground up.
+            </p>
+
+            <center>
+              <img src="./18_files/Intel-D8272A.jpg" width="350px" height="200px" /><br /><i
+                >8272A Floppy Disk Controller</i
+              >
+            </center>
+
+            <h1 data-dl-uid="11" data-dl-original="true" data-dl-translated="true">はじめに</h1>
+
+            やったー!ついにフロッピーディスクドライブを扱う時が来ました!この章では、フロッピーディスクドライブとフロッピーディスクのプログラミン
+            グについて知るべきことをほとんどすべてカバーします!
+            <p data-dl-uid="12" data-dl-original="true" data-dl-translated="true">
+              この章のメニューはこんな感じです。
+            </p>
+            <ul data-dl-uid="13" data-dl-original="true" data-dl-translated="true">
+              <li data-dl-uid="14" data-dl-original="true" data-dl-translated="true">FDCとFDDの歴史</li>
+              <li data-dl-uid="15" data-dl-original="true" data-dl-translated="true">
+                ディスクレイアウト
+              </li>
+              <li data-dl-uid="16" data-dl-original="true" data-dl-translated="true">CHS、LBA</li>
+              <li data-dl-uid="17" data-dl-original="true" data-dl-translated="true">FDDの構造</li>
+              <li data-dl-uid="18" data-dl-original="true" data-dl-translated="true">
+                FDCのハードウエア
+              </li>
+              <li data-dl-uid="19" data-dl-original="true" data-dl-translated="true">
+                FDCとのインターフェイス
+              </li>
+              <li data-dl-uid="20" data-dl-original="true" data-dl-translated="true">
+                FDCのレジスタとコマンド
+              </li>
+            </ul>
+
+            <h1 data-dl-uid="21" data-dl-original="true" data-dl-translated="true">歴史</h1>
+
+            <b data-dl-uid="22" data-dl-original="true" data-dl-translated="true"
+              >フロッピーディスクコントローラ(FDC)</b
+            >は、<b data-dl-uid="23" data-dl-original="true" data-dl-translated="true"
+              >フロッピーディスクドライブ(FDD)</b
+            >とインターフェイスするコントローラです。 PCでは通常、<b
+              data-dl-uid="24"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >NECのPD765 FDCが</b
+            >使用されています。PS/2では<b
+              data-dl-uid="25"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >Intel 82077A</b
+            >、ATでは<b data-dl-uid="26" data-dl-original="true" data-dl-translated="true">Intel 82072</b
+            >Aというマイコンが使われています。
+            <p data-dl-uid="27" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="28" data-dl-original="true" data-dl-translated="true"
+                >フロッピーディスクドライブ（FDD</b
+              >）は、<b data-dl-uid="29" data-dl-original="true" data-dl-translated="true"
+                >フロッピーディスクに対して</b
+              >データの読み書きができる装置である。
+            </p>
+            <p data-dl-uid="30" data-dl-original="true" data-dl-translated="true">
+              1971年、IBMのダイレクト・アクセス・ストレージ製品マネージャであったアラン・シュガートに雇われたデビッド・L・ノーブルは、同社のSystem/370メインフレーム用に新しいストレージ・テープ・フォーマットを開発しようとした。IBMは、<b
+                data-dl-uid="31"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >初期制御プログラムロード（ICPL</b
+              >）のマイクロコードを再ロードする際に、テープドライブよりも小型で高速なものを作ろうと考えていた。ノブレス氏のチームは、「ミノー」というコードネームで「メモリーディスク」と呼ばれる製品に取り組んでいた。これは、80キロバイトの容量を持つ読み取り専用の8インチ・ディスケットである。1971年に市販され、すべてのSystem/370メインフレームに搭載された。
+            </p>
+            <p data-dl-uid="32" data-dl-original="true" data-dl-translated="true">
+              アラン・シュガートがIBMを退職し、メモレックスに移ると、彼のチームは1972年に最初の読み書き可能なフロッピーディスクドライブである「Memorex
+              650」を出荷した。
+            </p>
+            <p data-dl-uid="33" data-dl-original="true" data-dl-translated="true">
+              フロッピーディスクは、IBMが8インチ、5インチと1/4インチ、3 1/2
+              インチのフォーマットを発明した。
+            </p>
+            <h1 data-dl-uid="34" data-dl-original="true" data-dl-translated="true">ディスクの構造</h1>
+
+            <h2 data-dl-uid="35" data-dl-original="true" data-dl-translated="true">物理レイアウト</h2>
+
+            ディスクの構造を理解することが大切です。フロッピーディスクはこんな構造になっています。
+            <p data-dl-uid="36" data-dl-original="true" data-dl-translated="true"></p>
+
+            <center><img src="./18_files/flpy.png" /></center>
+
+            <p data-dl-uid="39" data-dl-original="true" data-dl-translated="true">
+              一般的な3-1/2インチフロッピーディスクの物理レイアウトです。ここではヘッド1(前面)を見ていますが、セクタは512バイトを表します。トラックはセクタの集合体です。
+            </p>
+            <p data-dl-uid="40" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="41" data-dl-original="true" data-dl-translated="true"
+                >注：1セクタは512バイトで、フロッピーディスクには1トラックあたり18セクタがあることを覚えておいてください。</b
+              >
+            </p>
+            <p data-dl-uid="42" data-dl-original="true" data-dl-translated="true">
+              上の絵を見て、思い出してください。
+            </p>
+            <ul data-dl-uid="43" data-dl-original="true" data-dl-translated="true">
+              <li data-dl-uid="44" data-dl-original="true" data-dl-translated="true">
+                各トラックは通常512バイトのセクタに分割されています。フロッピーディスクでは、1トラックあたり18のセクタがあります。
+              </li>
+              <li data-dl-uid="45" data-dl-original="true" data-dl-translated="true">
+                シリンダーとは、同じ半径のトラックの集まりのことです（上の写真の赤いトラックは1つのシリンダーです）。
+              </li>
+              <li data-dl-uid="46" data-dl-original="true" data-dl-translated="true">
+                フロッピーディスクには2つのヘッドがあります。
+              </li>
+              <li data-dl-uid="47" data-dl-original="true" data-dl-translated="true">
+                合計2880個のセクタがあります。
+              </li>
+            </ul>
+            次に、<b data-dl-uid="48" data-dl-original="true" data-dl-translated="true">CHSについて</b
+            >説明します。次はそれを見てみましょう。
+            <h2 data-dl-uid="49" data-dl-original="true" data-dl-translated="true">
+              シリンダー/ヘッド/セクター(CHS)
+            </h2>
+
+            <h3 data-dl-uid="50" data-dl-original="true" data-dl-translated="true">セクタ</h3>
+
+            セクタとは、512バイトのまとまりを表します。つまり、セクタ1はディスクの最初の512バイトを表しています。
+
+            <h3 data-dl-uid="51" data-dl-original="true" data-dl-translated="true">ヘッド</h3>
+
+            ヘッド」（またはフェイス）は、ディスクの側面を表します。ヘッド0が表側、ヘッド1が裏側です。ほとんどのディスクは1面しかないため、ヘッドも1つしかありません（「ヘッド1」）。
+            <h3 data-dl-uid="52" data-dl-original="true" data-dl-translated="true">トラック</h3>
+
+            トラックとは、ディスクの周囲にある1つの輪のことです。フロッピーディスクの場合、1つのトラックには18セクタがある。
+            <p data-dl-uid="53" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="54" data-dl-original="true" data-dl-translated="true"
+                >シリンダーは、1枚のディスクのトラック番号を</b
+              >表します。フロッピーディスクの場合、読み出すトラックを表します。
+            </p>
+            <p data-dl-uid="55" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="56" data-dl-original="true" data-dl-translated="true"
+                >1トラックあたり18セクタあります。片面80トラック。</b
+              >
+            </p>
+            <h3 data-dl-uid="57" data-dl-original="true" data-dl-translated="true">CHSを理解する</h3>
+
+            フロッピーディスクのアドレスはCHS形式である。ディスク上の任意の場所から読み書きするためには、FDCに<b
+              data-dl-uid="58"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >読み取り/書き込みヘッドを</b
+            >ディスク上の正確なトラック、シリンダー、セクタに移動するよう指示する必要がある。
+            <h3 data-dl-uid="59" data-dl-original="true" data-dl-translated="true">
+              リニアブロックアドレッシング(LBA)
+            </h3>
+
+            また、LBA（<b data-dl-uid="60" data-dl-original="true" data-dl-translated="true"
+              >Linear Block Addressing</b
+            >）を使って、より抽象的なディスクの読み書きを行うことも可能です。LBAでは、ディスク上のセクタ0〜2880までの任意のセクタに対して読み書きができる。
+            <h1 data-dl-uid="61" data-dl-original="true" data-dl-translated="true">
+              フロッピーディスクのインターフェイス
+            </h1>
+
+            ソフトウェアとフロッピーディスクドライブのインターフェースは、フロッピーディスクコントローラを介して制御します。
+            フロッピーディスクコントローラの違いにより、ここではオリジナルの8272Aフロッピーディスクコントローラに焦点を当てたいと思います。冒頭の画像は、典型的な8272A集積回路（IC）コントローラです。これが、今回取り上げるICです。
+            <h2 data-dl-uid="62" data-dl-original="true" data-dl-translated="true">
+              詳細82072Aフロッピーマイクロコントローラ
+            </h2>
+
+            8272AのICは40ピンあります。ここで見てみましょう。40本のピンを簡単に見ていきますが、電子工作の分野に入ってしまうので、ここでは詳しく見ていきません。
+            <p data-dl-uid="63" data-dl-original="true" data-dl-translated="true"></p>
+
+            <center><img src="./18_files/8272a.jpg" /></center>
+
+            <p data-dl-uid="66" data-dl-original="true" data-dl-translated="true">
+              これらのピンのほとんどは、コントローラのプログラミングにはあまり役立ちません。しかし、他のピンは、理解することがより重要です。それでは、見ていきましょう。FDCは、<b
+                data-dl-uid="67"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >プログラマブル割り込みコントローラ（PIC</b
+              >）、システムバス、および<b
+                data-dl-uid="68"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ダイレクトメモリアクセスコントローラと</b
+              >間接的に通信していることがわかります。
+            </p>
+            <p data-dl-uid="69" data-dl-original="true" data-dl-translated="true"></p>
+            <ul data-dl-uid="70" data-dl-original="true" data-dl-translated="true">
+              <li data-dl-uid="71" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="72" data-dl-original="true" data-dl-translated="true">RESET Pin</b>-
+                FDCをアイドル状態にします。すべての出力ラインをLowにします。<b
+                  data-dl-uid="73"
+                  data-dl-original="true"
+                  data-dl-translated="true"
+                  >Vcc</b
+                >ピンは、+5V電源入力です。
+              </li>
+              <li data-dl-uid="74" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="75" data-dl-original="true" data-dl-translated="true">GND Pin</b>-
+                グラウンドピンです。
+              </li>
+              <li data-dl-uid="76" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="77" data-dl-original="true" data-dl-translated="true">CLK</b> Pin -
+                標準的な単相8MHz方形波クロック信号です。
+              </li>
+              <li data-dl-uid="78" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="79" data-dl-original="true" data-dl-translated="true">RD</b> Pin -
+                現在の動作がリード動作であることをFDCに伝えます。
+              </li>
+              <li data-dl-uid="80" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="81" data-dl-original="true" data-dl-translated="true">WR</b>
+                Pin：書き込み動作であることを示します。
+              </li>
+              <ul data-dl-uid="82" data-dl-original="true" data-dl-translated="true">
+                <li data-dl-uid="83" data-dl-original="true" data-dl-translated="true">
+                  ソフトウェアによる<b data-dl-uid="85" data-dl-original="true" data-dl-translated="true"
+                    >I/Oのリード/ライト</b
+                  >動作で、<b data-dl-uid="84" data-dl-original="true" data-dl-translated="true"
+                    >コントロールバスによって</b
+                  >設定されます。
+                </li>
+              </ul>
+              <li data-dl-uid="86" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="87" data-dl-original="true" data-dl-translated="true">CS</b> Pin -
+                チップセレクト
+              </li>
+              <li data-dl-uid="88" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="89" data-dl-original="true" data-dl-translated="true">DB0 - DB7 Pin</b>-
+                双方向の8ビットデータバスです。システムの<b
+                  data-dl-uid="90"
+                  data-dl-original="true"
+                  data-dl-translated="true"
+                  >プライマリ・データ・バスに</b
+                >間接的に接続されます。
+              </li>
+              <li data-dl-uid="91" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="92" data-dl-original="true" data-dl-translated="true">A0</b> Pin -<b
+                  data-dl-uid="93"
+                  data-dl-original="true"
+                  data-dl-translated="true"
+                  >データ/ステータス・レジスタ・セレクト</b
+                >
+                Pinです。ハイ（1）の場合、FDCにその<b
+                  data-dl-uid="94"
+                  data-dl-original="true"
+                  data-dl-translated="true"
+                  >データ・レジスタの</b
+                >内容をデータ・バスに配置するよう指示します。Low (0) の場合、<b
+                  data-dl-uid="95"
+                  data-dl-original="true"
+                  data-dl-translated="true"
+                  >ステータス レジスタ</b
+                >の内容をデータ
+                バスにコピーします。これは、出力データ・バス・ピンDB0～DB7を通じて行われ、さらに、ソフトウェアで読み出すことができるシステム・データ・バスを介して行われます。
+              </li>
+              <li data-dl-uid="96" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="97" data-dl-original="true" data-dl-translated="true">DRQ Pin</b>-<b
+                  data-dl-uid="98"
+                  data-dl-original="true"
+                  data-dl-translated="true"
+                  >データ直接メモリアクセス（DMA）要求</b
+                >ピン。<b data-dl-uid="99" data-dl-original="true" data-dl-translated="true"
+                  >このラインがハイ（1）の場合、FDCはDMAリクエストを行っています。</b
+                >
+              </li>
+              <li data-dl-uid="100" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="101" data-dl-original="true" data-dl-translated="true">DACK</b> Pin -<b
+                  data-dl-uid="102"
+                  data-dl-original="true"
+                  data-dl-translated="true"
+                  >DMAアクノレッジ</b
+                >
+                Pin。コントローラがDMA転送を実行している場合、このラインはLow (0) になります。
+              </li>
+              <li data-dl-uid="103" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="104" data-dl-original="true" data-dl-translated="true">TC</b> Pin -
+                DMA転送が完了すると、FDCは<b
+                  data-dl-uid="105"
+                  data-dl-original="true"
+                  data-dl-translated="true"
+                  >Terminal Count</b
+                >
+                Pin、<n data-dl-uid="106" data-dl-original="true" data-dl-translated="true"
+                  >TCをHigh (1</n
+                >) に設定します。
+              </li>
+              <li data-dl-uid="107" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="108" data-dl-original="true" data-dl-translated="true">IDX</b> Pin -
+                FDCがディスクトラックの先頭にいるとき、Highになります。
+              </li>
+              <li data-dl-uid="109" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="110" data-dl-original="true" data-dl-translated="true">INT</b> Pin -
+                FDCが<b data-dl-uid="111" data-dl-original="true" data-dl-translated="true"
+                  >割り込み要求（IR</b
+                >）を送信すると、High（1）になります。このラインは、<b
+                  data-dl-uid="113"
+                  data-dl-original="true"
+                  data-dl-translated="true"
+                  >プログラマブル割り込みコントローラ (PIC</b
+                >) の<b data-dl-uid="112" data-dl-original="true" data-dl-translated="true">IR6</b
+                >に間接的に接続されています。
+              </li>
+              <li data-dl-uid="114" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="115" data-dl-original="true" data-dl-translated="true">RW/Seek Pin</b>-
+                リード/ライトモードのシークモードを設定します。1: シークモード，0: リード/ライトモード。
+              </li>
+              <li data-dl-uid="116" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="117" data-dl-original="true" data-dl-translated="true">LCT/DIR</b> Pin
+                -<b data-dl-uid="118" data-dl-original="true" data-dl-translated="true">低電流/方向</b
+                >指定 Pinです。
+              </li>
+              <li data-dl-uid="119" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="120" data-dl-original="true" data-dl-translated="true">FR/STP</b> Pin -<b
+                  data-dl-uid="121"
+                  data-dl-original="true"
+                  data-dl-translated="true"
+                  >フォルトリセット/ステップ</b
+                >
+                Pin。
+              </li>
+              <li data-dl-uid="122" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="123" data-dl-original="true" data-dl-translated="true">HDL</b> Pin -<b
+                  data-dl-uid="124"
+                  data-dl-original="true"
+                  data-dl-translated="true"
+                  >Head Load</b
+                >
+                Pin。FDDのRead/Writeヘッドをディスケットに接触させるコマンドです。
+              </li>
+              <li data-dl-uid="125" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="126" data-dl-original="true" data-dl-translated="true">RDY</b> Pin -<b
+                  data-dl-uid="127"
+                  data-dl-original="true"
+                  data-dl-translated="true"
+                  >レディ</b
+                >
+                Pin。FDDがデータ送受信可能な状態にあることを示す。
+              </li>
+              <li data-dl-uid="128" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="129" data-dl-original="true" data-dl-translated="true">WP/TS</b> Pin -<b
+                  data-dl-uid="130"
+                  data-dl-original="true"
+                  data-dl-translated="true"
+                  >ライトプロテクト/ツーサイド</b
+                >
+                Pin。リード/ライトモードでは、メディアがライトプロテクトされている場合、Highに設定します。
+                シークモードでは、メディアが2面ある場合、Highに設定します。
+              </li>
+              <li data-dl-uid="131" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="132" data-dl-original="true" data-dl-translated="true">FLT/TRK0</b> Pin
+                -<b data-dl-uid="133" data-dl-original="true" data-dl-translated="true"
+                  >フォルト/トラック0</b
+                >ピン。Read/Write モードの場合、FDDフォルトが検出されるとHighに設定されます。
+              </li>
+              <li data-dl-uid="134" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="135" data-dl-original="true" data-dl-translated="true">PS0 - PS2 Pin</b
+                >-<b data-dl-uid="136" data-dl-original="true" data-dl-translated="true"
+                  >Precompensation (Pre-shift)</b
+                >ピン。<b data-dl-uid="137" data-dl-original="true" data-dl-translated="true">MFM</b
+                >モード時、プリコンペンセーションの状態を書き込みます。
+              </li>
+              <li data-dl-uid="138" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="139" data-dl-original="true" data-dl-translated="true">WR DATA</b> Pin -
+                ライトデータ Pin
+              </li>
+              <li data-dl-uid="140" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="141" data-dl-original="true" data-dl-translated="true">RD DATA</b> Pin -
+                読み出しデータ Pin
+              </li>
+              <li data-dl-uid="142" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="143" data-dl-original="true" data-dl-translated="true">DS0 - DS1</b> Pin
+                - ドライブセレクト Pin
+              </li>
+              <li data-dl-uid="144" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="145" data-dl-original="true" data-dl-translated="true">HDSEL</b> Pin -<b
+                  data-dl-uid="146"
+                  data-dl-original="true"
+                  data-dl-translated="true"
+                  >ヘッドセレクト</b
+                >
+                Pin。High(1)でFDDがヘッド1にアクセスするように設定されます。Lowの時、ヘッド0になります。
+              </li>
+              <li data-dl-uid="147" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="148" data-dl-original="true" data-dl-translated="true">MFM</b> Pin -
+                Highのとき、FDCは<b data-dl-uid="149" data-dl-original="true" data-dl-translated="true"
+                  >MFM</b
+                >モードになります。Lowの時(0)、<b
+                  data-dl-uid="150"
+                  data-dl-original="true"
+                  data-dl-translated="true"
+                  >FM</b
+                >モードで動作します。
+              </li>
+              <li data-dl-uid="151" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="152" data-dl-original="true" data-dl-translated="true">WE</b> Pin -<b
+                  data-dl-uid="153"
+                  data-dl-original="true"
+                  data-dl-translated="true"
+                  >ライトイネーブル Pin</b
+                >です。
+              </li>
+              <li data-dl-uid="154" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="155" data-dl-original="true" data-dl-translated="true">VCO </b> Pin -<b
+                  data-dl-uid="156"
+                  data-dl-original="true"
+                  data-dl-translated="true"
+                  >VCO シンク Pin</b
+                >。0 のとき、<b data-dl-uid="158" data-dl-original="true" data-dl-translated="true"
+                  >PLL</b
+                >
+                の<b data-dl-uid="157" data-dl-original="true" data-dl-translated="true">VCO</b
+                >を禁止する。1のとき、<b
+                  data-dl-uid="159"
+                  data-dl-original="true"
+                  data-dl-translated="true"
+                  >VCOを</b
+                >有効にします。
+              </li>
+              <li data-dl-uid="160" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="161" data-dl-original="true" data-dl-translated="true">DW</b> Pin -
+                データウィンドウ Pin。PLLで生成され、FDDからのサンプルデータに使用されます。
+              </li>
+              <li data-dl-uid="162" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="163" data-dl-original="true" data-dl-translated="true">WR CLK</b> Pin -
+                書き込みクロック
+              </li>
+            </ul>
+
+            FDCは、<b data-dl-uid="164" data-dl-original="true" data-dl-translated="true"
+              >DMA（Direct Memory Access）コントローラの</b
+            >有無にかかわらず、動作させることができます。非DMAモードで動作する場合、プロセッサとFDC間でデータバイトを転送するたびに<b
+              data-dl-uid="165"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >IRQ 6が</b
+            >発生します。DMAモードでは、プロセッサがFDCにコマンドをロードし、すべてのデータ転送がFDCおよびDMAコントローラの制御下で行われます。
+            <p data-dl-uid="166" data-dl-original="true" data-dl-translated="true">
+              これは重要です!FDCのピンをすべて把握する必要はありません。むしろ、<b
+                data-dl-uid="167"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >FDCが3つの主要なコントローラと通信して</b
+              >いることだけを覚えておいてください。1つは、4つの<b
+                data-dl-uid="168"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >フロッピーディスクドライブ（FDD）</b
+              >内部コントローラのうちの1つ、<b
+                data-dl-uid="169"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >プログラマブル割り込みコントローラ（PIC</b
+              >）、<b data-dl-uid="170" data-dl-original="true" data-dl-translated="true"
+                >ダイレクトメモリアクセス（DMA）コントローラ</b
+              >です。 ソフトウェアは、プロセッサの標準<b
+                data-dl-uid="171"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >IN/OUT</b
+              >ポートi/o命令によってFDCと通信をします。
+            </p>
+            <p data-dl-uid="172" data-dl-original="true" data-dl-translated="true">
+              FDCのいくつかのレジスタは、プロセッサのi/oアドレス空間にマッピングされています。標準的なI/Oポート読み取りと同様に、入出力操作の間、プロセッサはコントロールバスのREADまたはWRITEラインと、アドレスバスのポートアドレスを設定します。これは、<b
+                data-dl-uid="173"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >システムバス</b
+              >または<b data-dl-uid="174" data-dl-original="true" data-dl-translated="true"
+                >ISA（Industry Standard Architecture）</b
+              >バスで行われます。
+            </p>
+            <p data-dl-uid="175" data-dl-original="true" data-dl-translated="true">
+              新しいハードウェアでは、FDCはISAバスに直接接続されておらず、スーパーI/O
+              ICとして統合されており、スーパーI/Oの<b
+                data-dl-uid="176"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ローピンカウントバスを通じて</b
+              >プロセッサと通信する。
+            </p>
+            <p data-dl-uid="177" data-dl-original="true" data-dl-translated="true">
+              なるほど!ソフトウェアがどのようにFDCと通信できるかはわかった。PICとDMAはどこで登場するのでしょうか？
+            </p>
+            <p data-dl-uid="178" data-dl-original="true" data-dl-translated="true">
+              上のピンリストを見てみると、FDCは<b
+                data-dl-uid="179"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >INTという</b
+              >ピンを持っていることがわかります。このラインは、<b
+                data-dl-uid="180"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >プログラマブル割り込みコントローラIR 6</b
+              >ラインに間接的に接続されています。FDCは、1バイトのデータが読み書きできるようになると、このラインをハイ（1）に引き上げます。これはPICのIR
+              6ラインもHighに引きます。ここからはPICが制御を行う。他のラインをマスクして、サービス可能かどうかを判断します。プロセッサの<b
+                data-dl-uid="181"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >割り込みアクノレッジ(INTA)</b
+              >ピンをアクティブにすることで、プロセッサに割り込みを通知します。プロセッサは、割り込みを処理しても安全であることを確認した後、INTAラインをリセットして、PICに処理を許可します。PICは、このIRQが使用するようにマッピングされた割り込みベクタを配置します（PICの初期化中に設定されます）。プロセッサはIRQを受け取り、idtrからそのアドレスを取得し、ほら
+              - 割り込みが呼ばれた。
+            </p>
+            <p data-dl-uid="182" data-dl-original="true" data-dl-translated="true">
+              FDCは、DMAモードで動作するようにプログラムすることもできます。DMAはまだ見ていないコントローラなので、あまり深く立ち入らないようにします。しかし、次の章では、完全を期すために、このことについて触れるかもしれません。<b
+                data-dl-uid="183"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >FDCはDMAのチャンネル2に接続</b
+              >されています。
+            </p>
+            <p data-dl-uid="184" data-dl-original="true" data-dl-translated="true"></p>
+
+            <center><img src="./18_files/Fdcinpc.jpg" /></center>
+
+            <p data-dl-uid="187" data-dl-original="true" data-dl-translated="true">
+              FDCのハードウェアはこれで全部です。<b
+                data-dl-uid="188"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >FDCは1つのシステム内に複数個あり、1つのFDCは最大4台のフロッピーディスクドライブ（FDD）を接続することができます。これは重要なことです。</b
+              >FDCと通信する際、どのFDDを要求しているかを選択しなければならないことがよくあります。
+            </p>
+            <h2 data-dl-uid="189" data-dl-original="true" data-dl-translated="true">
+              フロッピーインターフェイスケーブル
+            </h2>
+
+            FDCとFDDの通信は、<b data-dl-uid="193" data-dl-original="true" data-dl-translated="true"
+              >Western Digital</b
+            >社から進化した<b data-dl-uid="192" data-dl-original="true" data-dl-translated="true"
+              >IDE（Integrated Drive Electronics</b
+            >）ケーブルとも呼ばれる<b data-dl-uid="191" data-dl-original="true" data-dl-translated="true"
+              >PATA（Parallel ATA）</b
+            >ケーブルの一種である<b data-dl-uid="190" data-dl-original="true" data-dl-translated="true"
+              >フロッピーインターフェースケーブルで</b
+            >行われる。
+            <p data-dl-uid="194" data-dl-original="true" data-dl-translated="true"></p>
+
+            <center><img src="./18_files/fddcable.jpg" /></center>
+
+            <p data-dl-uid="197" data-dl-original="true" data-dl-translated="true">
+              上のケーブルにねじれがあることにお気づきでしょうか。それを少し短く説明します。このケーブルには40本のピンがあります。この40本のピンを通じて、FDCはケーブルに接続された異なるFDDと会話することができます。
+            </p>
+            <p data-dl-uid="198" data-dl-original="true" data-dl-translated="true">
+              FDCと通信するためのいくつかのレジスタで、コントローラとケーブルの入力ピンを検出することができます。このため、ケーブルの40本のラインを少し見るくらいはしておいた方がよさそうだ。
+            </p>
+            <p data-dl-uid="199" data-dl-original="true" data-dl-translated="true"></p>
+
+            <center>
+              <table border="1">
+                <tbody>
+                  <tr>
+                    <th bgcolor="#aaaaaa" colspan="4">Floppy Interface Cable Pins</th>
+                  </tr>
+                  <tr bgcolor="#cccccc">
+                    <td>Pin</td>
+                    <td>Description</td>
+                    <td>Pin</td>
+                    <td>Descripton</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">0</td>
+                    <td>Reset</td>
+                    <td bgcolor="#cccccc">20</td>
+                    <td>DDRQ</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">1</td>
+                    <td>Ground</td>
+                    <td bgcolor="#cccccc">21</td>
+                    <td>Ground</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">2</td>
+                    <td>Data pin 7</td>
+                    <td bgcolor="#cccccc">22</td>
+                    <td>I/O Write</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">3</td>
+                    <td>Data pin 8</td>
+                    <td bgcolor="#cccccc">23</td>
+                    <td>Ground</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">4</td>
+                    <td>Data pin 6</td>
+                    <td bgcolor="#cccccc">24</td>
+                    <td>I/O Read</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">5</td>
+                    <td>Data pin 9</td>
+                    <td bgcolor="#cccccc">25</td>
+                    <td>Ground</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">6</td>
+                    <td>Data pin 5</td>
+                    <td bgcolor="#cccccc">26</td>
+                    <td>IOCHRDY</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">7</td>
+                    <td>Data pin 10</td>
+                    <td bgcolor="#cccccc">27</td>
+                    <td>Cable Select (CS)</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">8</td>
+                    <td>Data pin 4</td>
+                    <td bgcolor="#cccccc">28</td>
+                    <td>DDACK</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">9</td>
+                    <td>Data pin 11</td>
+                    <td bgcolor="#cccccc">29</td>
+                    <td>Ground</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">10</td>
+                    <td>Data pin 3</td>
+                    <td bgcolor="#cccccc">30</td>
+                    <td>Interrupt</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">11</td>
+                    <td>Data pin 12</td>
+                    <td bgcolor="#cccccc">31</td>
+                    <td>(No connection)</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">12</td>
+                    <td>Data pin 2</td>
+                    <td bgcolor="#cccccc">32</td>
+                    <td>Address 1</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">13</td>
+                    <td>Data pin 13</td>
+                    <td bgcolor="#cccccc">33</td>
+                    <td>GPIO_DMA66_Detect</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">14</td>
+                    <td>Data pin 1</td>
+                    <td bgcolor="#cccccc">34</td>
+                    <td>Address 0</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">15</td>
+                    <td>Data pin 14</td>
+                    <td bgcolor="#cccccc">35</td>
+                    <td>Address 2</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">16</td>
+                    <td>Data pin 0</td>
+                    <td bgcolor="#cccccc">36</td>
+                    <td>Chip Select 1</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">17</td>
+                    <td>Data pin 15</td>
+                    <td bgcolor="#cccccc">37</td>
+                    <td>Chip Select 3</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">18</td>
+                    <td>Ground</td>
+                    <td bgcolor="#cccccc">38</td>
+                    <td>Activity</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">19</td>
+                    <td>Key or Vcc_in</td>
+                    <td bgcolor="#cccccc">39</td>
+                    <td>Ground</td>
+                  </tr>
+                </tbody>
+              </table>
+            </center>
+
+            <h1 data-dl-uid="311" data-dl-original="true" data-dl-translated="true">
+              FDCプログラミング
+            </h1>
+
+            <h2 data-dl-uid="312" data-dl-original="true" data-dl-translated="true">FDCの動作モード</h2>
+
+            最近のFDCは、8272マイコンより高機能なものが多くなっています。後方互換性を確保するため、新しいFDCはコントローラにピンを追加し、特定のモードで動作するときに異なるレジスタと通信できるようにします。例えば、<b
+              data-dl-uid="313"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >ステータスレジスタA</b
+            >モードは、コントローラが<b
+              data-dl-uid="314"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >PC-AT</b
+            >モードで動作しているときのみアクセス可能です。コントローラのリセット時には、コントローラはデフォルトの<b
+              data-dl-uid="315"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >82077A</b
+            >モードで動作します。
+            <h2 data-dl-uid="316" data-dl-original="true" data-dl-translated="true">IRQの待ち受け</h2>
+
+            FDCがIRQ
+            6を使用していることを思い出してください。FDCは、リードまたはライト・コマンドの完了後、あるいはモードによっては1バイトの転送ごとに、1バイトを送信します。また、初期化中にコントローラがリセットされたときにもIRQを送ります。
+            <p data-dl-uid="317" data-dl-original="true" data-dl-translated="true">
+              今回は、FDCをDMAモードで動作させます。つまり、リード、ライト、シーク、キャリブレーションの各コマンドが完了したときと、初期化中にのみ割り込みが入るということです。
+            </p>
+            <p data-dl-uid="318" data-dl-original="true" data-dl-translated="true">
+              しかし、いずれの場合も、コマンドの完了を知るためにIRQが発火するのを待つ必要があることを意味します。これを行うには、IRQが発生したときにグローバルをセットし、
+              IRQを待つirq_waitのような関数を提供し、それが発生したときにグローバルを
+              リセットするようにすればよい。
+            </p>
+            <p data-dl-uid="319" data-dl-original="true" data-dl-translated="true">
+              では、それをやってみましょう。まずIRQです。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">const int FLOPPY_IRQ = 6;
+ 
+//! set when IRQ fires
+static volatile uint8_t _FloppyDiskIRQ = 0;
+ 
+void _cdecl i86_flpy_irq () {
+ 
+	_asm add esp, 12
+	_asm pushad
+	_asm cli
+ 
+	//! irq fired
+	_FloppyDiskIRQ = 1;
+ 
+	//! tell hal we are done
+	interruptdone( FLOPPY_IRQ );
+ 
+	_asm sti
+	_asm popad
+	_asm iretd
+}</div></pre>
+            </blockquote>
+
+            これは、PITのIRQと同じくらいシンプルに見えますね？）ああ、そうですか、では、待ちます。
+
+            <blockquote>
+              <pre><div class="code">//! wait for irq to fire
+inline void flpydsk_wait_irq () {
+ 
+	//! wait for irq to fire
+	while ( _FloppyDiskIRQ == 0)
+		;
+	_FloppyDiskIRQ = 0;
+}</div></pre>
+            </blockquote>
+
+            簡単ですね。読み出しや書き込みのようなコマンドを送ったら、<b
+              data-dl-uid="326"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >flpydsk_wait_irq()</b
+            >を呼び出します。
+            これが完了したら、コマンドが終了して、続けても安全であることが分かります。クールでしょう？）
+            <h2 data-dl-uid="327" data-dl-original="true" data-dl-translated="true">DMAですか？</h2>
+
+            え？DMAモードでFDCをプログラムしているのですか？でも、まだDMAを説明していませんよ。はい、確かにこれは問題です。
+            <p data-dl-uid="328" data-dl-original="true" data-dl-translated="true">
+              当初、FDCはNon-DMAモードでプログラムしようと思っていました。しかし、この方法は場合によっては有効かもしれませんが、多くのエミュレータや一部のハードウェアではサポートされなくなってきています。そこで、ポータビリティを確保するために、DMA<b
+                data-dl-uid="329"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >（Direct Memory Access Controller [DMAC]</b
+              >）を使うのがベストだと判断したのです。
+            </p>
+            <p data-dl-uid="330" data-dl-original="true" data-dl-translated="true">
+              しかし、まだDMAを詳しく説明していないため、問題が発生しました。DMAインターフェース全体を説明なしに投げ出すよりも、3つの基本的なDMAルーチンをハックして、後でもっと詳しく書き直せばいいと思います
+              ;)
+            </p>
+            <p data-dl-uid="331" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="332" data-dl-original="true" data-dl-translated="true"
+                >flpydsk_initialize_dma</b
+              >は基本的に DMA が使用するバッファを物理アドレス 0x1000 - 0x10000 (64k) に作成します。
+              ディスクからセクターを読み込むとき、DMA
+              はセクターデータをこの場所に置くので、上書きされるように何もないことを確認してください。他の場所を選択することも可能ですが、いくつかのルールがあります。
+            </p>
+            <ul data-dl-uid="333" data-dl-original="true" data-dl-translated="true">
+              <li data-dl-uid="334" data-dl-original="true" data-dl-translated="true">
+                バッファは64kの境界を越えてはいけません。最高のパフォーマンスを得るためには、64kの境界に留まる必要があります。
+              </li>
+              <li data-dl-uid="335" data-dl-original="true" data-dl-translated="true">
+                書き込むメモリ領域は ID マップされているか、フレームアドレスがページにマッピン
+                グされている必要があります。DMAは<b
+                  data-dl-uid="336"
+                  data-dl-original="true"
+                  data-dl-translated="true"
+                  >常に</b
+                >物理メモリで動作する
+              </li>
+            </ul>
+
+            デモでは0x1000 +
+            64kをバッファに使っているので、もし変更するのが面倒ならこのままにしておくといいでしょう。
+            <p data-dl-uid="337" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="338" data-dl-original="true" data-dl-translated="true">dma_readと</b>
+              <b data-dl-uid="339" data-dl-original="true" data-dl-translated="true">dma_writeは</b
+              >、FDCが送信したデータの読み取りまたは書き込みを開始するようDMAに指示するだけです。これは、FDCに読み書きを指示したセクタになります。例えば、FDCにセクタを読むように指示すると、DMAにセクタデータを渡して、設定したバッファ（0x1000の位置）に置くように指示します。クールでしょう?
+            </p>
+
+            <blockquote>
+              <pre><div class="code">//! initialize DMA to use phys addr 1k-64k
+void flpydsk_initialize_dma () {
+ 
+	outportb (0x0a,0x06);	//mask dma channel 2
+	outportb (0xd8,0xff);	//reset master flip-flop
+	outportb (0x04, 0);     //address=0x1000 
+	outportb (0x04, 0x10);
+	outportb (0xd8, 0xff);  //reset master flip-flop
+	outportb (0x05, 0xff);  //count to 0x23ff (number of bytes in a 3.5" floppy disk track)
+	outportb (0x05, 0x23);
+	outportb (0x80, 0);     //external page register = 0
+	outportb (0x0a, 0x02);  //unmask dma channel 2
+}
+ 
+//! prepare the DMA for read transfer
+void flpydsk_dma_read () {
+ 
+	outportb (0x0a, 0x06); //mask dma channel 2
+	outportb (0x0b, 0x56); //single transfer, address increment, autoinit, read, channel 2
+	outportb (0x0a, 0x02); //unmask dma channel 2
+}
+ 
+//! prepare the DMA for write transfer
+void flpydsk_dma_write () {
+ 
+	outportb (0x0a, 0x06); //mask dma channel 2
+	outportb (0x0b, 0x5a); //single transfer, address increment, autoinit, write, channel 2
+	outportb (0x0a, 0x02); //unmask dma channel 2
+}</div></pre>
+            </blockquote>
+
+            もしあなたが上記のコードを理解できなくても、心配しないでください。DMAに関することはすべて書き直し、次のチュートリアルでDMAをより詳しく説明します。
+            <h2 data-dl-uid="343" data-dl-original="true" data-dl-translated="true">
+              FDCポートマッピング
+            </h2>
+
+            FDCには4つの外部レジスタがあり、i86のI/Oアドレス空間にマッピングされています。これらは、標準的なI/O命令によってソフトウェアからアクセスすることができます。これらのレジスタを<b
+              data-dl-uid="344"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >太字にして</b
+            >みました。
+            <p data-dl-uid="345" data-dl-original="true" data-dl-translated="true">
+              システムによっては、FDCに4つ以上の外部レジスタが用意されている場合があります。
+            </p>
+            <p data-dl-uid="346" data-dl-original="true" data-dl-translated="true">
+              2番目のFDCは、通常、I/Oポート0x370～0x377にマッピングされます。
+            </p>
+            <p data-dl-uid="347" data-dl-original="true" data-dl-translated="true">
+              2つの異なるFDCのために2組のポートがあるので、この表は両方のポートセットを含んでいます。
+            </p>
+            <p data-dl-uid="348" data-dl-original="true" data-dl-translated="true"></p>
+
+            <center>
+              <table border="1">
+                <tbody>
+                  <tr>
+                    <th bgcolor="#aaaaaa" colspan="4">Floppy Disk Controller Ports</th>
+                  </tr>
+                  <tr bgcolor="#cccccc">
+                    <td>Port (FDC 0)</td>
+                    <td>Port (FDC 1)</td>
+                    <td>Read/Write</td>
+                    <td>Descripton</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#aaaaaa" colspan="4"><center>Primary FDC Registers</center></td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">0x3F2</td>
+                    <td bgcolor="#cccccc">0x372</td>
+                    <td>Write Only</td>
+                    <td>Digital Output Register (DOR)</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">0x3F4</td>
+                    <td bgcolor="#cccccc">0x374</td>
+                    <td>Read Only</td>
+                    <td>Main Status Register (MSR)</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">0x3F5</td>
+                    <td bgcolor="#cccccc">0x375</td>
+                    <td>Read / Write</td>
+                    <td>Data Register</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">0x3F7</td>
+                    <td bgcolor="#cccccc">0x377</td>
+                    <td>Read Only</td>
+                    <td>AT only. Configuation Control Register (CCR)</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">0x3F7</td>
+                    <td bgcolor="#cccccc">0x377</td>
+                    <td>Write Only</td>
+                    <td>AT only. Digital Input Register (DIR)</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#aaaaaa" colspan="4"><center>Other FDC Registers</center></td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">0x3F0</td>
+                    <td bgcolor="#cccccc">0x370</td>
+                    <td>Read Only</td>
+                    <td>PS/2 only. Status Register A (SRA)</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">0x3F1</td>
+                    <td bgcolor="#cccccc">0x371</td>
+                    <td>Read Only</td>
+                    <td>PS/2 only. Status Register B (SRB)</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">0x3F4</td>
+                    <td bgcolor="#cccccc">0x374</td>
+                    <td>Write Only</td>
+                    <td>PS/2 only. Data Rate Select Register (DSR)</td>
+                  </tr>
+                </tbody>
+              </table>
+            </center>
+
+            <p data-dl-uid="405" data-dl-original="true" data-dl-translated="true">
+              次の章では、このレジスタを少しずつ詳しく見ていくことにします。重要なものについては、この章を更新して、他のレジスタを網羅することになるかもしれません。今のところ、上に示した最初の4つのレジスタにのみ焦点を当てます。
+            </p>
+            <p data-dl-uid="406" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="407" data-dl-original="true" data-dl-translated="true"
+                >このコードはすべてこの章の最後にあるデモに</b
+              >含まれていることを忘れないでください。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">enum FLPYDSK_IO {
+ 
+	FLPYDSK_DOR		=	0x3f2,
+	FLPYDSK_MSR		=	0x3f4,
+	FLPYDSK_FIFO		=	0x3f5,	//data register
+	FLPYDSK_CTRL		=	0x3f7
+};</div></pre>
+            </blockquote>
+
+            <h2 data-dl-uid="411" data-dl-original="true" data-dl-translated="true">レジスタ</h2>
+
+            <h3 data-dl-uid="412" data-dl-original="true" data-dl-translated="true">
+              ステータスレジスタA (SRA) (PS2モードのみ)
+            </h3>
+
+            <b data-dl-uid="413" data-dl-original="true" data-dl-translated="true"
+              >このレジスタを知る必要はありません。ここにあるのは完全性のためだけです。</b
+            >
+            <p data-dl-uid="414" data-dl-original="true" data-dl-translated="true">
+              本レジスタは、コントローラのインターフェースピンの状態を監視するためのリード専用レジスタです。
+              コントローラがPC-ATモードの場合は、本レジスタにアクセスできません。本レジスタは読み出し専用です。
+            </p>
+            <p data-dl-uid="415" data-dl-original="true" data-dl-translated="true">
+              このレジスタの正確なフォーマットは、コントローラのモデルによって異なる場合があります。
+            </p>
+
+            <ul>
+              <li><b>Bit 0</b> DIR</li>
+              <li><b>Bit 1</b> WP</li>
+              <li><b>Bit 2</b> INDX</li>
+              <li><b>Bit 3</b> HDSEL</li>
+              <li><b>Bit 4</b> TRKO</li>
+              <li><b>Bit 5</b> STEP Flip/Flop</li>
+              <li><b>Bit 6</b> DRV2</li>
+              <li><b>Bit 7</b> INTERRUPT line state (interrupt pending)</li>
+            </ul>
+
+            <b data-dl-uid="433" data-dl-original="true" data-dl-translated="true"
+              >警告これらのビットは、コントローラーのモデルによって変更される可能性があります。</b
+            >
+            <p data-dl-uid="434" data-dl-original="true" data-dl-translated="true">
+              このレジスタが複雑に見えても心配しないでください。電子工学の経験がなくても大丈夫です。このレジスタは、このシリーズで使用されることはありません。
+            </p>
+            <h3 data-dl-uid="435" data-dl-original="true" data-dl-translated="true">
+              ステータスレジスタB (SRB) (PS/2モードのみ)
+            </h3>
+
+            <b data-dl-uid="436" data-dl-original="true" data-dl-translated="true"
+              >このレジスタを知る必要はありません。このレジスタを知る必要はありません。</b
+            >
+            <p data-dl-uid="437" data-dl-original="true" data-dl-translated="true">
+              上記のレジスタと同様に、FDCの複数のラインの状態を監視することができます。
+              FDCがPC-ATモードの時はアクセスできません。このレジスタは読み出し専用である。
+            </p>
+
+            <ul>
+              <li><b>Bit 0</b> MOT EN0 (Motor Enable 0)</li>
+              <li><b>Bit 1</b> MOT EN1 (Motor Enable 1)</li>
+              <li><b>Bit 2</b> WE Flip/Flop</li>
+              <li><b>Bit 3</b> Read Data (RDDATA) Flip/Flop</li>
+              <li><b>Bit 4</b> Write Data (WRDATA) Flip/Flop</li>
+              <li><b>Bit 5</b> Drive Select 0</li>
+              <li><b>Bit 6</b> Undefined; Always 1</li>
+              <li><b>Bit 7</b> Undefined; Always 1</li>
+            </ul>
+
+            <b data-dl-uid="455" data-dl-original="true" data-dl-translated="true"
+              >警告これらのビットは、コントローラーのモデルによって変更される可能性があります。</b
+            >
+            <p data-dl-uid="456" data-dl-original="true" data-dl-translated="true">
+              このレジスタが複雑に見えても心配しないでください。電子工学の経験がなくても、そう見えるかもしれません。このレジスタは、このシリーズで使用されることはありません。
+            </p>
+            <h3 data-dl-uid="457" data-dl-original="true" data-dl-translated="true">
+              データレート選択レジスタ(DSR)
+            </h3>
+
+            <b data-dl-uid="458" data-dl-original="true" data-dl-translated="true"
+              >このレジスタを知る必要はありません。このレジスタを知る必要はありません。</b
+            >
+            <p data-dl-uid="459" data-dl-original="true" data-dl-translated="true">
+              このレジスタは書き込み専用で、駆動制御信号のタイミングを変更することができます。I/Oポート0x3f4（FDC0）または0x374（FDC1）に書き込むことで使用します。
+            </p>
+            <p data-dl-uid="460" data-dl-original="true" data-dl-translated="true">
+              これは8ビット・レジスタです。以下のフォーマットで構成されています。
+            </p>
+
+            <ul>
+              <li><b>Bit 0</b> DRATE SEL0</li>
+              <li><b>Bit 1</b> DRATE SEL1</li>
+              <li><b>Bit 2</b> PRE-COMP 0</li>
+              <li><b>Bit 3</b> PRE-COMP 1</li>
+              <li><b>Bit 4</b> PRE-COMP 2</li>
+              <li><b>Bit 5</b> Must be 0</li>
+              <li>
+                <b>Bit 6</b> POWER DOWN: Deactivates internal clocks and shuts off the internal
+                oscillator
+              </li>
+              <li><b>Bit 7</b> S/W RESET: Reset the internal oscillator</li>
+            </ul>
+
+            <p data-dl-uid="478" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="479" data-dl-original="true" data-dl-translated="true"
+                >PRE-COMP 0 - PRE-COMP 2</b
+              >は少し複雑です。これらは，フロッピーディスクなどの磁気媒体で発生する<b
+                data-dl-uid="481"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ビットシフトに対して</b
+              >，<b data-dl-uid="480" data-dl-original="true" data-dl-translated="true">WRDATA</b
+              >出力ピンを調整するものです。事前補償の遅延を調整するために、これらのビットを以下のいずれかに設定します。
+            </p>
+
+            <ul>
+              <li><b>000</b> Default (250-500 Kbps, 125 ns. 1 Mbps, 41.67 ns)</li>
+              <li><b>110</b> 250 ns</li>
+              <li><b>101</b> 208.33 ns</li>
+              <li><b>100</b> 166.67 ns</li>
+              <li><b>011</b> 125 ns</li>
+              <li><b>010</b> 83.34 ns</li>
+              <li><b>001</b> 41.67 ns</li>
+              <li><b>111</b> Disabled</li>
+            </ul>
+
+            <p data-dl-uid="499" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="500" data-dl-original="true" data-dl-translated="true"
+                >DRATE SEL0～DERATE SEL1</b
+              >でデータレートを設定します。有効な値は以下の通りです。
+            </p>
+
+            <ul>
+              <li><b>00</b> 500 Kbps</li>
+              <li><b>10</b> 250 Kbps</li>
+              <li><b>01</b> 300 Kbps</li>
+              <li><b>11</b> 1 Mbps</li>
+            </ul>
+
+            <b data-dl-uid="510" data-dl-original="true" data-dl-translated="true"
+              >警告ドライブが処理できる以上のデータレートを設定すると、エラーが発生することがあります。</b
+            >
+
+            <h3 data-dl-uid="511" data-dl-original="true" data-dl-translated="true">
+              デジタル出力レジスタ(DOR)
+            </h3>
+
+            やったー!最初の有用なレジスタです!これは<b
+              data-dl-uid="512"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >知っておくべき重要な</b
+            >ことです。
+            <p data-dl-uid="513" data-dl-original="true" data-dl-translated="true">
+              FDDのモータ制御、動作モード（DMA、IRQ）、リセット、ドライブなど、FDCの様々な機能を制御できる<b
+                data-dl-uid="514"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >書き込み専用</b
+              >レジスタです。フォーマットは次のとおりです。
+            </p>
+
+            <ul>
+              <li><b>Bits 0-1</b> DR1, DR2</li>
+              <ul>
+                <li>00 - Drive 0</li>
+                <li>01 - Drive 1</li>
+                <li>10 - Drive 2</li>
+                <li>11 - Drive 3</li>
+              </ul>
+              <li><b>Bit 2</b> REST</li>
+              <ul>
+                <li>0 - Reset controller</li>
+                <li>1 - Controller enabled</li>
+              </ul>
+              <li><b>Bit 3</b> Mode</li>
+              <ul>
+                <li>0 - IRQ channel</li>
+                <li>1 - DMA mode</li>
+              </ul>
+              <li><b>Bits 4 - 7</b> Motor Control (Drives 0 - 3)</li>
+              <ul>
+                <li>0 - Stop Motor for drive</li>
+                <li>1 - Start Motor for drive</li>
+              </ul>
+            </ul>
+
+            これは簡単です!基本的に、FDCの機能を制御するコマンドを送信するときは、どのドライブに対応するか(1つのFDCで4台のFDDと通信できることを思い出してください)、コントローラーのリセット状態、動作モード(FDCはDMAモードとIRQモードの両方で動作できることを思い出してください)、特定のFDD内部モーターの状態を選択するビットパターンを構築するだけでよいのです。
+            <p data-dl-uid="538" data-dl-original="true" data-dl-translated="true">
+              以下はその例です。例えば、最初のフロッピードライブ(FDD
+              0)のモーターを始動させたいとします。<b
+                data-dl-uid="539"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >FDDに対する読み取りまたは書き込み操作を行う前に、FDDのモーターを始動させる必要があります!</b
+              >これを開始するには、モーターを開始または停止したいドライブに対応するビット (4-7)
+              を設定するだけです。DORはプロセッサのi/oアドレス空間であるポート0x3f2にマッピングされているので、これは非常に簡単です。
+              まず、レジスタのビットマスクを作成し、読みやすさを向上させます。このコードはすべて、このチュートリアルの最後にあるデモに含まれていることを忘れないでください。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">enum FLPYDSK_DOR_MASK {
+ 
+	FLPYDSK_DOR_MASK_DRIVE0			=	0,	//00000000	= here for completeness sake
+	FLPYDSK_DOR_MASK_DRIVE1			=	1,	//00000001
+	FLPYDSK_DOR_MASK_DRIVE2			=	2,	//00000010
+	FLPYDSK_DOR_MASK_DRIVE3			=	3,	//00000011
+	FLPYDSK_DOR_MASK_RESET			=	4,	//00000100
+	FLPYDSK_DOR_MASK_DMA			=	8,	//00001000
+	FLPYDSK_DOR_MASK_DRIVE0_MOTOR		=	16,	//00010000
+	FLPYDSK_DOR_MASK_DRIVE1_MOTOR		=	32,	//00100000
+	FLPYDSK_DOR_MASK_DRIVE2_MOTOR		=	64,	//01000000
+	FLPYDSK_DOR_MASK_DRIVE3_MOTOR		=	128	//10000000
+};</div></pre>
+            </blockquote>
+
+            上記のビットマスクを使えば、設定したいビットをビットごとにORするだけでよいのです。つまり、フロッピーディスク・ドライブ0用のモーターを始動させる場合です。
+
+            <blockquote>
+              <pre><div class="code">outportb (FLPYDSK_DOR, FLPYDSK_DOR_MASK_DRIVE0_MOTOR | FLPYDSK_DOR_MASK_RESET);</div></pre>
+            </blockquote>
+
+            FLPYDSK_DORは0x3f2として定義され、これはDOR
+            FDCレジスタのi/oアドレスであることを思い出してください。また、上記はコントローラをリセットしています。
+            <p data-dl-uid="546" data-dl-original="true" data-dl-translated="true">
+              この同じモーターをオフにするには、モータービットを設定せずに同じコマンドを送信するだけです。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">outportb (FLPYDSK_DOR, FLPYDSK_DOR_MASK_RESET);</div></pre>
+            </blockquote>
+
+            <p data-dl-uid="550" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="551" data-dl-original="true" data-dl-translated="true"
+                >警告警告: モーターが起動するまでに少し時間がかかります!</b
+              >内蔵FDDのモーターは機械的なものであり、他の機械装置と同様に、実行中のソフトウェアの速度より遅くなる傾向があることを思い出してください。このため、FDDモーターを起動するときは、必ず少し時間をおいてから読み書きを行ってください。
+            </p>
+            <p data-dl-uid="552" data-dl-original="true" data-dl-translated="true">
+              DORは書き込み専用のレジスタです。これを強制するために、ルーチンを作成します。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">void flpydsk_write_dor (uint8_t val ) {
+ 
+	//! write the digital output register
+	outportb (FLPYDSK_DOR, val);
+}</div></pre>
+            </blockquote>
+
+            次の重要なレジスタに移りましょう。
+            <h3 data-dl-uid="556" data-dl-original="true" data-dl-translated="true">
+              メインステータスレジスタ(MSR)
+            </h3>
+
+            <b data-dl-uid="557" data-dl-original="true" data-dl-translated="true"
+              >メインステータスレジスタ(MSR)</b
+            >は、特定のビットフォーマットに従っています。これは予想外だったでしょう？さて、ここで話を元に戻しましょう（シャレです）。これがMSRのフォーマットです。
+
+            <ul>
+              <li><b>Bit 0</b> - FDD 0: 1 if FDD is busy in seek mode</li>
+              <li><b>Bit 1</b> - FDD 1: 1 if FDD is busy in seek mode</li>
+              <li><b>Bit 2</b> - FDD 2: 1 if FDD is busy in seek mode</li>
+              <li><b>Bit 3</b> - FDD 3: 1 if FDD is busy in seek mode</li>
+              <ul>
+                <li>0: The selected FDD is not busy</li>
+                <li>1: The selected FDD is busy</li>
+              </ul>
+              <li><b>Bit 4</b> - FDC Busy; Read or Write command in progress</li>
+              <ul>
+                <li>0: Not busy</li>
+                <li>1: Busy</li>
+              </ul>
+              <li><b>Bit 5</b> - FDC in Non DMA mode</li>
+              <ul>
+                <li>0: FDC in DMA mode</li>
+                <li>1: FDC not in DMA mode</li>
+              </ul>
+              <li><b>Bit 6</b> - DIO: direction of data transfer between the FDC IC and the CPU</li>
+              <ul>
+                <li>0: FDC expecting data from CPU</li>
+                <li>1: FDC has data for CPU</li>
+              </ul>
+              <li><b>Bit 7</b> - RQM: Data register is ready for data transfer</li>
+              <ul>
+                <li>0: Data register not ready</li>
+                <li>1: Data register ready</li>
+              </ul>
+            </ul>
+
+            このMSRはシンプルなものです。FDCとディスク・ドライブの現在のステータス情報が含まれています。
+            コマンドを送信したり、FDDから読み出す前に、FDCの現在のステータスを常にチェックして、準備ができていることを確認する必要があるのです。
+            <p data-dl-uid="590" data-dl-original="true" data-dl-translated="true">
+              ここでは、このMSRからビジー状態かどうかを読み取る例を示します。まず、コードで使用されるビットマスクを定義します。上に示した形式に従っていることに注意してください。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">enum FLPYDSK_MSR_MASK {
+ 
+	FLPYDSK_MSR_MASK_DRIVE1_POS_MODE	=	1,	//00000001
+	FLPYDSK_MSR_MASK_DRIVE2_POS_MODE	=	2,	//00000010
+	FLPYDSK_MSR_MASK_DRIVE3_POS_MODE	=	4,	//00000100
+	FLPYDSK_MSR_MASK_DRIVE4_POS_MODE	=	8,	//00001000
+	FLPYDSK_MSR_MASK_BUSY			=	16,	//00010000
+	FLPYDSK_MSR_MASK_DMA			=	32,	//00100000
+	FLPYDSK_MSR_MASK_DATAIO			=	64, 	//01000000
+	FLPYDSK_MSR_MASK_DATAREG		=	128	//10000000
+};</div></pre>
+            </blockquote>
+
+            簡単でしょう?FLPYDSR_MSRが0x3f4で、MSRのi/oポート・アドレスであることが分かっていれば、あとはこれを実行すればいいだけです。
+
+            <blockquote>
+              <pre><div class="code">if ( inportb (FLPYDSK_MSR) &amp; FLPYDSK_MSR_MASK_BUSY )
+	//! FDC is busy</div></pre>
+            </blockquote>
+
+            リードやライトのコマンドを送るときは、このビットが0になるまで待てばいいだけです。
+            <p data-dl-uid="597" data-dl-original="true" data-dl-translated="true">
+              読みやすくするために、これをルーチンに隠すことにしましたので、ここに紹介します。このルーチンは、FDCのステータスを返すだけです。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">uint8_t flpydsk_read_status () {
+ 
+	//! just return main status register
+	return inportb (FLPYDSK_MSR);
+}</div></pre>
+            </blockquote>
+
+            <h3 data-dl-uid="601" data-dl-original="true" data-dl-translated="true">
+              テープドライブレジスタ(TDR)
+            </h3>
+
+            <b data-dl-uid="602" data-dl-original="true" data-dl-translated="true"
+              >このレジスタを知る必要はありません。このレジスタを知る必要はありません。</b
+            >
+            <p data-dl-uid="603" data-dl-original="true" data-dl-translated="true">
+              このレジスタにより、ドライブの初期化中に特定のドライブにテープ・ドライブ・サポートを割り当てることができます。このレジスタはリード／ライト・レジスタで、8ビット・サイズです。
+              ただし、最初の2ビットだけが定義されています。ドライブ0はフロッピーブートデバイスとして予約されているため、選択することはできません。このため、以下のビットリストには含まれていません。
+            </p>
+
+            <ul>
+              <li>00: None.</li>
+              <li>01: Drive 1</li>
+              <li>10: Drive 2</li>
+              <li>11: Drive 3</li>
+            </ul>
+
+            ハードウェア・リセットのみがこのレジスタをリセットします。ソフトウェア・リセットは何の効果もありません。テープドライブのことをあまり知らなくても心配しないでください。
+            このレジスタは私たちには関係ありませんし、このシリーズでは使用しません。
+            ここでは、念のためだけです。
+            <h3 data-dl-uid="609" data-dl-original="true" data-dl-translated="true">データ・レジスタ</h3>
+
+            これは8ビットまたは16ビットのリード/ライト・レジスタです。レジスタの実際のサイズは、コントローラの種類によって異なります。<b
+              data-dl-uid="610"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >すべてのコマンド・パラメーターとディスク・データの転送は、このデータ・レジスタに読み書きされます。</b
+            >このレジスタは、特定のビット・フォーマットに従わず、一般的なデータ用に使用されます。I/Oポート0x3f5（FDC
+            0）または0x375（FDC 1）を通じてアクセスします。
+            <p data-dl-uid="611" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="612" data-dl-original="true" data-dl-translated="true"
+                >注：このレジスタを読み書きする前に、まずマスター・ステータス・レジスタ（MSR）のステータスを読んで、このレジスタが有効であることを常に確認する必要が</b
+              >あります。
+            </p>
+            <p data-dl-uid="613" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="614" data-dl-original="true" data-dl-translated="true"
+                >覚えておいてください。すべてのコマンド・バイトとコマンド・パラメータは、このレジスタを通じてFDCに送信されます。</b
+              >
+              この例については、以下のコマンドのセクションで説明しますので、まだあまり気にしないでください。
+            </p>
+            <p data-dl-uid="615" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="616" data-dl-original="true" data-dl-translated="true"
+                >無効なコマンドが発行された場合、データ・レジスタから返される値は0x80</b
+              >です。
+            </p>
+            <p data-dl-uid="617" data-dl-original="true" data-dl-translated="true">
+              以下のルーチンは、このレジスタから読み出し、デモで使用しています。データ・レジスタが安全に読み書きできるようになるまで待ち、その後、読み出し（read_data関数）または書き込み（send_command関数）を行うようにしています。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">void flpydsk_send_command (uint8_t cmd) {
+ 
+	//! wait until data register is ready. We send commands to the data register
+	for (int i = 0; i &lt; 500; i++ )
+		if ( flpydsk_read_status () &amp; FLPYDSK_MSR_MASK_DATAREG )
+			return outportb (FLPYDSK_FIFO, cmd);
+}
+ 
+uint8_t flpydsk_read_data () {
+ 
+	//! same as above function but returns data register for reading
+	for (int i = 0; i &lt; 500; i++ )
+		if ( flpydsk_read_status () &amp; FLPYDSK_MSR_MASK_DATAREG )
+			return inportb (FLPYDSK_FIFO);
+}</div></pre>
+            </blockquote>
+
+            <h3 data-dl-uid="621" data-dl-original="true" data-dl-translated="true">
+              デジタル入力レジスタ(DIR)
+            </h3>
+
+            <b data-dl-uid="622" data-dl-original="true" data-dl-translated="true"
+              >このレジスタを知る必要はありません。このレジスタを知る必要はありません。</b
+            >
+            <p data-dl-uid="623" data-dl-original="true" data-dl-translated="true">
+              さて、デジタル出力レジスタ(DOR)があったので、このレジスタが来ることは予想できたと思います
+              :)このレジスタは、コントローラのすべての動作モードで読み取り専用です。PC-ATモードでは、ビット7のみが定義され、他のビットは未定義であり、使用しないでください。他の動作モードでは、Bit7は未定義です。
+            </p>
+            <p data-dl-uid="624" data-dl-original="true" data-dl-translated="true">
+              ビット7（DSK CHG）は、FDCのDSK CHGピンをモニタします。本章の冒頭のピン配置を見ると，DSK CHG
+              端子がないことが分かります。これは、FDCの新モデルとオリジナル・モデルの違いに関係しています。新しいモデルは、DMA
+              GATE、DRATE
+              SEL0/1など、FDCの新しいピンを監視するために、このレジスタの異なるビットを追加および変更しました。このレジスタの値は、FDCの動作モードに固有です。
+            </p>
+            <p data-dl-uid="625" data-dl-original="true" data-dl-translated="true">
+              このレジスタの<b data-dl-uid="626" data-dl-original="true" data-dl-translated="true"
+                >ビットは、モデル間で変更される可能性がある</b
+              >ことに注意してください。
+            </p>
+            <h3 data-dl-uid="627" data-dl-original="true" data-dl-translated="true">
+              コンフィギュレーション制御レジスタ(CCR)
+            </h3>
+
+            PC/ATモードでは、このレジスタは<b
+              data-dl-uid="628"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >データレートセレクトレジスタ（DSR</b
+            >）として知られ、最初の2ビット（ビット0=DRATE SEL0、ビット1=DRATE
+            SEL1）だけが設定されます。もう一度見てみましょう。
+            <ul>
+              <li><b>00</b> 500 Kbps</li>
+              <li><b>10</b> 250 Kbps</li>
+              <li><b>01</b> 300 Kbps</li>
+              <li><b>11</b> 1 Mbps</li>
+            </ul>
+
+            <p data-dl-uid="638" data-dl-original="true" data-dl-translated="true">
+              ビット2は、30型/CCRモードではNOPRECとなり、機能はありません。その他のビットは未定義で、コントローラによって変更される可能性があります。
+            </p>
+            <p data-dl-uid="639" data-dl-original="true" data-dl-translated="true">
+              他のレジスタと同様に、このレジスタに書き込みができるようにルーチンを作りました。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">void flpydsk_write_ccr (uint8_t val) {
+ 
+	//! write the configuation control
+	outportb (FLPYDSK_CTRL, val);
+}</div></pre>
+            </blockquote>
+
+            <h2 data-dl-uid="643" data-dl-original="true" data-dl-translated="true">コマンド</h2>
+
+            <h3 data-dl-uid="644" data-dl-original="true" data-dl-translated="true">概要</h3>
+
+            コマンドは、FDCに接続されたFDDを制御し、読み出しや書き込みなどのさまざまな操作を行うために使用されます。つまり、ポート0x3f5（FDC
+            0）または0x375（FDC 1）のデータ・レジスタにOUTアセンブリ言語命令を書き込むのです。
+            <p data-dl-uid="645" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="646" data-dl-original="true" data-dl-translated="true"
+                >警告コマンドまたはパラメータ・バイトを送信する前に、まずメイン・ステータス・レジスタ（MSR）のビット
+                7
+                をテストして、データ・レジスタがデータを受信する準備ができていることを確認してください。</b
+              >
+            </p>
+            <p data-dl-uid="647" data-dl-original="true" data-dl-translated="true">
+              コマンドは<b data-dl-uid="648" data-dl-original="true" data-dl-translated="true">13</b
+              >種類（コントローラによってはそれ以上）あります。各コマンドは1バイトから9バイトの大きさです。FDCは、最初のコマンド・バイトから、何バイトを期待すればよいかを知っています。つまり、最初のバイトは、FDCに何をして欲しいかを伝える実際のコマンドです。FDCは、このコマンドからさらに何バイトを期待すればよいかを知っています（コマンド・パラメーター）。
+            </p>
+            <p data-dl-uid="649" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="650" data-dl-original="true" data-dl-translated="true"
+                >コマンドはトラックの片方のヘッドにしか作用しません。</b
+              >もし両方のヘッドで動作させたい場合は、<b
+                data-dl-uid="651"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >Multiple Track Bitを</b
+              >設定する必要があります。これらのコマンドの多くはビットフォーマットに従います（後述）。ここがややこしいところです。
+            </p>
+            <p data-dl-uid="652" data-dl-original="true" data-dl-translated="true">
+              コマンドバイトの上位ビットは、コマンドのオプション設定用です。私はこれを<b
+                data-dl-uid="653"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >拡張コマンドビットと</b
+              >呼んでいますが、正式な名称はありません。これらのビットのうち、私たちが使用する多くのコマンドに共通するビットが2つあります。これらのビットは、後でコマンドバイトの中で見ていきます。
+            </p>
+            <p data-dl-uid="654" data-dl-original="true" data-dl-translated="true">
+              さて、まずコマンドリストを見てみましょう。次に、それぞれのコマンドを個別に見ていきます。これらはすべてコマンドバイトの最初の4ビットしか使っていないことに注意してください。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">enum FLPYDSK_CMD {
+	
+	FDC_CMD_READ_TRACK	=	2,
+	FDC_CMD_SPECIFY		=	3,
+	FDC_CMD_CHECK_STAT	=	4,
+	FDC_CMD_WRITE_SECT	=	5,
+	FDC_CMD_READ_SECT	=	6,
+	FDC_CMD_CALIBRATE	=	7,
+	FDC_CMD_CHECK_INT	=	8,
+	FDC_CMD_WRITE_DEL_S	=	9,
+	FDC_CMD_READ_ID_S	=	0xa,
+	FDC_CMD_READ_DEL_S	=	0xc,
+	FDC_CMD_FORMAT_TRACK	=	0xd,
+	FDC_CMD_SEEK		=	0xf
+};</div></pre>
+            </blockquote>
+
+            FDCにコマンドを送信するには、データ・レジスタ（別名FIFO）に書き込む必要があります。
+            これを行うには、まずMSRのビットをチェックして、データ・レジスタの準備ができるのを待つ必要があります。<b
+              data-dl-uid="658"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >flpydsk_read_status ()</b
+            >はMSRからの値を返すだけなので、これをすべてシンプルなメソッドの中に隠してしまいましょう。
+
+            <blockquote>
+              <pre><div class="code">void flpydsk_send_command (uint8_t cmd) {
+ 
+	//! wait until data register is ready. We send commands to the data register
+	for (int i = 0; i &lt; 500; i++ )
+		if ( flpydsk_read_status () &amp; FLPYDSK_MSR_MASK_DATAREG )
+			return outportb (FLPYDSK_FIFO, cmd);
+}</div></pre>
+            </blockquote>
+
+            <h3 data-dl-uid="662" data-dl-original="true" data-dl-translated="true">
+              拡張コマンドビット
+            </h3>
+
+            これらのコマンドのいくつかは、コマンドを実行する前に数バイトを渡す必要があります。
+            また、数バイトを返すものもあります。読みやすくするために、すべてのコマンド、フォーマット、パラメータ・バイトを表にまとめました。各コマンドには説明とサンプルルーチンが付いています。
+            <p data-dl-uid="663" data-dl-original="true" data-dl-translated="true">
+              さて、拡張コマンド・ビットの話をしたときに、上のコマンドが4ビットしかないことを思い出してください。上位4ビットは、さまざまな用途に使用することができます。
+            </p>
+            <p data-dl-uid="664" data-dl-original="true" data-dl-translated="true">
+              例えば、Write Sectorコマンドは、M F 0 0 0 1 1 0という形式で、最初の4ビット（0 1 1
+              0）がコマンドバイト、上位4ビット（M F 0
+              0）が異なる設定を表します。Mはマルチトラック、Fはコマンドに対してどのような密度モードで動作させるかを選択するために設定されています。
+            </p>
+            <p data-dl-uid="665" data-dl-original="true" data-dl-translated="true">
+              以下、共通ビットの一覧です。
+            </p>
+
+            <ul>
+              <li>M - MultiTrack Operation</li>
+              <ul>
+                <li>0: Operate on one track of the cylinder</li>
+                <li>1: Operate on both tracks of the cylinder</li>
+              </ul>
+              <li>F - FM/MFM Mode Setting</li>
+              <ul>
+                <li>0: Operate in FM (Single Density) mode</li>
+                <li>1: Operate in MFM (Double Density) mode</li>
+              </ul>
+              <li>S - Skip Mode Setting</li>
+              <ul>
+                <li>0: Do not skip deleted data address marks</li>
+                <li>1: Skip deleted data address marks</li>
+              </ul>
+              <li>HD - Head Number</li>
+              <li>DR0 - DR1 - Drive Number Bits (2 bits for up to 4 drives)</li>
+            </ul>
+
+            M、F、Sビットは多くのコマンドに共通なので、それらをうまく列挙することにしました。これらを設定するには、これらの設定と使用したいコマンドをビット単位でORするだけです。
+
+            <blockquote>
+              <pre><div class="code">enum FLPYDSK_CMD_EXT {
+ 
+	FDC_CMD_EXT_SKIP	=	0x20,	//00100000
+	FDC_CMD_EXT_DENSITY	=	0x40,	//01000000
+	FDC_CMD_EXT_MULTITRACK	=	0x80	//10000000
+};</div></pre>
+            </blockquote>
+
+            <h3 data-dl-uid="684" data-dl-original="true" data-dl-translated="true">GAP 3</h3>
+
+            <b data-dl-uid="685" data-dl-original="true" data-dl-translated="true">GAP 3は</b
+            >、物理ディスクのセクタ間のスペースを指します。<b
+              data-dl-uid="686"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >GPL (Gap Length)</b
+            >
+            の一種です。
+
+            <blockquote>
+              <pre><div class="code">enum FLPYDSK_GAP3_LENGTH {
+ 
+	FLPYDSK_GAP3_LENGTH_STD = 42,
+	FLPYDSK_GAP3_LENGTH_5_14= 32,
+	FLPYDSK_GAP3_LENGTH_3_5= 27
+};</div></pre>
+            </blockquote>
+
+            コマンドによっては、GAP 3のコードを渡す必要があるため、それを使用します:)。
+            <h3 data-dl-uid="690" data-dl-original="true" data-dl-translated="true">
+              セクタあたりのバイト数
+            </h3>
+
+            コマンドによっては、セクタあたりのバイト数を渡す必要があります。しかし、これらは任意のサイズにすることはできず、常に式に従います。
+
+            <blockquote>
+              <pre><div class="code">2^n * 128, where ^ denotes "to the power of"</div></pre>
+            </blockquote>
+
+            <i data-dl-uid="694" data-dl-original="true" data-dl-translated="true">nは</i
+            >0〜7の数字です。FDCではセクタあたり16Kバイトまで選択することができます。しかし、ほとんどのドライブはそれをサポートしていないかもしれません。
+            <p data-dl-uid="695" data-dl-original="true" data-dl-translated="true">
+              我々のリストには、最も一般的な
+            </p>
+
+            <blockquote>
+              <pre><div class="code">enum FLPYDSK_SECTOR_DTL {
+ 
+	FLPYDSK_SECTOR_DTL_128	=	0,
+	FLPYDSK_SECTOR_DTL_256	=	1,
+	FLPYDSK_SECTOR_DTL_512	=	2,
+	FLPYDSK_SECTOR_DTL_1024	=	4
+};</div></pre>
+            </blockquote>
+
+            ...ですから、もしコマンドがセクタあたりのバイト数を渡すことを要求してきたら、512と書いてはいけません！むしろ、FLPYDSK_SECTOR_DTL_512と書いて、これは2です。
+            <h3 data-dl-uid="699" data-dl-original="true" data-dl-translated="true">
+              コマンドにパラメータを渡す方法
+            </h3>
+
+            思い起こせば、多くのコマンドはパラメータを渡すことを要求しています。パラメータを渡すには、コマンドが送られたのと同じように送ればよいのです。例えば、specifyコマンドは、2つのパラメータを渡す必要があります。これがないとコマンドは起動しませんので...
+
+            <blockquote>
+              <pre><div class="code">flpydsk_send_command (FDC_CMD_SPECIFY);
+flpydsk_send_command (data);
+flpydsk_send_command (data2);</div></pre>
+            </blockquote>
+
+            これが全てです。）
+            <h3 data-dl-uid="703" data-dl-original="true" data-dl-translated="true">
+              コマンドから戻り値を取得する方法
+            </h3>
+
+            返り値を無視できるプログラミングの関数と違って、FDCは返り値を何らかの形で処理する必要があります。もちろん、無視することもできますが、FDCから返り値をもらわなければなりません。それが終わらないと、FDCはそれ以上のコマンドを許可しません。
+            <p data-dl-uid="704" data-dl-original="true" data-dl-translated="true">
+              コマンドがデータを返す場合は、FIFO（データ・レジスタ）に--1つずつ--返されます。
+              したがって、それらを読むには、FIFOを継続的に読み込んで、返されたデータをすべて取得する必要があります。
+            </p>
+            <p data-dl-uid="705" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="706" data-dl-original="true" data-dl-translated="true"
+                >注：コマンドがデータを返す場合、割り込みを送信しますので、それを待つ必要があります。これは、コマンドが終了し、FIFOから戻り値を読んでも安全であることを知るための方法です。</b
+              >
+            </p>
+            <p data-dl-uid="707" data-dl-original="true" data-dl-translated="true">
+              戻り値の良い例は、セクタの読み出しコマンドです。このコマンドでは、IRQを待つ必要があるので、完了したことがわかり、7バイトが返されます。そこで、返されたデータ・バイトをすべて読むために、データ・レジスタから一度に1つずつ読み出す必要があります。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">for (int j=0; j&lt;7; j++)
+	flpydsk_read_data ();</div></pre>
+            </blockquote>
+
+            もちろん、エラーチェックのために、いくつかの返り値は実際にチェックする必要があります。
+            <h3 data-dl-uid="711" data-dl-original="true" data-dl-translated="true">セクタを書き込む</h3>
+
+            <ul>
+              <li>Format: M F 0 0 0 1 1 0</li>
+              <li>Paramaters:</li>
+              <ul>
+                <li>x x x x x HD DR DR0</li>
+                <li>Cylinder</li>
+                <li>Head</li>
+                <li>Sector Number</li>
+                <li>Sector Size</li>
+                <li>Track Length</li>
+                <li>Length of GAP3</li>
+                <li>Data Length</li>
+              </ul>
+              <li>Return:</li>
+              <ul>
+                <li>Return byte 0: ST0</li>
+                <li>Return byte 1: ST1</li>
+                <li>Return byte 2: ST2</li>
+                <li>Return byte 3: Current cylinder</li>
+                <li>Return byte 4: Current head</li>
+                <li>Return byte 5: Sector number</li>
+                <li>Return byte 6: Sector size</li>
+              </ul>
+            </ul>
+
+            <p data-dl-uid="733" data-dl-original="true" data-dl-translated="true">
+              FDDからセクタを読み出すコマンドです。セクタ内の1バイトごとにFDCは割り込み6を発行し、ディスクから読み出したバイトをデータレジスタに入れ、読み込めるようにします。
+            </p>
+            <h3 data-dl-uid="734" data-dl-original="true" data-dl-translated="true">セクタの読み出し</h3>
+
+            <ul>
+              <li>Format: M F S 0 0 1 1 0</li>
+              <li>Paramaters:</li>
+              <ul>
+                <li>x x x x x HD DR1 DR0 = HD=head DR0/DR1=Disk</li>
+                <li>Cylinder</li>
+                <li>Head</li>
+                <li>Sector Number</li>
+                <li>Sector Size</li>
+                <li>Track Length</li>
+                <li>Length of GAP3</li>
+                <li>Data Length</li>
+              </ul>
+              <li>Return:</li>
+              <ul>
+                <li>Return byte 0: ST0</li>
+                <li>Return byte 1: ST1</li>
+                <li>Return byte 2: ST2</li>
+                <li>Return byte 3: Current cylinder</li>
+                <li>Return byte 4: Current head</li>
+                <li>Return byte 5: Sector number</li>
+                <li>Return byte 6: Sector size</li>
+              </ul>
+            </ul>
+
+            <p data-dl-uid="756" data-dl-original="true" data-dl-translated="true">
+              FDDからセクタを読み出すコマンドです。セクタ内の1バイトごとにFDCは割り込み6を発行し、ディスクから読み込んだバイトをデータレジスタに入れ、読み込めるようにします。
+            </p>
+            <p data-dl-uid="757" data-dl-original="true" data-dl-translated="true">
+              以下は、デモで使用したルーチンです。まず、DMAをセットアップして、読み出し動作の準備をします。次に、セクタ読み出しコマンド（FDC_CMD_READ_SECT）を実行し、コマンドのM、F、Sビットを設定します（マルチトラック・リード、倍密度、削除済みアドレス・マークをスキップします。これらの一覧は上記を参照してください)。
+            </p>
+            <p data-dl-uid="758" data-dl-original="true" data-dl-translated="true">
+              その後、コマンドのパラメータを全て渡し、読み出しコマンドを開始します。セクタサイズパラメータはFLPYDSK_SECTOR_DTL_512
+              (bytes per sector)で、これは思い起こせば値2です(詳細は上記の<b
+                data-dl-uid="759"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >Bytes per sectorの</b
+              >項を参照してください)。 次のパラメータはトラックあたりのセクター(18)。
+              次のパラメータはGAP3長です。標準的な3-1/2 "フロッピーディスクのGAP
+              3長(FLPYDSK_GAP3_LENGTH_3_5、27)の値を渡します。
+            </p>
+            <p data-dl-uid="760" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="761" data-dl-original="true" data-dl-translated="true">Data Length</b
+              >パラメータ・バイトはセクタ・サイズが0の場合のみ有効です。 それ以外の場合は 0xff
+              となります。
+            </p>
+            <p data-dl-uid="762" data-dl-original="true" data-dl-translated="true">
+              このコマンドは完了後にIRQを送信するため、IRQを待つ必要があります。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">void flpydsk_read_sector_imp (uint8_t head, uint8_t track, uint8_t sector) {
+ 
+	uint32_t st0, cyl;
+ 
+	//! set the DMA for read transfer
+	flpydsk_dma_read ();
+ 
+	//! read in a sector
+	flpydsk_send_command (
+		FDC_CMD_READ_SECT | FDC_CMD_EXT_MULTITRACK |
+		FDC_CMD_EXT_SKIP | FDC_CMD_EXT_DENSITY);
+	flpydsk_send_command ( head &lt;&lt; 2 | _CurrentDrive );
+	flpydsk_send_command ( track);
+	flpydsk_send_command ( head);
+	flpydsk_send_command ( sector);
+	flpydsk_send_command ( FLPYDSK_SECTOR_DTL_512 );
+	flpydsk_send_command (
+		( ( sector + 1 ) &gt;= FLPY_SECTORS_PER_TRACK )
+			? FLPY_SECTORS_PER_TRACK : sector + 1 );
+	flpydsk_send_command ( FLPYDSK_GAP3_LENGTH_3_5 );
+	flpydsk_send_command ( 0xff );
+ 
+	//! wait for irq
+	flpydsk_wait_irq ();
+ 
+	//! read status info
+	for (int j=0; j&lt;7; j++)
+		flpydsk_read_data ();
+ 
+	//! let FDC know we handled interrupt
+	flpydsk_check_int (&amp;st0,&amp;cyl);
+}</div></pre>
+            </blockquote>
+
+            ...IRQが発生した後、7つのリターンバイトをすべて読み込んでいます。そして、SENSE_INTERRUPTコマンドをflpydsk_check_int()で送信し、FDCに割り込みを処理したことを知らせます。(以下の<b
+              data-dl-uid="766"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >割り込みの状態をチェック</b
+            >するセクションを参照してください)
+            <p data-dl-uid="767" data-dl-original="true" data-dl-translated="true">
+              待てよ...。データはどこにあるのでしょうか？上のコマンドを見ると、FDCにデータをどこに置くか教えていません。
+              これは、面白い問題を提起していると思いませんか？
+            </p>
+            <p data-dl-uid="768" data-dl-original="true" data-dl-translated="true">
+              FDCの動作モードにもよりますが、Non-DMAモードでは、1バイトごとにIRQ
+              6が発火します。ディスクから読み込んだデータのバイトはFIFOにあります。DMAモードでは、DMAにデータを渡し、DMAはそのデータをバッファ（DMAに指示した場所）に入れる。
+            </p>
+            <p data-dl-uid="769" data-dl-original="true" data-dl-translated="true">
+              つまり、この場合、DMAバッファを0x1000に設定したことを覚えていますか？上記のルーチンを呼び出した後、セクタデータは0x1000になります!クールでしょう？DMAに別のアドレスを与えることで、その位置を変更することができます。
+            </p>
+            <h3 data-dl-uid="770" data-dl-original="true" data-dl-translated="true">
+              ドライブデータの修正／指定
+            </h3>
+
+            <ul>
+              <li>Format: 0 0 0 0 0 0 1 1</li>
+              <li>Paramaters:</li>
+              <ul>
+                <li>S S S S H H H H - S=Step Rate H=Head Unload Time</li>
+                <li>H H H H H H H NDM - H=Head Load Time NDM=0 (DMA Mode) or 1 (DMA Mode)</li>
+              </ul>
+              <li>Return: None</li>
+            </ul>
+
+            <p data-dl-uid="778" data-dl-original="true" data-dl-translated="true">
+              このコマンドは、FDC に接続されているメカニカル・ドライブの制御情報を FDC
+              に渡すために使用されます。このコマンドでの作業を容易にするために、このコマンドのためのルーチンを書きましょう。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">void flpydsk_drive_data (uint32_t stepr, uint32_t loadt, uint32_t unloadt, bool dma ) {
+ 
+	uint32_t data = 0;
+ 
+	flpydsk_send_command (FDC_CMD_SPECIFY);
+ 
+	data = ( (stepr &amp; 0xf) &lt;&lt; 4) | (unloadt &amp; 0xf);
+	flpydsk_send_command (data);
+ 
+	data = (loadt) &lt;&lt; 1 | (dma==true) ? 1 : 0;
+	flpydsk_send_command (data);
+}</div></pre>
+            </blockquote>
+
+            <h3 data-dl-uid="782" data-dl-original="true" data-dl-translated="true">ステータス確認</h3>
+
+            <ul>
+              <li>Format: 0 0 0 0 0 1 0 0</li>
+              <li>Paramaters:</li>
+              <ul>
+                <li>x x x x x HD DR1 DR0</li>
+              </ul>
+              <li>Return:</li>
+              <ul>
+                <li>Byte 0: Status Register 3 (ST3)</li>
+              </ul>
+            </ul>
+
+            <p data-dl-uid="791" data-dl-original="true" data-dl-translated="true">
+              このコマンドは、ドライブのステータスを返します。
+            </p>
+            <h3 data-dl-uid="792" data-dl-original="true" data-dl-translated="true">
+              ドライブのキャリブレート
+            </h3>
+            <ul>
+              <li>Format: 0 0 0 0 0 1 1 1</li>
+              <li>Paramaters:</li>
+              <ul>
+                <li>x x x x x 0 DR1 DR0</li>
+              </ul>
+              <li>Return: None</li>
+            </ul>
+
+            <p data-dl-uid="799" data-dl-original="true" data-dl-translated="true">
+              このコマンドはリード／ライト・ヘッドをシリンダー0に配置するために使用されます。80トラック以上のディスクの場合、このコマンドを数回発行する必要があります。このコマンドを発行した後は、必ず正しいトラックであることを確認すること<b
+                data-dl-uid="800"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >（Check Interrupt Status</b
+              >コマンド）。
+            </p>
+            <p data-dl-uid="801" data-dl-original="true" data-dl-translated="true">
+              コマンドを発行した後、まだシリンダー0に到達していない場合は、再度コマンドを発行する。シリンダ0を見つけたら、モータを停止させ、successを返す。10回やってダメならやめる。
+            </p>
+            <p data-dl-uid="802" data-dl-original="true" data-dl-translated="true">
+              このコマンドの実行中は、モーターが動いていることを確認する必要があることに注意してください。また、SENSE_INTERRUPTコマンド（flpydsk_check_int()コール）を使って、現在のシリンダを取得している点にも注目。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">int flpydsk_calibrate (uint32_t drive) {
+ 
+	uint32_t st0, cyl;
+ 
+	if (drive &gt;= 4)
+		return -2;
+ 
+	//! turn on the motor
+	flpydsk_control_motor (true);
+ 
+	for (int i = 0; i &lt; 10; i++) {
+ 
+		//! send command
+		flpydsk_send_command ( FDC_CMD_CALIBRATE );
+		flpydsk_send_command ( drive );
+		flpydsk_wait_irq ();
+		flpydsk_check_int ( &amp;st0, &amp;cyl);
+ 
+		//! did we fine cylinder 0? if so, we are done
+		if (!cyl) {
+ 
+			flpydsk_control_motor (false);
+			return 0;
+		}
+	}
+ 
+	flpydsk_control_motor (false);
+	return -1;
+}</div></pre>
+            </blockquote>
+
+            <h3 data-dl-uid="806" data-dl-original="true" data-dl-translated="true">
+              インタラプトステータス確認
+            </h3>
+
+            <ul>
+              <li>Format: 0 0 0 0 1 0 0 0</li>
+              <li>Paramaters: None</li>
+              <li>Return:</li>
+              <ul>
+                <li>Byte 0: Status Register 0 (ST0)</li>
+                <li>Byte 1: Current Cylinder</li>
+              </ul>
+            </ul>
+
+            <p data-dl-uid="814" data-dl-original="true" data-dl-translated="true">
+              このコマンドは、割り込みが復帰したときの FDC の状態に関する情報を確認するために使用します。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">void flpydsk_check_int (uint32_t* st0, uint32_t* cyl) {
+ 
+	flpydsk_send_command (FDC_CMD_CHECK_INT);
+ 
+	*st0 = flpydsk_read_data ();
+	*cyl = flpydsk_read_data ();
+}</div></pre>
+            </blockquote>
+
+            <h3 data-dl-uid="818" data-dl-original="true" data-dl-translated="true">
+              シーク／パークヘッド
+            </h3>
+            <ul>
+              <li>Format: 0 0 0 0 1 1 1 1</li>
+              <li>Paramaters:</li>
+              <ul>
+                <li>x x x x x HD DR1 DR0 - HD=Head DR1/DR0 = drive</li>
+                <li>Cylinder</li>
+              </ul>
+              <li>Return: None</li>
+            </ul>
+
+            <p data-dl-uid="826" data-dl-original="true" data-dl-translated="true">
+              このコマンドは、リード/ライト・ヘッドを特定のシリンダーに移動させるために使用されます。calibrateコマンドと同様に、このコマンドを複数回送信する必要がある場合があります。check_int()を呼び出すことで、毎回現在のシリンダーを取得していることに注意。そして、現在のシリンダーが探しているシリンダーであるかどうかをテストします。そうでない場合は、もう一度試行する。もしそうであれば、成功を返します。
+            </p>
+            <blockquote>
+              <pre><div class="code">int flpydsk_seek ( uint32_t cyl, uint32_t head ) {
+ 
+	uint32_t st0, cyl0;
+ 
+	if (_CurrentDrive &gt;= 4)
+		return -1;
+ 
+	for (int i = 0; i &lt; 10; i++ ) {
+ 
+		//! send the command
+		flpydsk_send_command (FDC_CMD_SEEK);
+		flpydsk_send_command ( (head) &lt;&lt; 2 | _CurrentDrive);
+		flpydsk_send_command (cyl);
+ 
+		//! wait for the results phase IRQ
+		flpydsk_wait_irq ();
+		flpydsk_check_int (&amp;st0,&amp;cyl0);
+ 
+		//! found the cylinder?
+		if ( cyl0 == cyl)
+			return 0;
+	}
+ 
+	return -1;
+}</div></pre>
+            </blockquote>
+
+            <h3 data-dl-uid="830" data-dl-original="true" data-dl-translated="true">無効なコマンド</h3>
+
+            無効なコマンドがFDCに送信された場合、FDCはそれを無視してスタンバイ状態になります。
+            <h2 data-dl-uid="831" data-dl-original="true" data-dl-translated="true">
+              FDCをリセットする
+            </h2>
+
+            <h3 data-dl-uid="832" data-dl-original="true" data-dl-translated="true">
+              コントローラの無効化
+            </h3>
+
+            DOR
+            RESETラインがLowであれば、コントローラはディスエーブル状態になります。つまり、DORレジスタに0を書き込むだけで、コントローラはディセーブルになります。
+
+            <blockquote>
+              <pre><div class="code">void flpydsk_disable_controller () {
+ 
+	flpydsk_write_dor (0);
+}</div></pre>
+            </blockquote>
+
+            <h3 data-dl-uid="836" data-dl-original="true" data-dl-translated="true">
+              コントローラの有効化
+            </h3>
+
+            コントローラをイネーブルにするには、DORのRESETラインをHighに設定します。また、FDCをDMAモードで動作させたいので、そのビットもDORに設定する必要があります。
+
+            <blockquote>
+              <pre><div class="code">void flpydsk_enable_controller () {
+ 
+	flpydsk_write_dor ( FLPYDSK_DOR_MASK_RESET | FLPYDSK_DOR_MASK_DMA);
+}</div></pre>
+            </blockquote>
+
+            コントローラを無効化した後に有効化すると、割り込みが発生します。この間、コントローラやドライブのコンフィギュレーションを再初期化する必要があります。
+            <h3 data-dl-uid="840" data-dl-original="true" data-dl-translated="true">FDCの初期化</h3>
+
+            コントローラのリセット中、コントローラを再初期化する必要があります。コントローラのリセット後、IRQ6が発行されます。発火後、FDCに接続されているすべてのドライブにSENSE_INTERRUPTコマンドを送信する必要があります（<b
+              data-dl-uid="841"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >flpydsk_check_intを</b
+            >4回呼び出すことで行います）。
+            <p data-dl-uid="842" data-dl-original="true" data-dl-translated="true">
+              その後、コントローラを再設定する時間があります。<b
+                data-dl-uid="843"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >CCR（構成制御レジスタ</b
+              >）はデータ・レートのために2ビットしかないことを思い出してください。両方を0に設定することで、データレートを500Kbpsに設定します。これは素晴らしいデフォルト値です。
+            </p>
+            <p data-dl-uid="844" data-dl-original="true" data-dl-translated="true">
+              次にflpydsk_drive_dataを呼び出し、<b
+                data-dl-uid="845"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >Fix Drive Data / Specify</b
+              >コマンドをコントローラに送信して、次のようなドライブの機械的情報を設定します。ステップ速度、ヘッドのロードとアンロードの時間、DMAモードをサポートしているかどうかなどです。
+            </p>
+            <p data-dl-uid="846" data-dl-original="true" data-dl-translated="true">
+              その後、ドライブを再キャリブレーションし、シリンダー0に配置します。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">void flpydsk_reset () {
+ 
+	uint32_t st0, cyl;
+ 
+	//! reset the controller
+	flpydsk_disable_controller ();
+	flpydsk_enable_controller ();
+	flpydsk_wait_irq ();
+ 
+	//! send CHECK_INT/SENSE INTERRUPT command to all drives
+	for (int i=0; i&lt;4; i++)
+		flpydsk_check_int (&amp;st0,&amp;cyl);
+ 
+	//! transfer speed 500kb/s
+	flpydsk_write_ccr (0);
+ 
+	//! pass mechanical drive info. steprate=3ms, unload time=240ms, load time=16ms
+	flpydsk_drive_data (3,16,240,true);
+ 
+	//! calibrate the disk
+	flpydsk_calibrate ( _CurrentDrive );
+}</div></pre>
+            </blockquote>
+
+            リセットの後、ドライブは私たちが使用できる状態になります。
+
+            <h2 data-dl-uid="858" data-dl-original="true" data-dl-translated="true">更新と変更</h2>
+
+            <h3 data-dl-uid="859" data-dl-original="true" data-dl-translated="true">
+              文字列からint型への変換 - stdio.h/stdio.cpp
+            </h3>
+
+            このデモをよりインタラクティブにするために、標準ライブラリにある文字列を整数に変換するための3つの関数を組み込みました。このデモでは、ユーザーから入力された文字列を使用可能な整数に変換するために、<b
+              data-dl-uid="863"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >atoi</b
+            >を使用しています。
+            <h3 data-dl-uid="864" data-dl-original="true" data-dl-translated="true">
+              フロッピーディスクドライバのインストール - flpydsk.cpp
+            </h3>
+
+            フロッピーディスクドライバには、デモが簡単にセットアップできるように、すばらしいインストールルーチンが付属しています。このルーチンは、HAL
+            の setvect () ルーチンを使って割り込みハンドラをインストールし、転送用の DMA
+            を初期化し、コントローラをリセットして使用可能な状態にするだけです。
+
+            <blockquote>
+              <pre><div class="code">void flpydsk_install (int irq) {
+ 
+	//! install irq handler
+	setvect (irq, i86_flpy_irq);
+ 
+	//! initialize the DMA for FDC
+	flpydsk_initialize_dma ();
+ 
+	//! reset the fdc
+	flpydsk_reset ();
+ 
+	//! set drive information
+	flpydsk_drive_data (13, 1, 0xf, true);
+}</div></pre>
+            </blockquote>
+
+            デモでは、初期化中にこの関数を呼び出し、ドライバから読み込もうとする前にドライバをセットアップしています。
+            <h3 data-dl-uid="868" data-dl-original="true" data-dl-translated="true">
+              任意のセクタを読み込む - LBAとCHS - flpydsk.cpp
+            </h3>
+
+            ドライバは、2つのすばらしい関数の背後にCHSの詳細を隠します。ドライブはCHS（シリンダ／ヘッド／セクタ）で動作し、LBA（リニアブロックアドレッシング）については何も知らないことを知っているので、この2つの間で変換するルーチンを提供する必要があります。この方法では、物理的な
+            CHS を気にすることなく、単にセクタ番号を渡して読み書きすることができます。
+            <p data-dl-uid="869" data-dl-original="true" data-dl-translated="true">
+              LBAをCHSに変換する公式を覚えていますか？ここでそれを応用してみましょう。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">void flpydsk_lba_to_chs (int lba,int *head,int *track,int *sector) {
+ 
+   *head = ( lba % ( FLPY_SECTORS_PER_TRACK * 2 ) ) / ( FLPY_SECTORS_PER_TRACK );
+   *track = lba / ( FLPY_SECTORS_PER_TRACK * 2 );
+   *sector = lba % FLPY_SECTORS_PER_TRACK + 1;
+}</div></pre>
+            </blockquote>
+
+            FLPY_SECTORS_PER_TRACKは18です。素晴らしい!これで、この関数を呼び出すだけで、任意のリニア・セクタ番号をCHSの位置に変換できるようになりました!クールでしょう？
+            <p data-dl-uid="873" data-dl-original="true" data-dl-translated="true">
+              ディスクから任意のセクタを読み込めるようにしたいので、そのためのルーチンを提供します。
+              また、コントローラに読み込みコマンドを送信するコードを含む<b
+                data-dl-uid="874"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >flpydsk_read_sector_impが</b
+              >既にあるので、このルーチンは非常にシンプルになります。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">uint8_t* flpydsk_read_sector (int sectorLBA) {
+ 
+	if (_CurrentDrive &gt;= 4)
+		return 0;
+ 
+	//! convert LBA sector to CHS
+	int head=0, track=0, sector=1;
+	flpydsk_lba_to_chs (sectorLBA, &amp;head, &amp;track, �or);
+ 
+	//! turn motor on and seek to track
+	flpydsk_control_motor (true);
+	if (flpydsk_seek (track, head) != 0)
+		return 0;
+ 
+	//! read sector and turn motor off
+	flpydsk_read_sector_imp (head, track, sector);
+	flpydsk_control_motor (false);
+ 
+	//! warning: this is a bit hackish
+	return (uint8_t*) DMA_BUFFER;
+}</div></pre>
+            </blockquote>
+
+            デモがセクタを読みたいときはいつでも、このルーチンを呼び出します。このルーチンはセクタをディスク上の物理的な位置(CHS)に変換します。そして、モーターを起動し、このセクタがあるシリンダを探します。その後、<b
+              data-dl-uid="878"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >flpydsk_read_sector_impを呼び出して</b
+            >実際にセクタを読み込むマジックを行い、その後モータをオフにします。
+            <p data-dl-uid="879" data-dl-original="true" data-dl-translated="true">
+              flpydsk_read_sector_imp の呼び出しの後、セクタのデータは DMA バッファにあるはずです。
+              このバッファへのポインタを返すと、バッファには今読み込んだセクタのデータが入っています。クールでしょう？
+            </p>
+            <p data-dl-uid="880" data-dl-original="true" data-dl-translated="true">
+              これはすべてを結びつける魔法のルーチンです。）
+            </p>
+            <h3 data-dl-uid="881" data-dl-original="true" data-dl-translated="true">
+              新しい読み込みコマンド - main.cpp
+            </h3>
+
+            このデモは前回のデモの上に構築されています。このため、前回のデモで構築されたコマンドライン・インターフェイス（CLI）を維持しています。このため、このデモは今までで最も複雑なデモになっています。
+            <p data-dl-uid="882" data-dl-original="true" data-dl-translated="true">
+              CLI のコマンドのリストに、ディスクから任意のセクタを読み込むことができる<b
+                data-dl-uid="883"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >read</b
+              >という新しいコマンドを追加しました。このコマンドは、このチュートリアルで作成したフロッピーディスクドライバを使用しています。
+            </p>
+            <p data-dl-uid="884" data-dl-original="true" data-dl-translated="true">
+              このコマンドは関数の中にあり、デモでは<b
+                data-dl-uid="885"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >readと</b
+              >タイプすることで実行されます。これは512バイトを読みやすいように128バイトの4つのブロックに分割してダンプします。各ブロックの後、次のチャンクに進むためにキーを押すように促されます。これは新しい<b
+                data-dl-uid="886"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >atoi</b
+              >関数を使って、入力されたセクタ番号（LBAセクタ番号）をintに変換し、それを読み込んでいます。親愛なる読者の皆さん、これが魔法を起こす関数なのです。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">void cmd_read_sect () {
+ 
+	uint32_t sectornum = 0;
+	char sectornumbuf [4];
+	uint8_t* sector = 0;
+ 
+	DebugPrintf ("\n\rPlease type in the sector number [0 is default] &gt;");
+	get_cmd (sectornumbuf, 3);
+	sectornum = atoi (sectornumbuf);
+ 
+	DebugPrintf ("\n\rSector %i contents:\n\n\r", sectornum);
+ 
+	//! read sector from disk
+	sector = flpydsk_read_sector ( sectornum );
+ 
+	//! display sector
+	if (sector!=0) {
+ 
+		int i = 0;
+		for ( int c = 0; c &lt; 4; c++ ) {
+ 
+			for (int j = 0; j &lt; 128; j++)
+				DebugPrintf ("0x%x ", sector[ i + j ]);
+			i += 128;
+ 
+			DebugPrintf("\n\rPress any key to continue\n\r");
+			getch ();
+		}
+	}
+	else
+		DebugPrintf ("\n\r*** Error reading sector from disk");
+ 
+	DebugPrintf ("\n\rDone.");
+}</div></pre>
+            </blockquote>
+
+            <h1 data-dl-uid="890" data-dl-original="true" data-dl-translated="true">まとめ</h1>
+
+            イヤー、これは長いチュートリアルです。より良く、より完全なものにするために、いくつか変更を加えるかもしれません
+            :)
+            <p data-dl-uid="891" data-dl-original="true" data-dl-translated="true">
+              次回のチュートリアルでは、DMAについて説明します。DMAをプログラミングするためのインターフェイスを作成し、FDCドライバでよりよく使用できるようにします。この後...またファイルシステムの話になると思います(笑)。心配しないでください
+              - そのあとはマルチタスクです!
+            </p>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </body>
+</html>

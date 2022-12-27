@@ -1,0 +1,1686 @@
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Cache-Control" content="no-cache" />
+    <title></title>
+    <link href="css/reference.css" rel="stylesheet" />
+  </head>
+  <body>
+    <table cellspacing="0" cellpadding="3" width="80%" border="0">
+      <tbody>
+        <tr>
+          <td class="tblhdr">Operating Systems Development Series</td>
+        </tr>
+        <tr>
+          <td align="middle" colspan="2"></td>
+        </tr>
+      </tbody>
+    </table>
+    <table cellspacing="0" cellpadding="5" width="100%" border="0">
+      <tbody>
+        <tr>
+          <td>
+            <!-- Title -->
+
+            <div>
+              <span class="title">8237A ISA DMAC</span>
+
+              <br />
+              <span class="author">by Mike, 2008, 2009</span>
+            </div>
+
+            <h1 data-dl-uid="12" data-dl-original="true" data-dl-translated="true">
+              イントロダクション
+            </h1>
+            <p data-dl-uid="13" data-dl-original="true" data-dl-translated="true">ようこそ!:)</p>
+            <p data-dl-uid="14" data-dl-original="true" data-dl-translated="true">
+              この章では、<b data-dl-uid="15" data-dl-original="true" data-dl-translated="true"
+                >DMAC(Direct Memory Access Controller)</b
+              >を詳しく見ていきます。DMAC は、ソフトウェアに頼らず、デバイスから直接メモリにデータブロッ
+              クを転送する方法を提供します。 ソフトウェアではなくハードウェアが行うので、非常に高速
+              なデータ転送が可能になります。
+            </p>
+
+            <p data-dl-uid="16" data-dl-original="true" data-dl-translated="true">
+              今日のリストはこちらです。
+            </p>
+            <ul data-dl-uid="17" data-dl-original="true" data-dl-translated="true">
+              <li data-dl-uid="18" data-dl-original="true" data-dl-translated="true">DMAの歴史</li>
+              <li data-dl-uid="19" data-dl-original="true" data-dl-translated="true">DMAハードウェア</li>
+              <li data-dl-uid="20" data-dl-original="true" data-dl-translated="true">DMAポート</li>
+              <li data-dl-uid="21" data-dl-original="true" data-dl-translated="true">DMA レジスタ</li>
+              <li data-dl-uid="22" data-dl-original="true" data-dl-translated="true">DMAコマンド</li>
+            </ul>
+
+            <h1 data-dl-uid="23" data-dl-original="true" data-dl-translated="true">概要</h1>
+
+            <b data-dl-uid="24" data-dl-original="true" data-dl-translated="true"
+              >ダイレクトメモリアクセス（DMA</b
+            >）は、最近のすべてのコンピュータに搭載されている機能で、デバイスがプロセッサとの相互作用なしに大きなデータブロックを移動できるようにするものです。これは、フロッピーのプログラミングの章ですでにお分かりのように、便利な機能です。デバイスがデータブロックを転送している間、プロセッサはデータがメモリや他のデバイスに転送されるのを気にすることなく、自由にソフトウェアを実行し続けることができます。
+            基本的な考え方は、DMAデバイスが自分自身でタスクを実行するようにスケジュールすることができるということです。クールでしょう？
+            <p data-dl-uid="25" data-dl-original="true" data-dl-translated="true">
+              バスやアーキテクチャの設計によって、ダイレクトメモリアクセスの方法は様々です。今回は<b
+                data-dl-uid="26"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ISAダイレクトメモリアクセスコントローラ（DMAC</b
+              >）に焦点を当てますが、念のため他の方式も取り上げておくことにしました。
+            </p>
+
+            <h2 data-dl-uid="27" data-dl-original="true" data-dl-translated="true">ISA</h2>
+
+            <b data-dl-uid="28" data-dl-original="true" data-dl-translated="true"
+              >業界標準アーキテクチャ（ISA</b
+            >）は、<b data-dl-uid="29" data-dl-original="true" data-dl-translated="true"
+              >Intel 8237マイクロコントローラを</b
+            >ベースにしたコントローラを通じて、DMAリクエストのための中心的な場所を提供します。ATXマザーボードの設計では、コントローラは1つだけでした。しかし、1つのコントローラで8台のデバイスをサポートするには限界があるため、AT以降のアーキテクチャでは、コントローラが<b
+              data-dl-uid="30"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >2</b
+            >つ存在します。<b data-dl-uid="31" data-dl-original="true" data-dl-translated="true"
+              >プログラマブル割り込みコントローラ（PIC</b
+            >）がスレーブ化されているのと同じように、2つのコントローラはスレーブ化されているのです。<b
+              data-dl-uid="32"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >両コントローラは常に4MHzで</b
+            >動作します。
+            <p data-dl-uid="33" data-dl-original="true" data-dl-translated="true">
+              性能とデバイス数の制限から、新しいデバイスはPIOやUDMAを使う傾向があります。
+              しかし、DMAはレガシーデバイスのためにISAでまだサポートされています。
+            </p>
+            <p data-dl-uid="34" data-dl-original="true" data-dl-translated="true">
+              これらのデバイスはすべて、コントローラ上の<b
+                data-dl-uid="35"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >チャネルに</b
+              >接続されています。これらのチャネルとともに、各チャネルは<b
+                data-dl-uid="36"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >DACK（DMA Acknowledge）</b
+              >ラインと<b data-dl-uid="37" data-dl-original="true" data-dl-translated="true"
+                >DRQ（DMA Request）</b
+              >ラインを持っています。
+            </p>
+            <p data-dl-uid="38" data-dl-original="true" data-dl-translated="true"></p>
+            <p data-dl-uid="39" data-dl-original="true" data-dl-translated="true">
+              以下は、両者の<b data-dl-uid="40" data-dl-original="true" data-dl-translated="true"
+                >DMAC(Direct Memory Access Controller)</b
+              >の標準的な割り当てである。
+            </p>
+            <ul data-dl-uid="41" data-dl-original="true" data-dl-translated="true">
+              <li data-dl-uid="42" data-dl-original="true" data-dl-translated="true">XT</li>
+              <ul data-dl-uid="43" data-dl-original="true" data-dl-translated="true">
+                <li data-dl-uid="44" data-dl-original="true" data-dl-translated="true">
+                  <b data-dl-uid="45" data-dl-original="true" data-dl-translated="true">チャネル0：</b
+                  >システムで使用、使用不可（DRAM Refresh、廃止予定）
+                </li>
+                <li data-dl-uid="46" data-dl-original="true" data-dl-translated="true">
+                  チャネル<b data-dl-uid="47" data-dl-original="true" data-dl-translated="true">1：</b
+                  >利用可能、標準的なDMAの割り当てなし
+                </li>
+                <li data-dl-uid="48" data-dl-original="true" data-dl-translated="true">
+                  チャネル<b data-dl-uid="49" data-dl-original="true" data-dl-translated="true">2：</b
+                  >フロッピーディスクコントローラ
+                </li>
+                <li data-dl-uid="50" data-dl-original="true" data-dl-translated="true">
+                  チャンネル<b data-dl-uid="51" data-dl-original="true" data-dl-translated="true">3：</b
+                  >ハードディスクコントローラ（代わりにPIOまたはUDMAを推奨）
+                </li>
+              </ul>
+              <li data-dl-uid="52" data-dl-original="true" data-dl-translated="true">
+                ATのみ
+                <ul data-dl-uid="53" data-dl-original="true" data-dl-translated="true">
+                  <li data-dl-uid="54" data-dl-original="true" data-dl-translated="true">
+                    チャンネル<b data-dl-uid="55" data-dl-original="true" data-dl-translated="true"
+                      >4：</b
+                    >XTコントローラにカスケード接続 - スレーブDMAコントローラをマスターに入力
+                  </li>
+                  <li data-dl-uid="56" data-dl-original="true" data-dl-translated="true">
+                    チャンネル<b data-dl-uid="57" data-dl-original="true" data-dl-translated="true">5</b
+                    >：使用可能、標準的なDMAの割り当てなし（16ビット）
+                  </li>
+                  <li data-dl-uid="58" data-dl-original="true" data-dl-translated="true">
+                    チャンネル6<b data-dl-uid="59" data-dl-original="true" data-dl-translated="true"
+                      >：</b
+                    >使用可能、標準DMAの割り当てなし（16ビット）
+                  </li>
+                  <li data-dl-uid="60" data-dl-original="true" data-dl-translated="true">
+                    チャンネル<b data-dl-uid="61" data-dl-original="true" data-dl-translated="true">7</b
+                    >：使用可能（標準DMAは未割り当て）（16ビット
+                  </li>
+                </ul>
+              </li>
+            </ul>
+            <p data-dl-uid="62" data-dl-original="true" data-dl-translated="true">
+              転送を開始するために、ソフトウェアは、物理メモリ内の転送を完了する場所と転送サイズをチャネルアドレスとカウントレジスタに設定します。その後、そのメモリブロックから読み出すか書き込むかを設定し、コントローラを転送完了の方向に設定します。転送が完了すると、転送を開始したデバイスが<b
+                data-dl-uid="63"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >割り込み要求（IRQ</b
+              >）を発行し、システムソフトウェアがそれをキャッチしてさらに処理します。<b
+                data-dl-uid="64"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >これは重要な</b
+              >ことです!DMA を使用して転送を開始する場合、これらのステップを実行する必要があります。
+            </p>
+
+            <h2 data-dl-uid="65" data-dl-original="true" data-dl-translated="true">PCI</h2>
+
+            PCIデバイスは、同じDMAコントローラを共有することも、中央のDMAコントローラを持つこともありません。その後、物理メモリの読み書き要求がノースブリッジに渡され、<b
+              data-dl-uid="68"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >ノース</b
+            >ブリッジは要求をメモリ操作に変換し、<b
+              data-dl-uid="69"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >メモリコントローラに</b
+            >操作を送出します。
+            <p data-dl-uid="70" data-dl-original="true" data-dl-translated="true">
+              PCI転送は4GBの物理メモリに制限されています。しかし、デバイスとPCIブリッジが<b
+                data-dl-uid="71"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ダブルアドレスサイクル（DAC）</b
+              >または同様の技術を実装している場合、PCIコントローラは4GB物理メモリを超える読み取りと書き込みの要求を開始することができます。
+            </p>
+
+            <h1 data-dl-uid="72" data-dl-original="true" data-dl-translated="true">
+              ISA DMAハードウェア
+            </h1>
+
+            <h2 data-dl-uid="73" data-dl-original="true" data-dl-translated="true">
+              ダイレクトメモリアクセスコントローラ(DMAC)
+            </h2>
+
+            <b data-dl-uid="74" data-dl-original="true" data-dl-translated="true"
+              >ISA（業界標準アーキテクチャ</b
+            >）は、オリジナルの<b data-dl-uid="75" data-dl-original="true" data-dl-translated="true"
+              >Intel 8237 DMA</b
+            >チップをベースにしたコントローラを使用しています。ほとんどの新しいDMACは、より多くの機能を提供しますが、8237マイクロコントローラとほぼ完全に下位互換性があります。新しいPCにはより高度なDMACが搭載されていますが、すべての始まりとなったデバイスを見ることは常に素晴らしいことです。そこで、<b
+              data-dl-uid="76"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >DIP (Dual Inline Package)</b
+            >で配布されたオリジナルの8237Aコントローラのピン配置図を示します。
+            <p data-dl-uid="77" data-dl-original="true" data-dl-translated="true"></p>
+
+            <center><img src="./19_files/8237a.jpg" /></center>
+            <p></p>
+
+            <p data-dl-uid="80" data-dl-original="true" data-dl-translated="true"></p>
+            この章でプログラミングするコントローラはこれです。ピンの数は非常に多いですが、それほど複雑ではありません。それでは、重要なピンを中心に見ていきましょう。
+
+            <ul>
+              <li><b>Pin 1 (IOR)</b> I/O Read</li>
+              <li><b>Pin 2 (IOW)</b> I/O Write</li>
+              <li><b>Pin 3 (MEMR)</b> Memory Read</li>
+              <li><b>Pin 4 (MEMW)</b> Memory Write</li>
+              <li><b>Pin 5</b></li>
+              <li><b>Pin 6 (READY)</b></li>
+              <li><b>Pin 7 (HACK)</b> Hold Acknowledge</li>
+              <li><b>Pin 8 (ADSTB)</b> Address Strobe</li>
+              <li><b>Pin 9 (AEN)</b> Address Enable</li>
+              <li><b>Pin 10 (HREQ)</b> Hold Request</li>
+              <li><b>Pin 11 (CS)</b> Chip Select</li>
+              <li><b>Pin 12 (CLK)</b> Clock</li>
+              <li><b>Pin 13 (RESET)</b> Reset</li>
+              <li><b>Pins 14-15 (DACK)</b> DMA Ackowledge</li>
+              <li><b>Pins 16-19 (DREQ0-DREQ3)</b> DMA Request</li>
+              <li><b>Pin 20 (GND/Vss)</b> Ground</li>
+              <li><b>Pins 21-23 (DB0-DB3)</b> Data Bus</li>
+              <li><b>Pins 24-25 (DACK)</b> DMA Ackowledge</li>
+              <li><b>Pins 26-30 (DB4-DB7)</b> Data Bus</li>
+              <li><b>Pin 31 (Vcc)</b> +5 volt power</li>
+              <li><b>Pins 32-35 (A0-A3)</b> Address Lines</li>
+              <li><b>Pin 36 (EOP)</b> End Of Process</li>
+              <li><b>Pins 37-40 (A4-A7)</b> Address Lines</li>
+            </ul>
+
+            <p data-dl-uid="128" data-dl-original="true" data-dl-translated="true">
+              こちらも悪くないですね。<b
+                data-dl-uid="129"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >20番</b
+              >ピンをグランドに、<b data-dl-uid="130" data-dl-original="true" data-dl-translated="true"
+                >31番ピ</b
+              >ンを電源に使っています。<b
+                data-dl-uid="131"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ピン12（CLK</b
+              >）は、すべてのコントローラで見られるもう一つの一般的なものです。プロセッサのCLKピンと接続し、入力クロック信号として、コントローラ内の動作タイミングを制御する。<b
+                data-dl-uid="132"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >CS (Chip Select)</b
+              >ピンは、ほとんどのコントローラで共通に使用されているピンです。データ・バス上のI/Oデバイスとしてコントローラを選択するために使用されます。<b
+                data-dl-uid="133"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >RESETは</b
+              >、コントローラの内部レジスタ（ステータス、リクエスト、テンポラリー、コマンド）をリセットし、内部フリップフロップをクリアし、マスクレジスタを設定します。ここまでは、特に目新しいことはありませんね。ゲルネリック・アドレスライン（<b
+                data-dl-uid="134"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >A0-A7</b
+              >）は、システム・アドレス・バスに接続されています。入力時は、CPUは<b
+                data-dl-uid="135"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >A0-A</b
+              >3にのみデータを書き込んで、読み出すレジスタを選択することができます。すべてのピンは出力（物理メモリアドレスへの）にも使用されますが、DMAリクエストのときのみアクティブになります。最後に、システムのデータバスに接続する一般的な<b
+                data-dl-uid="136"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >D0-D7</b
+              >ピンがあります。
+            </p>
+            <p data-dl-uid="137" data-dl-original="true" data-dl-translated="true">
+              次に、より興味深いピンを紹介します。DMACがシステムアドレスとデータバスに接続されていることは、多くの読者が知っていることでしょう。しかし、DMACはCPUから直接注意を受ける必要があることはご想像いただけると思います。このため、DMACがCPUと通信できるように、またその逆もできるように、CPUに接続するいくつかのラインがあります。<b
+                data-dl-uid="140"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >HACK（Hold Acknowledge）は</b
+              >、CPUがDMACにシステムバスの完全な制御を与えたとき、Highになります。これにより、DMACはいつメモリコントローラにデータを送信しても安全であることを知ることができる。結局のところ、DMACとプロセッサの両方が同時に同じシステムバスを使おうとすることはできないわけですね。
+            </p>
+            <p data-dl-uid="141" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="142" data-dl-original="true" data-dl-translated="true"
+                >DMACが物理メモリに直接データを転送するのは、システムバスがプロセッサによって使用</b
+              >されていないときだけである。DMACは、メモリ変換や物理メモリへの読み書きのために、メモリコントローラにデータを伝送するシステムバスを必要とすることになる。
+            </p>
+            <p data-dl-uid="143" data-dl-original="true" data-dl-translated="true">
+              なるほど、CPUはDMACにシステムバスを引き継げることを伝える手段を持っているわけだ。でも、そもそもDMACはどうやってCPUにシステムバスが必要だと伝えるのだろう？それが、<b
+                data-dl-uid="144"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >HREQ（Hold Request）</b
+              >ラインだ。<b data-dl-uid="145" data-dl-original="true" data-dl-translated="true">DMAに</b
+              >接続されたデバイス（フロッピーディスクコントローラなど）から<b
+                data-dl-uid="145"
+                data-dl-translated="true"
+                >DMAリクエスト（DRQ</b
+              >）が発生し、その「チャンネル」が現在無効になっていない場合、コントローラは次のクロックサイクルでHREQをHighにして、リクエストを完了するためにシステムバスの制御が必要であることをCPUに通知するのである。
+            </p>
+            <p data-dl-uid="146" data-dl-original="true" data-dl-translated="true">
+              ライン<b data-dl-uid="147" data-dl-original="true" data-dl-translated="true"
+                >DR0-DR3（DMA Request Lines</b
+              >）は、デバイスがDMAにリクエストを通知するために使用される。たとえば、<b
+                data-dl-uid="148"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >フロッピーディスク・ドライブ・コントローラ（FDC</b
+              >）は、通常<b data-dl-uid="149" data-dl-original="true" data-dl-translated="true">DR2</b
+              >（「チャンネル2」）を使用するように接続されている。そこで、そのチャンネルを有効にして、FDCがDMACを使うようにプログラムすると、FDCにリードまたはライト・コマンドが送られたとき、FDCは<b
+                data-dl-uid="150"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >RQ2</b
+              >ラインをアクティブにして、DMACに注意を要することを通知する。ここから先は、そのチャンネルにプログラムしたモードに応じて、DMACを通じて読み書きが行われます。
+            </p>
+            <p data-dl-uid="151" data-dl-original="true" data-dl-translated="true">
+              ここでもうひとつ重要なポイントがあります。DRQラインは4本しかないのです。<b
+                data-dl-uid="152"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >1つのDMACに接続できるデバイスは4つだけです。</b
+              >これはかなり制限されていますね。i86アーキテクチャでは、2つのDMACをくっつけることで、この問題はいくらか解決されました。そのあたりは、また後日。
+            </p>
+            <p data-dl-uid="153" data-dl-original="true" data-dl-translated="true">
+              今のところ、すべてうまくいっています。ソフトウエアがCPUにDMACをプログラムするように指示するのはわかったとして、CPUはどうやってDMACにレジスタの読み書きが必要であることを伝えるのでしょうか？それが<b
+                data-dl-uid="154"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >IOR (I/O Read)</b
+              >と<b data-dl-uid="155" data-dl-original="true" data-dl-translated="true"
+                >IOW (I/O Write)</b
+              >ピンです。同様に、DMACは、<b
+                data-dl-uid="156"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >MEMR（Memory Read）</b
+              >または<b data-dl-uid="157" data-dl-original="true" data-dl-translated="true"
+                >MEMW（Memory Write</b
+              >）を出力して、メモリリードまたはライト制御線を活性化することにより、メモリコントローラに読み書きを指示する。<b
+                data-dl-uid="158"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >EOP（End Of Process</b
+              >）は、リクエストが完了したときにデバイスに信号を送るために使用されます。リクエストは、そのチャンネルの<b
+                data-dl-uid="159"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ターミナルカウント（TC</b
+              >）に到達すると完了します。これはプログラマブルなカウンタ値です。<b
+                data-dl-uid="160"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >AEN（Address Enable</b
+              >）は、コントローラの内部8ビット・アドレス・ラッチ・レジスタをシステム・アドレス・バスにロードすることを通知するために使用されます。<b
+                data-dl-uid="161"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ADSTB（Address Strobe</b
+              >）は、上位アドレスバイトを外部ラッチレジスタにストローブするために使用されます。
+            </p>
+            <p data-dl-uid="162" data-dl-original="true" data-dl-translated="true">
+              いろいろとあるんですね。コントローラが行う操作の詳細は、使用するモードと転送タイプに依存します。しかし、基本的な手順は同じです。デバイスがDMACに通知し、DMACがCPUにシステムバスを介して制御を通知する。DMACは制御を待ちます。DMACは制御を待つ。制御を受けると、チャネルアドレスレジスタを内部ラッチレジスタにロードする。そこから、MEMR、MEMWを設定し、必要に応じてメモリの読み書きを行う。ちょっと、何？メモリから読み出すのはわかるけど、書き込むとなるとどこに行くんだ？
+            </p>
+            <p data-dl-uid="163" data-dl-original="true" data-dl-translated="true">
+              もう一度、<a
+                href="OSDev20.html"
+                data-dl-uid="164"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >FDCの章を振り返ってみて</a
+              >ください。DMACやCPU、メモリコントローラなどが見ているのと同じデータバスに接続する<b
+                data-dl-uid="165"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >D0〜D7</b
+              >ピンを持っていることに気がつきましたか？つまり、メモリから書き込むときは、MEMRラインをアクティブにして、アドレスをアドレスバスにアップロードし、メモリコントローラがデータを変換してデータバスに置くだけでよいのです。FDCは書き込み要求を待っているので、読み込んだデータを取り込み、FDCに送られた書き込みコマンドで設定されたディスクに書き込む。ディスクから読み出す場合も基本的には同じですが、DMACが代わりにMEMWラインをアクティブにします。メモリコントローラは、FDCから送られてきたデータバスから書き込むデータを取得し、すべてがうまくいくと、DMACはプロセッサの<b
+                data-dl-uid="166"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >HREQ</b
+              >ラインを解放し、CPUが再びバスを完全にコントロールできるようにする。
+            </p>
+            <p data-dl-uid="167" data-dl-original="true" data-dl-translated="true">
+              重要なことは、プロセッサはDMACの終了を待つことができないことです。CPUは、再びシステムバスへのアクセスが必要になると、<b
+                data-dl-uid="168"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >HACK</b
+              >ラインをLowにする。この間、DMACはこのラインが再びHighになるまで待って処理を続けるしかないのです。
+            </p>
+            <p data-dl-uid="169" data-dl-original="true" data-dl-translated="true">
+              そして、読者の皆さん、お待たせしました。i86では、DMACがもう1つ追加され、使用できるチャンネル数が8になっています。まあ、そんなところです。では、見てみましょう。
+            </p>
+
+            <h2 data-dl-uid="170" data-dl-original="true" data-dl-translated="true">x86のDMAC</h2>
+
+            新しいPCには2つのDMACがあることを思い出してください。2つのDMACは、2つのPICが接続されているのと同じような方法で接続されています...ただ、逆になっているだけです。はぁーっ！？そうなんです、そうなんです:)見てみましょう。
+            <p data-dl-uid="171" data-dl-original="true" data-dl-translated="true"></p>
+
+            <center><img src="./19_files/dmac-x86.jpg" /></center>
+            <p></p>
+
+            <p data-dl-uid="174" data-dl-original="true" data-dl-translated="true"></p>
+            DMACは、ISAバスの制御を行う際にプロセッサの<b
+              data-dl-uid="175"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >HOLDと</b
+            >
+            <b data-dl-uid="176" data-dl-original="true" data-dl-translated="true"
+              >HLDA（Hold Acknowledge）</b
+            >ピンを使用します。DMACはHOLDでプロセッサに信号を送り、プロセッサはHDLAでこの要求を確認する。また、2番目の（スレーブ）DMACがDRQの0～3を含むのに対し、1番目のDMACはDRQの5～7を持っていることに注意してください。DRQは<b
+              data-dl-uid="177"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >DMAリクエスト</b
+            >です。これらのラインは、DMACを使用するシステム内のさまざまなデバイスに接続されています。デバイスがDMACの注意を引くよう要求するたびに、デバイスはこのラインをHighにしてDMACに信号を送ります。もう一度画像を見てください。何か面白いものが見えるかもしれません。<b
+              data-dl-uid="178"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >DRQ4はどこに</b
+            >あるのでしょうか？
+            <p data-dl-uid="179" data-dl-original="true" data-dl-translated="true">
+              DRQ4は、どちらのデバイスにも存在しますが、それぞれのDMACを接続するものです。DRQラインはDMACのシグナルとして使用されるため、プライマリとセカンダリのDMACが互いに正しいDRQラインを上げるようシグナルすることができます。<b
+                data-dl-uid="180"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >つまり、DMACをプログラミングするときは、DRQ4がプライマリとスレーブのコントローラーを接続するために使用されることを忘れてはならないのです。このため、DRQ4は使用できない。</b
+              >上の図を振り返ると、プライマリまたはスレーブのDMACが完了した（<b
+                data-dl-uid="182"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >TC（Terminal Count）</b
+              >ラインを上げた）場合に真を出力する<b
+                data-dl-uid="181"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ORゲートも</b
+              >見えます。TCラインは、DMACに送った転送要求が完了したときに上がる。
+            </p>
+            <p data-dl-uid="183" data-dl-original="true" data-dl-translated="true">
+              さて、ここで覚えておくべき重要なことをまとめておきますので参考にしてください。
+            </p>
+            <ul data-dl-uid="184" data-dl-original="true" data-dl-translated="true">
+              <li data-dl-uid="185" data-dl-original="true" data-dl-translated="true">
+                DMAは常に物理メモリで動作し、仮想メモリで動作することはない
+              </li>
+              <li data-dl-uid="186" data-dl-original="true" data-dl-translated="true">
+                i86アーキテクチャでDMACを使用するために接続できるデバイスは8個だけである。
+              </li>
+              <li data-dl-uid="187" data-dl-original="true" data-dl-translated="true">
+                DRQ4 (Channel 4)はプライマリDMACとセカンダリDMACの接続に使用され、使用できない。
+              </li>
+            </ul>
+
+            また、これらの構成についても興味深いことが分かるかもしれません。スレーブDMACはマスターDMACに接続する<b
+              data-dl-uid="188"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >最初の</b
+            >DMACであり、その逆では<b data-dl-uid="189" data-dl-original="true" data-dl-translated="true"
+              >ありません</b
+            >。スレーブDMACがチャンネル0-3（と、技術的にはプライマリDMACに接続するために使われる4）を担当し、プライマリDMACがチャンネル5-7を担当するのは、このためです。ちょっと変でしょう？このように、2つのPICが一緒に動作する方法とは多少異なります。また、これらのコントローラの接続方法によって、<b
+              data-dl-uid="190"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >マスターDMACは16ビットDMACのように動作し、スレーブDMACは8ビットDMACのように</b
+            >動作します。 このため。
+            <ul data-dl-uid="191" data-dl-original="true" data-dl-translated="true">
+              <li data-dl-uid="192" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="193" data-dl-original="true" data-dl-translated="true"
+                  >1番目のDMACはスレーブ（8ビット）、2番目のDMACはマスター（16ビット）です</b
+                >
+              </li>
+            </ul>
+
+            <h1 data-dl-uid="194" data-dl-original="true" data-dl-translated="true">
+              ISA DMAインタフェース
+            </h1>
+
+            <h2 data-dl-uid="195" data-dl-original="true" data-dl-translated="true">ポートマッピング</h2>
+
+            DMAコントローラが2つあるため、ポートも2セットあります。
+            <h3 data-dl-uid="196" data-dl-original="true" data-dl-translated="true">汎用レジスタ</h3>
+
+            <p data-dl-uid="197" data-dl-original="true" data-dl-translated="true"></p>
+
+            <center>
+              <table border="1">
+                <tbody>
+                  <tr>
+                    <th bgcolor="#aaaaaa" colspan="3">ISA DMAC Ports</th>
+                  </tr>
+                  <tr bgcolor="#cccccc">
+                    <td>DMAC 0 Port (Slave)</td>
+                    <td>DMAC 1 Port (Master)</td>
+                    <td>Descripton</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">0x08</td>
+                    <td bgcolor="#cccccc">0xD0</td>
+                    <td>Status Register (Read)</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">0x08</td>
+                    <td bgcolor="#cccccc">0xD0</td>
+                    <td>Command Register (Write)</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">0x09</td>
+                    <td bgcolor="#cccccc">0xD2</td>
+                    <td>Request Register (Write)</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">0x0A</td>
+                    <td bgcolor="#cccccc">0xD4</td>
+                    <td>Single Mask Register (Write)</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">0x0B</td>
+                    <td bgcolor="#cccccc">0xD6</td>
+                    <td>Mode Register (Write)</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">0x0C</td>
+                    <td bgcolor="#cccccc">0xD8</td>
+                    <td>Clear Byte Pointer Flip-Flop (Write)</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">0x0D</td>
+                    <td bgcolor="#cccccc">0xDA</td>
+                    <td>Intermediate Register (Read)</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">0x0D</td>
+                    <td bgcolor="#cccccc">0xDA</td>
+                    <td>Master Clear (Write)</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">0x0E</td>
+                    <td bgcolor="#cccccc">0xDC</td>
+                    <td>Clear Mask Register (Write)</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">0x0F</td>
+                    <td bgcolor="#cccccc">0xDE</td>
+                    <td>Write Mask Register (Write)</td>
+                  </tr>
+                </tbody>
+              </table>
+            </center>
+            <p></p>
+
+            <p data-dl-uid="248" data-dl-original="true" data-dl-translated="true">
+              これらのレジスタは次のセクションでより詳細に説明される。これらのレジスタは両方の DMAC
+              と相互作用するとき使用される。それらはポートマップドI/Oを通して読んだり書いたりすることができる。つまり、標準的なi86の<b
+                data-dl-uid="249"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >inと</b
+              >
+              <b data-dl-uid="250" data-dl-original="true" data-dl-translated="true">out</b
+              >命令を使用する。
+            </p>
+            <p data-dl-uid="251" data-dl-original="true" data-dl-translated="true">
+              DMACは逆方向であることを覚えておくことが非常に重要である。DMAC 0は<b
+                data-dl-uid="252"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >スレーブで</b
+              >、DMAC 1は<b data-dl-uid="253" data-dl-original="true" data-dl-translated="true"
+                >マスター</b
+              >です。
+              また、ポートの範囲がどのように異なるか注意してください。スレーブは8ビットで、マスターは16ビットであることを思い出してください。
+            </p>
+            <p data-dl-uid="254" data-dl-original="true" data-dl-translated="true">
+              読みやすくするために、これらの醜い数字を列挙して抽象化してみましょう。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">enum DMA0_IO {
+
+	DMA0_STATUS_REG = 0x08,
+	DMA0_COMMAND_REG = 0x08,
+	DMA0_REQUEST_REG = 0x09,
+	DMA0_CHANMASK_REG = 0x0a,
+	DMA0_MODE_REG = 0x0b,
+	DMA0_CLEARBYTE_FLIPFLOP_REG = 0x0c,
+	DMA0_TEMP_REG = 0x0d,
+	DMA0_MASTER_CLEAR_REG = 0x0d,
+	DMA0_CLEAR_MASK_REG = 0x0e,
+	DMA0_MASK_REG = 0x0f
+};</div></pre>
+            </blockquote>
+
+            <p data-dl-uid="258" data-dl-original="true" data-dl-translated="true">
+              これらの値は、上の表と一致していることに注意してください。次にDMAC 2について...
+            </p>
+
+            <blockquote>
+              <pre><div class="code">enum DMA1_IO {
+
+	DMA1_STATUS_REG = 0xd0,
+	DMA1_COMMAND_REG = 0xd0,
+	DMA1_REQUEST_REG = 0xd2,
+	DMA1_CHANMASK_REG = 0xd4,
+	DMA1_MODE_REG = 0xd6,
+	DMA1_CLEARBYTE_FLIPFLOP_REG = 0xd8,
+	DMA1_INTER_REG = 0xda,
+	DMA1_UNMASK_ALL_REG = 0xdc,
+	DMA1_MASK_REG = 0xde
+};</div></pre>
+            </blockquote>
+
+            <p data-dl-uid="262" data-dl-original="true" data-dl-translated="true">
+              それでは、レジスタを紹介します。
+            </p>
+
+            <h3 data-dl-uid="263" data-dl-original="true" data-dl-translated="true">チャネルレジスタ</h3>
+
+            <p data-dl-uid="264" data-dl-original="true" data-dl-translated="true">
+              i86では、上記のレジスタの他に、各チャンネルのアドレスやカウンタを制御するための以下のレジスタが用意されています。
+            </p>
+            <p data-dl-uid="265" data-dl-original="true" data-dl-translated="true"></p>
+
+            <center>
+              <table border="1">
+                <tbody>
+                  <tr>
+                    <th bgcolor="#aaaaaa" colspan="3">ISA DMAC Channel Ports</th>
+                  </tr>
+                  <tr bgcolor="#cccccc">
+                    <td>DMAC 0 Port (Slave)</td>
+                    <td>DMAC 1 Port (Master)</td>
+                    <td>Descripton</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">0x0</td>
+                    <td bgcolor="#cccccc">0xC0</td>
+                    <td>Channel 0 Address/Channel 4 Address</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">0x1</td>
+                    <td bgcolor="#cccccc">0xC2</td>
+                    <td>Channel 0 Counter/Channel 4 Counter</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">0x2</td>
+                    <td bgcolor="#cccccc">0xC4</td>
+                    <td>Channel 1 Address/Channel 5 Address</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">0x3</td>
+                    <td bgcolor="#cccccc">0xC6</td>
+                    <td>Channel 1 Counter/Channel 5 Counter</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">0x4</td>
+                    <td bgcolor="#cccccc">0xC8</td>
+                    <td>Channel 2 Address/Channel 6 Address</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">0x5</td>
+                    <td bgcolor="#cccccc">0xCA</td>
+                    <td>Channel 2 Counter/Channel 6 Counter</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">0x6</td>
+                    <td bgcolor="#cccccc">0xCC</td>
+                    <td>Channel 3 Address/Channel 7 Address</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">0x7</td>
+                    <td bgcolor="#cccccc">0xCE</td>
+                    <td>Channel 3 Counter/Channel 7 Counter</td>
+                  </tr>
+                </tbody>
+              </table>
+            </center>
+            <p></p>
+
+            <p data-dl-uid="307" data-dl-original="true" data-dl-translated="true"></p>
+            <p data-dl-uid="308" data-dl-original="true" data-dl-translated="true">
+              上の表をもう一度見てください。マスターDMACのChannel 0
+              Addressは・・・なんと！ポート0です。これはこのシリーズの歴史的瞬間であり、我々は入出力ポート0を見つけたのです。
+            </p>
+            <p data-dl-uid="309" data-dl-original="true" data-dl-translated="true">
+              また、マスター<b data-dl-uid="310" data-dl-original="true" data-dl-translated="true"
+                >DMACが</b
+              >16ビットで、スレーブDMACが8ビットであることを思い出してください。これは重要な特性で、特にここでは、<b
+                data-dl-uid="311"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >スレーブDMACには8ビットの値を読み書きできますが、マスターDMACには16ビットの値を読み書きできることを意味</b
+              >します。
+            </p>
+            <p data-dl-uid="312" data-dl-original="true" data-dl-translated="true">
+              とにかく、これらのレジスタの詳細に入る前に、まずレジスタを隠してしまいましょう。以下の列挙を見ると、何も派手なことはしていないことがわかります。これらのレジスタは、すべてポートマップドI/Oでアクセスされることを忘れないでください。つまり、x86マシン<b
+                data-dl-uid="313"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >命令で</b
+              >
+              <b data-dl-uid="314" data-dl-original="true" data-dl-translated="true">読み書き</b
+              >できるのです。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">enum DMA0_CHANNEL_IO {
+
+	DMA0_CHAN0_ADDR_REG = 0, //! Thats right, i/o port 0
+	DMA0_CHAN0_COUNT_REG = 1,
+	DMA0_CHAN1_ADDR_REG = 2,
+	DMA0_CHAN1_COUNT_REG = 3,
+	DMA0_CHAN2_ADDR_REG = 4,
+	DMA0_CHAN2_COUNT_REG = 5,
+	DMA0_CHAN3_ADDR_REG = 6,
+	DMA0_CHAN3_COUNT_REG = 7,
+};</div></pre>
+            </blockquote>
+
+            <p data-dl-uid="318" data-dl-original="true" data-dl-translated="true">
+              次にDMAC 2について。
+            </p>
+            <blockquote>
+              <pre><div class="code">enum DMA1_CHANNEL_IO {
+
+	DMA1_CHAN4_ADDR_REG = 0xc0,
+	DMA1_CHAN4_COUNT_REG = 0xc2,
+	DMA1_CHAN5_ADDR_REG = 0xc4,
+	DMA1_CHAN5_COUNT_REG = 0xc6,
+	DMA1_CHAN6_ADDR_REG = 0xc8,
+	DMA1_CHAN6_COUNT_REG = 0xca,
+	DMA1_CHAN7_ADDR_REG = 0xcc,
+	DMA1_CHAN7_COUNT_REG = 0xce,
+};</div></pre>
+            </blockquote>
+
+            <p data-dl-uid="322" data-dl-original="true" data-dl-translated="true">
+              これらのレジスタの基本的な目的は、チャンネルをどのように開始するかをDMACに伝える方法を提供することです。
+              各チャンネルはベースアドレスとカウンタを持ちます。ベースアドレスは読み書きを開始するメモリ上の位置で、カウンタはそのチャンネルでどれだけ転送するかをDMACに伝える。<b
+                data-dl-uid="323"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >重要なのは、これらは常に物理アドレスであり、仮想ではない</b
+              >ことです。
+            </p>
+            <p data-dl-uid="324" data-dl-original="true" data-dl-translated="true">
+              例を見てみましょう。チャンネルが使用するベースアドレスを設定するために必要なことは、上の表に示された正しいi/oポートに書き込むことです。<b
+                data-dl-uid="325"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >DMA0_CHAN0_ADDR_REG</b
+              >が 0 で、<b data-dl-uid="326" data-dl-original="true" data-dl-translated="true"
+                >DMA1_CHAN7_ADDR_REG</b
+              >が表の最後の値 (0xde) であると仮定すると、これは簡単なことです。<b
+                data-dl-uid="327"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >すべてのサンプルコードは、この章の最後のデモにあることを忘れないで</b
+              >ください。
+            </p>
+            <p data-dl-uid="328" data-dl-original="true" data-dl-translated="true"></p>
+
+            <blockquote>
+              <pre><div class="code">void dma_set_address(uint8_t channel, uint8_t low, uint8_t high) {
+
+	if ( channel &gt; 8 )
+		return;
+
+	unsigned short port = 0;
+	switch ( channel ) {
+
+		case 0: {port = DMA0_CHAN0_ADDR_REG; break;}
+		case 1: {port = DMA0_CHAN1_ADDR_REG; break;}
+		case 2: {port = DMA0_CHAN2_ADDR_REG; break;}
+		case 3: {port = DMA0_CHAN3_ADDR_REG; break;}
+		case 4: {port = DMA1_CHAN4_ADDR_REG; break;}
+		case 5: {port = DMA1_CHAN5_ADDR_REG; break;}
+		case 6: {port = DMA1_CHAN6_ADDR_REG; break;}
+		case 7: {port = DMA1_CHAN7_ADDR_REG; break;}
+	}
+
+	outportb(port, low);
+	outportb(port, high);
+}</div></pre>
+            </blockquote>
+
+            非常によく似た方法で、その特定のチャンネルのカウントレジスタを設定するルーチンを書くことができます。
+
+            <blockquote>
+              <pre><div class="code">void dma_set_count(uint8_t channel, uint8_t low, uint8_t high) {
+
+	if ( channel &gt; 8 )
+		return;
+
+	unsigned short port = 0;
+	switch ( channel ) {
+
+		case 0: {port = DMA0_CHAN0_COUNT_REG; break;}
+		case 1: {port = DMA0_CHAN1_COUNT_REG; break;}
+		case 2: {port = DMA0_CHAN2_COUNT_REG; break;}
+		case 3: {port = DMA0_CHAN3_COUNT_REG; break;}
+		case 4: {port = DMA1_CHAN4_COUNT_REG; break;}
+		case 5: {port = DMA1_CHAN5_COUNT_REG; break;}
+		case 6: {port = DMA1_CHAN6_COUNT_REG; break;}
+		case 7: {port = DMA1_CHAN7_COUNT_REG; break;}
+	}
+
+	outportb(port, low);
+	outportb(port, high);
+}</div></pre>
+            </blockquote>
+
+            <b data-dl-uid="335" data-dl-original="true" data-dl-translated="true"
+              >これらのレジスタは16ビットであることに注意することが非常に重要です。</b
+            >つまり、DMACは1つのチャンネルから一度に最大64kしか転送できないのです。
+            <p data-dl-uid="336" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="337" data-dl-original="true" data-dl-translated="true"
+                >また、これらは物理アドレスであることに注意することも非常に重要です!</b
+              >システムソフトウェアがページングを有効にしている場合、チャネルが使用する場所を同じ仮想アドレスにマッピングする必要が<b
+                data-dl-uid="338"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >あります</b
+              >。
+            </p>
+            <p data-dl-uid="339" data-dl-original="true" data-dl-translated="true">
+              というわけで、おさらいです。8つのチャネルがあることを知り、そのチャネルのデバイスがDMACを使用できるようにした後、チャネルレジスタの1つに書き込むことによって、チャネル情報（メモリの場所と、そこから読み書きする天候）を与えれば、DMACへの読み込みまたは書き込み転送を開始することができる。このデータはどこから来るのだろうかと思うかもしれません。あるいは、読み出しの場合、データはどこに行くのでしょうか。それは、そのチャンネルを制御しているデバイス次第です。たとえば、フロッピーディスクドライブの場合、フロッピーディスクドライブコントローラ（FDC）にリードコマンドを送ると、FDCはDMACに転送を開始するよう通知する。DMACはベースとなる物理アドレス、チャンネル操作（リードかライトか、この場合はリードを希望）、バッファのサイズを取得し、あとは自分で書き込みを行う。FDCはDMACにデータを転送し続け、DMACはそのチャンネルに格納されているアドレスが指すバッファにデータを入れます。<b
+                data-dl-uid="340"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ここで、そのチャンネルのアドレスとカウントレジスタに書き込むことで、バッファの場所と</b
+              >サイズを設定する。
+            </p>
+
+            <p data-dl-uid="341" data-dl-original="true" data-dl-translated="true">
+              待て、待て、待て。DMACが一度に64Kしか転送できないことを覚えてる？それよりももっと悪い。各チャンネルのベースアドレスも同じ制限を受けるので、DMACは64KのRAMにしかアクセスできないことになります。これは悪い制限だと思いませんか？これを解決するのが、外部ページレジスタです。よく見てみましょう。
+            </p>
+
+            <h3 data-dl-uid="342" data-dl-original="true" data-dl-translated="true">
+              拡張ページ・アドレス・レジスタ
+            </h3>
+
+            ページレジスタは、チャンネルが設定されているメモリロケーションがどの<b
+              data-dl-uid="343"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >ページに</b
+            >存在するかを設定するために使用されます。この8ビットをチャンネルのベースアドレスに追加すると（チャンネルのベースアドレスは0xFFFFF）、実質的に8ビット増えるので、最大16MBのメモリにアクセスできるようになります。これが、ページレジスタの仕組みです。
+            <p data-dl-uid="344" data-dl-original="true" data-dl-translated="true">
+              このページ・レジスタは、そのチャンネルの転送アドレスの上位8ビットだけを格納します。
+              これは、このページ・レジスタの値が常に64Kの倍数であることを意味するので、重要な特徴です。
+            </p>
+            <p data-dl-uid="345" data-dl-original="true" data-dl-translated="true">
+              案の定、ここでちょっと面倒なことになります。DMACを1つ持つオリジナルのPCは、AT/EISA/MCAや新しいコンピュータとは異なるi/oポートを使用していました。そして、新しいコンピュータは2つのDMACを持っているので、追加のレジスタが追加され、より多くのビットで拡張されました。オリジナルのPCのページレジスタは、4ビット（A16-A19）しか追加されていません。一方、新しいコンピュータでは、ベースチャネルアドレスに8ビット（A16～A23）が追加された。
+            </p>
+
+            <p data-dl-uid="346" data-dl-original="true" data-dl-translated="true"></p>
+
+            <center>
+              <table border="1">
+                <tbody>
+                  <tr>
+                    <th bgcolor="#aaaaaa" colspan="3">ISA DMAC Extended Page Address Registers</th>
+                  </tr>
+                  <tr bgcolor="#cccccc">
+                    <td>Port</td>
+                    <td>Descripton</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">0x80</td>
+                    <td>Channel 0 (Original PC) / Extra / Diagnostic port</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">0x81</td>
+                    <td>Channel 1 (Original PC) / Channel 2 (AT)</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">0x82</td>
+                    <td>Channel 2 (Original PC) / Channel 3 (AT)</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">0x83</td>
+                    <td>Channel 3 (Original PC) / Channel 1 (AT)</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">0x84</td>
+                    <td>Extra</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">0x85</td>
+                    <td>Extra</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">0x86</td>
+                    <td>Extra</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">0x87</td>
+                    <td>Channel 0 (AT)</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">0x88</td>
+                    <td>Extra</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">0x89</td>
+                    <td>Channel 6 (AT)</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">0x8A</td>
+                    <td>Channel 7 (AT)</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">0x8B</td>
+                    <td>Channel 5 (AT)</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">0x8C</td>
+                    <td>Extra</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">0x8D</td>
+                    <td>Extra</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">0x8E</td>
+                    <td>Extra</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">0x8F</td>
+                    <td>Channel 4 (AT) / Memory refresh / Slave Connect</td>
+                  </tr>
+                </tbody>
+              </table>
+            </center>
+            <p></p>
+
+            <p data-dl-uid="403" data-dl-original="true" data-dl-translated="true"></p>
+            <p data-dl-uid="404" data-dl-original="true" data-dl-translated="true">
+              さて、ちょっと立ち止まってみましょう。*上の表で気になるのは、ATにリストされたポートだけです。ページレジスタは上位8ビットだけなので、これらのレジスタの値は64kの倍数でなければならないことを意味します。例えば、フロッピーコントローラをプログラミングするとき、フロッピーはDMAチャネル2を使用することが分かっています。64kより低いバッファを格納したい場合、そのチャンネルのアドレスをどこかに設定すればいいのですね？まあ、そんなところです。そのアドレスの上位8ビットを決定するために、ページレジスタを設定する必要があります。そこで、ページレジスタを設定します。
+            </p>
+            <ul data-dl-uid="405" data-dl-original="true" data-dl-translated="true">
+              <li data-dl-uid="406" data-dl-original="true" data-dl-translated="true">
+                0に設定した場合：Page 0、アドレスに何も追加されません。
+              </li>
+              <li data-dl-uid="407" data-dl-original="true" data-dl-translated="true">
+                1に設定した場合：ページ1、アドレスに64kが追加される
+              </li>
+              <li data-dl-uid="408" data-dl-original="true" data-dl-translated="true">
+                2に設定した場合：ページ2、アドレスに128Kが追加される
+              </li>
+              <li data-dl-uid="409" data-dl-original="true" data-dl-translated="true">
+                255に設定した場合：Page 255 = 255*64K=0xFF0000,
+                上位8ビットをすべて設定し、16、320Kまたは約16MBがアドレスに追加されます。
+              </li>
+            </ul>
+            <p data-dl-uid="410" data-dl-original="true" data-dl-translated="true"></p>
+            <p data-dl-uid="411" data-dl-original="true" data-dl-translated="true">
+              ページテーブルでページを変更すると、DMAが読み書きするアドレスが変わることに注目してほしい。これにより、DMACは最大16MBのメモリに効率よくアクセスできるようになります。いいでしょ？まだ少し制限されていますが、64Kに制限されるよりはずっといいと思いませんか？
+            </p>
+
+            他のレジスタと同様に、醜いマジックナンバーを隠すことができます。
+
+            <blockquote>
+              <pre><div class="code">enum DMA0_PAGE_REG {
+
+	DMA_PAGE_EXTRA0 = 0x80, //! Also diagnostics port
+	DMA_PAGE_CHAN2_ADDRBYTE2 = 0x81,
+	DMA_PAGE_CHAN3_ADDRBYTE2 = 0x82,
+	DMA_PAGE_CHAN1_ADDRBYTE2 = 0x83,
+	DMA_PAGE_EXTRA1 = 0x84,
+	DMA_PAGE_EXTRA2 = 0x85,
+	DMA_PAGE_EXTRA3 = 0x86,
+	DMA_PAGE_CHAN6_ADDRBYTE2 = 0x87,
+	DMA_PAGE_CHAN7_ADDRBYTE2 = 0x88,
+	DMA_PAGE_CHAN5_ADDRBYTE2 = 0x89,
+	DMA_PAGE_EXTRA4 = 0x8c,
+	DMA_PAGE_EXTRA5 = 0x8d,
+	DMA_PAGE_EXTRA6 = 0x8e,
+	DMA_PAGE_DRAM_REFRESH = 0x8f //!no longer used in new PCs
+};</div></pre>
+            </blockquote>
+
+            これらのレジスタを設定するために必要なことは、どのレジスタに書き込まれるかを（どのチャンネルが渡されたかに基づいて）決定し、そこに値を書き込むことだけです。
+
+            <blockquote>
+              <pre><div class="code">void dma_set_external_page_register (uint8_t reg, uint8_t val) {
+
+	if (reg &gt; 14)
+		return;
+
+	unsigned short port = 0;
+	switch ( reg ) {
+
+		case 1: {port = DMA_PAGE_CHAN1_ADDRBYTE2; break;}
+		case 2: {port = DMA_PAGE_CHAN2_ADDRBYTE2; break;}
+		case 3: {port = DMA_PAGE_CHAN3_ADDRBYTE2; break;}
+		case 4: {return;}//! nothing should ever write to register 4
+		case 5: {port = DMA_PAGE_CHAN5_ADDRBYTE2; break;}
+		case 6: {port = DMA_PAGE_CHAN6_ADDRBYTE2; break;}
+		case 7: {port = DMA_PAGE_CHAN7_ADDRBYTE2; break;}
+	}
+
+	outportb(port, val);
+}</div></pre>
+            </blockquote>
+
+            注意すべきは、ケース4がコメントされていることです。チャンネル4はマスターDMACとのカスケード接続に使われることを覚えていますか？
+            これがなければ、何も使うことができませんから。上記の各ケースは、ページを設定するチャンネルを表しています。ですから、<b
+              data-dl-uid="418"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >dma_set_external_page_register (2, 0x1000);</b
+            >のような呼び出しは、チャンネル2ページレジスタに0x1000を設定することができるようになります。どうです？
+            <h2 data-dl-uid="419" data-dl-original="true" data-dl-translated="true">レジスタ</h2>
+
+            上記のレジスタに加え、コントローラは以下のレジスタも利用可能です。
+            <h3 data-dl-uid="420" data-dl-original="true" data-dl-translated="true">コマンドレジスタ</h3>
+
+            このレジスタは、DMACを制御するために使用されます。このレジスタは次のようなフォーマットになっています。
+
+            <ul>
+              <li><b>Bit 0: MMT</b> Memory to Memory Transfer</li>
+              <ul>
+                <li><b>0:</b> Disable</li>
+                <li><b>1:</b> Enable</li>
+              </ul>
+              <li><b>Bit 1: ADHE</b> Channel 0 Address Hold</li>
+              <ul>
+                <li><b>0:</b> Disable</li>
+                <li><b>1:</b> Enable</li>
+              </ul>
+              <li><b>Bit 2: COND</b> Controller Enable</li>
+              <ul>
+                <li><b>0:</b> Disable</li>
+                <li><b>1:</b> Enable</li>
+              </ul>
+              <li><b>Bit 3: COMP</b> Timing</li>
+              <ul>
+                <li><b>0:</b> Normal</li>
+                <li><b>1:</b> Compressed</li>
+              </ul>
+              <li><b>Bit 4: PRIO</b> Priority</li>
+              <ul>
+                <li><b>0:</b> Fixed Priority</li>
+                <li><b>1:</b> Normal Priority</li>
+              </ul>
+              <li><b>Bit 5: EXTW</b> Write Selection</li>
+              <ul>
+                <li><b>0:</b> Late Write Selection</li>
+                <li><b>1:</b> Extended Write Selection</li>
+              </ul>
+              <li><b>Bit 6: DROP</b> DMA Request (DREQ)</li>
+              <ul>
+                <li><b>0:</b> DREQ sense active high</li>
+                <li><b>1:</b> DREQ sense active low</li>
+              </ul>
+              <li><b>Bit 7: DACKP</b> DMA Acknowledge (DACK)</li>
+              <ul>
+                <li><b>0:</b> DACK sense active low</li>
+                <li><b>1:</b> DACK sense active high</li>
+              </ul>
+            </ul>
+
+            これらのビットのほとんどは、i86
+            アーキテクチャでは動作しません。動作するのはビット2だけで、これはコントローラを有効または無効にするために使用されます。メモリからメモリへの直接転送も便利だと思うでしょう。他のビットを使っても、何もできないか、予測できない結果が出るかもしれません。
+            <p data-dl-uid="478" data-dl-original="true" data-dl-translated="true">
+              念のため、これらは本章最後のデモのdma.hヘッダーファイルに含まれています。ここでは、ビットマスクとして記述しています。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">enum DMA_CMD_REG_MASK {
+
+	DMA_CMD_MASK_MEMTOMEM = 1,
+	DMA_CMD_MASK_CHAN0ADDRHOLD = 2,
+	DMA_CMD_MASK_ENABLE = 4,
+	DMA_CMD_MASK_TIMING = 8,
+	DMA_CMD_MASK_PRIORITY = 0x10,
+	DMA_CMD_MASK_WRITESEL = 0x20,
+	DMA_CMD_MASK_DREQ = 0x40,
+	DMA_CMD_MASK_DACK = 0x80
+};</div></pre>
+            </blockquote>
+
+            <h3 data-dl-uid="482" data-dl-original="true" data-dl-translated="true">
+              モードレジスタ(Write)
+            </h3>
+
+            このモードは、コントローラのモードを設定します。次のような形式になっています。
+            <ul>
+              <li><b>Bits 0-1: SEL0, SEL1</b> Channel Select</li>
+              <ul>
+                <li><b>00:</b> Channel 0</li>
+                <li><b>01:</b> Channel 1</li>
+                <li><b>10:</b> Channel 2</li>
+                <li><b>11:</b> Channel 3</li>
+              </ul>
+              <li><b>Bits 2-3: TRA0, TRA1</b> Transfer Type</li>
+              <ul>
+                <li><b>00:</b> Controller self test</li>
+                <li><b>01:</b> Write Transfer</li>
+                <li><b>10:</b> Read Transfer</li>
+                <li><b>11:</b> Invalid</li>
+              </ul>
+              <li>
+                <b>Bit 4: AUTO</b> Automatic reinitialize after transfer completes (Device must support!)
+              </li>
+              <li><b>Bit 5: IDEC</b></li>
+              <li><b>Bits 6-7: MOD0, MOD 1</b> Mode</li>
+              <ul>
+                <li><b>00:</b> Transfer on Demand</li>
+                <li><b>01:</b> Single DMA Transfer</li>
+                <li><b>10:</b> Block DMA Transfer</li>
+                <li><b>11:</b> Cascade Mode</li>
+              </ul>
+            </ul>
+
+            <b data-dl-uid="521" data-dl-original="true" data-dl-translated="true"
+              >このレジスタは重要です。</b
+            >チャンネルを設定し、メモリ・ブロックの読み取りまたは書き込みの準備を行うには、このレジスタに動作モードを書き込む必要があります。しかし、このレジスタに書き込む前に、モードを設定したいチャネルをマスクオフ（無効）にしてから、何かを変更することを常に推奨します。これは、現在使用中のチャンネルのモードを変更すると、データの破損などの問題が発生するためです。
+            <p data-dl-uid="522" data-dl-original="true" data-dl-translated="true">
+              まず最初に、私が好きなことは、意味のある名前の後ろに醜い数字を隠すことです。しかし、これは少し違います。これらの列挙は、マスクとフラグの組み合わせです。マスクは上のリストのビットフォーマットにマッチします。フラグは、単純化するために存在します。フラグは、上記のリストの必要なビットをセットしたりクリアしたりするためのもので、オプションをビット単位で
+              OR
+              したりすることができます。例えば、チャンネル番号とチャンネルのモードを組み合わせて、自動初期化でシングル転送を読むように設定するには、次のようにします。
+              チャンネル | DMA_MODE_READ_TRANSFER | DMA_MODE_MASK_AUTO | DMA_MODE_TRANSFER_SINGLE
+              クールでしょう?
+            </p>
+            <p data-dl-uid="523" data-dl-original="true" data-dl-translated="true">
+              フォーマットはどちらのコントローラでも同じなので、enum は 1 つだけです。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">enum DMA_MODE_REG_MASK {
+
+	DMA_MODE_MASK_SEL = 3,
+
+	DMA_MODE_MASK_TRA = 0xc,
+	DMA_MODE_SELF_TEST = 0,
+	DMA_MODE_READ_TRANSFER =4,
+	DMA_MODE_WRITE_TRANSFER = 8,
+
+	DMA_MODE_MASK_AUTO = 0x10,
+	DMA_MODE_MASK_IDEC = 0x20,
+
+	DMA_MODE_MASK = 0xc0,
+	DMA_MODE_TRANSFER_ON_DEMAND= 0,
+	DMA_MODE_TRANSFER_SINGLE = 0x40,
+	DMA_MODE_TRANSFER_BLOCK = 0x80,
+	DMA_MODE_TRANSFER_CASCADE = 0xC0
+};</div></pre>
+            </blockquote>
+
+            <p data-dl-uid="527" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="528" data-dl-original="true" data-dl-translated="true">DMA0_MODE_REG</b>が
+              0x0b で DMA 0 モードレジスタ、<b
+                data-dl-uid="529"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >DMA1_MODE_REG</b
+              >が 0xd6 で 2 番目の DMA モードレジスタとすると、特定のチャネルの DMA
+              モードを設定するには、以下のようにすればよいことになります。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">void dma_set_mode (uint8_t channel, uint8_t mode) {
+
+	int dma = (channel &lt; 4) ? 0 : 1;
+	int chan = (dma==0) ? channel : channel-4;
+
+	dma_mask_channel (channel);
+	outportb ( (channel &lt; 4) ? (DMA0_MODE_REG) : DMA1_MODE_REG, chan | (mode) );
+	dma_unmask_all ( dma );
+}
+
+//! prepares channel for read
+void dma_set_read (uint8_t channel) {
+
+	dma_set_mode (channel,
+		DMA_MODE_READ_TRANSFER | DMA_MODE_TRANSFER_SINGLE | DMA_MODE_MASK_AUTO);
+}
+
+//! prepares channel for write
+void dma_set_write (uint8_t channel) {
+
+	dma_set_mode (channel,
+		DMA_MODE_WRITE_TRANSFER | DMA_MODE_TRANSFER_SINGLE | DMA_MODE_MASK_AUTO);
+}</div></pre>
+            </blockquote>
+
+            <p data-dl-uid="533" data-dl-original="true" data-dl-translated="true">
+              このルーチンによって、任意のチャンネルのモードを設定することができます。クールでしょう？例えば、フロッピードライブに書き込む準備をさせたい場合、<b
+                data-dl-uid="534"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >dma_set_mode (2, 0x5A)</b
+              >を実行すればよいのです。(フロッピーはプライマリDMACのチャンネル2を使うことを覚えていますか?)
+              そして、0x56 = 01010110 バイナリです。上のリストと比較すると、Mode=01 (Single transfer),
+              AutoInit is set (Auto initialize after completion), transfer type=01 (Write), channel 2
+              (10) となります。
+            </p>
+            <p data-dl-uid="535" data-dl-original="true" data-dl-translated="true">
+              DMA_MODE_MASK_AUTOビットは、便利なビットです。このビットのおかげで、DMACを一度初期化すれば（コントローラをリセットし、チャンネルバッファのアドレスとカウントを設定することで）、再度気にする必要はありません。このビットがセットされていない場合は、読み出しや書き込みのたびにDMACを再初期化する必要があります。
+            </p>
+            <p data-dl-uid="536" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="537" data-dl-original="true" data-dl-translated="true"
+                >注：AutoInitビット（DMA_MODE_MASK_AUTO）は、Virtual
+                PCではうまくサポートされていないようです。</b
+              >このため、Virtual
+              PCでの移植性を維持するために、AUTOINITを使用するよりも、読み取りまたは書き込み操作のたびにDMACを再初期化することを選択しました。他のエミュレータやマシンではサポートされていないかもしれません。
+            </p>
+            <h3 data-dl-uid="538" data-dl-original="true" data-dl-translated="true">
+              リクエスト・レジスタ(Write)
+            </h3>
+
+            このレジスタは、ソフトウェアが直接DMACに送信することを可能にします。最初の2ビットでチャンネルを選択します。
+            例えば、00=チャンネル0、01=チャンネル1、10=チャンネル2、11=チャンネル3です。3番目のビットは、0ならチャンネルリクエストビットをリセットします。
+            1ならリクエストビットをセットします。
+
+            <ul>
+              <li><b>Bit 0-1:</b> Channel select 0</li>
+              <li><b>Bit 2:</b> 0=reset channel request bit, 1=set request bit</li>
+            </ul>
+
+            リクエスト・レジスタは、Memory-to-Memoryの操作に使用されます。コマンド・レジスタを思い出すと、i86アーキテクチャでは、メモリ間トランザクションを有効にすることはできませんし、してはいけません。このため、このレジスタは重要ではありません。
+            <h3 data-dl-uid="544" data-dl-original="true" data-dl-translated="true">
+              チャンネルマスクレジスタ（Write）
+            </h3>
+
+            このレジスタを使用すると、1つのDMAチャネルをマスクすることができます。0ビットと1ビットでチャンネルを設定します（00=チャンネル0、01=チャンネル1、10=チャンネル2、11=チャンネル3）。ビット4は、チャンネルをマスクするかしないかを決定します。ビット4が0の場合、チャンネルのマスクを解除する。1であれば、マスクする。他のビットは未使用。
+
+            <ul>
+              <li><b>Bit 0-1:</b> Channel select</li>
+              <li><b>Bit 2:</b> 0=unmasks channel, 1=masks channel</li>
+            </ul>
+
+            他のすべてのビットは未使用です。
+            <h3 data-dl-uid="550" data-dl-original="true" data-dl-translated="true">
+              マスクレジスタ(Write)
+            </h3>
+
+            このレジスタは、現在どのチャネルがマスクされ、マスクされていないかの情報を含んでいます。この8ビット・レジスタの上位4ビットは常に未使用です。下位4ビットは、4チャンネルのうちの1つをマスクまたはアンマスクするために使用されます。例えば、ビット
+            0 はチャンネル 0、ビット 1 はチャンネル 1、...といった具合です。<b
+              data-dl-uid="551"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >注：チャンネル4をマスクすると，カスケード接続によりチャンネル4,5,6,7もマスク</b
+            >されます。
+
+            <ul>
+              <li><b>Bit 0:</b> Channel select 0</li>
+              <li><b>Bit 1:</b> Channel select 1</li>
+              <li><b>Bit 2:</b> Channel select 2</li>
+              <li><b>Bit 3:</b> Channel select 3</li>
+            </ul>
+            その他のビットは未使用です。
+
+            <p data-dl-uid="561" data-dl-original="true" data-dl-translated="true">
+              例えば、任意のチャンネルをマスク（無効化）するルーチンを用意すると、それぞれのビットを設定するだけでよい。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">void dma_mask_channel(uint8_t channel){
+
+	if (channel &lt;= 4)
+		outportb(DMA0_CHANMASK_REG, (1 &lt;&lt; (channel-1)));
+	else
+		outportb(DMA1_CHANMASK_REG, (1 &lt;&lt; (channel-5)));
+}</div></pre>
+            </blockquote>
+
+            同様に、チャンネルのマスクを解除するには、そのビットをクリアするだけです。
+
+            <blockquote>
+              <pre><div class="code">void dma_unmask_channel (uint8_t channel) {
+
+	if (channel &lt;= 4)
+		outportb(DMA0_CHANMASK_REG, channel);
+	else
+		outportb(DMA1_CHANMASK_REG, channel);
+}</div></pre>
+            </blockquote>
+
+            これらのルーチンは両方とも、DMA0_CHANMASK_REGが0x0a（DMACマスクレジスタのi/oポート）、DMA1_CHANMASK_REGが0xD4（第2のDMACマスクレジスタのi/oポート）であると仮定しています。
+            <p data-dl-uid="568" data-dl-original="true" data-dl-translated="true">
+              複数のチャネルを同時に設定できるため、このレジスタを使用すると、複数のチャネルを同時にマスクしたり、マスクを解除したりすることができます。
+            </p>
+
+            <h3 data-dl-uid="569" data-dl-original="true" data-dl-translated="true">
+              ステータスレジスタ
+            </h3>
+
+            ステータス・レジスタは次のようなフォーマットになっています。
+
+            <ul>
+              <li><b>Bit 0: TC0</b> Set if Channel 0 has reached <b>Transfer Complete (TC)</b></li>
+              <li><b>Bit 1: TC1</b> Set if Channel 1 has reached <b>Transfer Complete (TC)</b></li>
+              <li><b>Bit 2: TC2</b> Set if Channel 2 has reached <b>Transfer Complete (TC)</b></li>
+              <li><b>Bit 3: TC3</b> Set if Channel 3 has reached <b>Transfer Complete (TC)</b></li>
+              <li><b>Bit 4: REQ0</b> Set if Channel 0 is pending a <b>DMA Request (DRQ)</b></li>
+              <li><b>Bit 5: REQ1</b> Set if Channel 1 is pending a <b>DMA Request (DRQ)</b></li>
+              <li><b>Bit 6: REQ2</b> Set if Channel 2 is pending a <b>DMA Request (DRQ)</b></li>
+              <li><b>Bit 7: REQ3</b> Set if Channel 3 is pending a <b>DMA Request (DRQ)</b></li>
+            </ul>
+
+            このレジスタはあまり有用ではありません。ほとんどの場合、DMACを制御しているデバイスは転送が完了するとIRQを送信するので、情報のためにレジスタをポーリングする必要はありません。
+            最初の4ビットはそのチャンネルでの転送が完了したかどうかを示し、最後の4ビットはそのチャンネルに保留中のDMA要求があるかどうかを示している。
+            <h2 data-dl-uid="595" data-dl-original="true" data-dl-translated="true">ISA DMAコマンド</h2>
+
+            コントローラは、ソフトウェアがコントローラに対してコマンドを送信できるようにするための特別なレジスタを提供します。これらのコマンドは、特定のビットフォーマットを全く必要とせず、単純なI/O操作で起動することができます。
+            <p data-dl-uid="596" data-dl-original="true" data-dl-translated="true">
+              DMACは、アドレスバス（ラインA0-A3）のデータと、ORQ、IOWラインの状態から、コマンドを認識します。
+            </p>
+            <p data-dl-uid="597" data-dl-original="true" data-dl-translated="true">
+              これらのレジスタには何も特別なものはないことに注意してください。これらは、本章の冒頭の汎用レジスタの表にも記載されています。
+            </p>
+
+            <h3 data-dl-uid="598" data-dl-original="true" data-dl-translated="true">
+              クリアバイトポインタ・フリップフロップ
+            </h3>
+
+            これは特別なi/oアドレスポートで、8ビットDMAC（プライマリDMAC）で作業するときに、16ビット転送の間でフリップフロップを制御できるようにするためのものです。
+            <p data-dl-uid="599" data-dl-original="true" data-dl-translated="true">
+              両方のDMACに2つのポートがあります。
+            </p>
+
+            <p data-dl-uid="600" data-dl-original="true" data-dl-translated="true"></p>
+
+            <center>
+              <table border="1">
+                <tbody>
+                  <tr>
+                    <th bgcolor="#aaaaaa" colspan="3">ISA DMAC Flip-Flop Ports</th>
+                  </tr>
+                  <tr bgcolor="#cccccc">
+                    <td>Port</td>
+                    <td>Descripton</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">0x0C</td>
+                    <td>DMAC 0 (16 bit) Slave (write)</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">0xD8</td>
+                    <td>DMAC 1 (8 bit) Master (write)</td>
+                  </tr>
+                </tbody>
+              </table>
+            </center>
+
+            <p data-dl-uid="615" data-dl-original="true" data-dl-translated="true">
+              例えば、<b data-dl-uid="616" data-dl-original="true" data-dl-translated="true"
+                >DMA0_CLEARBYTE_FLIPFLOP_REGが</b
+              >0x0c、<b data-dl-uid="617" data-dl-original="true" data-dl-translated="true"
+                >DMA1_CLEARBYTE_FLIPFLOP_REGが</b
+              >0xD8とすると、以下のルーチンでフリップフロップをセットまたはクリアすることができます。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">void dma_reset_flipflop(int dma){
+
+	if (dma &lt; 2)
+		return;
+
+	//! it doesnt matter what is written to this register
+	outportb( (dma==0) ? DMA0_CLEARBYTE_FLIPFLOP_REG : DMA1_CLEARBYTE_FLIPFLOP_REG, 0xff);
+}</div></pre>
+            </blockquote>
+
+            <h3 data-dl-uid="621" data-dl-original="true" data-dl-translated="true">リセット</h3>
+
+            よく似た方法で、以下のレジスタに任意の値を書き込むことで、a
+            DMACをリセットすることができます。
+            <p data-dl-uid="622" data-dl-original="true" data-dl-translated="true"></p>
+
+            <center>
+              <table border="1">
+                <tbody>
+                  <tr>
+                    <th bgcolor="#aaaaaa" colspan="3">ISA DMAC Reset Ports</th>
+                  </tr>
+                  <tr bgcolor="#cccccc">
+                    <td>Port</td>
+                    <td>Descripton</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">0x0D</td>
+                    <td>DMAC 0 (16 bit) Slave (write)</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">0xD8</td>
+                    <td>DMAC 1 (8-bit) Master (write)</td>
+                  </tr>
+                </tbody>
+              </table>
+            </center>
+
+            <p data-dl-uid="637" data-dl-original="true" data-dl-translated="true">
+              例えば、<b data-dl-uid="638" data-dl-original="true" data-dl-translated="true"
+                >DMA0_TEMP_REGが</b
+              >0x0Dであると仮定した場合。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">void dma_reset (int dma){
+
+	//! it doesnt matter what is written to this register
+	outportb(DMA0_TEMP_REG, 0xff);
+}</div></pre>
+            </blockquote>
+
+            <h3 data-dl-uid="642" data-dl-original="true" data-dl-translated="true">
+              全レジスタのマスク解除
+            </h3>
+
+            さらに似たような方法で、このコマンドでも同じコンセプトが適用されます!すべてのハードウェアプログラミングコマンドがこのように簡単であれば、素晴らしいことだと思いませんか？
+            <p data-dl-uid="643" data-dl-original="true" data-dl-translated="true"></p>
+
+            <center>
+              <table border="1">
+                <tbody>
+                  <tr>
+                    <th bgcolor="#aaaaaa" colspan="3">ISA DMAC UnMask All Ports</th>
+                  </tr>
+                  <tr bgcolor="#cccccc">
+                    <td>Port</td>
+                    <td>Descripton</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">0x0E</td>
+                    <td>DMAC 0 (16 bit) Slave (write)</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">0xDC</td>
+                    <td>DMAC 1 (8-bit) Master (write)</td>
+                  </tr>
+                </tbody>
+              </table>
+            </center>
+
+            <p data-dl-uid="658" data-dl-original="true" data-dl-translated="true">
+              つまり、<b data-dl-uid="659" data-dl-original="true" data-dl-translated="true"
+                >DMA1_UNMASK_ALL_REGを</b
+              >0x0Eとすると、スレーブDMACから全レジスタのマスクを解除することになる。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">void dma_unmask_all (int dma){
+
+	//! it doesnt matter what is written to this register
+	outportb(DMA1_UNMASK_ALL_REG, 0xff);
+}</div></pre>
+            </blockquote>
+
+            <p data-dl-uid="672" data-dl-original="true" data-dl-translated="true">
+              よーし、もう一つのデモの時間だ!悪いニュースは、このデモが前の章と全く同じに見えるということです（BochsとVirtual
+              PCの両方で動作するようになったことを除いて）。良い点は、新しいDMAインターフェイスを使用するようにアップグレードされていることです。
+            </p>
+            <p data-dl-uid="673" data-dl-original="true" data-dl-translated="true">
+              新しいコードのコアは HAL -<b
+                data-dl-uid="674"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >dma.h</b
+              >と<b data-dl-uid="675" data-dl-original="true" data-dl-translated="true">dma.cpp</b
+              >にあり、この章にあるすべてのコードを含んでいます。しかし、1つだけ小さな変更があります。DMACのModeレジスタのAUTOINITビットはVirtual
+              PCではうまくサポートされていないので、我々の<b
+                data-dl-uid="676"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >dma_set_readと</b
+              >
+              <b data-dl-uid="677" data-dl-original="true" data-dl-translated="true">dma_set_write</b
+              >ルーチンはデモコードでビットをセットしません。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">//! prepares channel for read
+void dma_set_read (uint8_t channel) {
+
+	dma_set_mode (channel,	DMA_MODE_READ_TRANSFER | DMA_MODE_TRANSFER_SINGLE);
+}
+
+//! prepares channel for write
+void dma_set_write (uint8_t channel) {
+
+	dma_set_mode (channel,
+		DMA_MODE_WRITE_TRANSFER | DMA_MODE_TRANSFER_SINGLE);
+}</div></pre>
+            </blockquote>
+
+            <p data-dl-uid="681" data-dl-original="true" data-dl-translated="true"></p>
+            <p data-dl-uid="682" data-dl-original="true" data-dl-translated="true">
+              読み取りセクタ操作の間、フロッピードライバの<b
+                data-dl-uid="683"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >flpydsk_read_sector_imp</b
+              >ルーチンは DMAC を初期化し、読み取り操作のために DMAC
+              を準備します。残りのルーチン（編集済み）は前章と同じで、FDCにREADコマンドを送信する役割を担っています。<b
+                data-dl-uid="684"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >DMA_BUFFERは</b
+              >、DMAC転送に使用できる空きメモリのバッファに過ぎません。<b
+                data-dl-uid="685"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >dma_initialize_floppy</b
+              >は、新しい DMA ミニドライバを使用して DMAC
+              を初期化し、フロッピードライバが使用できるように準備します。(DMAC
+              を初期化した後、チャネル<b
+                data-dl-uid="687"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >FDC_DMA_CHANNEL</b
+              >
+              でドライバ<b data-dl-uid="686" data-dl-original="true" data-dl-translated="true"
+                >dma_set_read</b
+              >ルーチンを呼び出して、READ 操作のための DMAC を準備します。<b
+                data-dl-uid="688"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >FDC_DMA_CHANNELは</b
+              >チャンネル2です (FDCがDMACのチャンネル2を使うことを思い出してください?)。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">//! read a sector
+void flpydsk_read_sector_imp (uint8_t head, uint8_t track, uint8_t sector) {
+
+	uint32_t st0, cyl;
+
+	//! initialize DMA
+	dma_initialize_floppy ((uint8_t*) DMA_BUFFER, 512 );
+
+	//! set the DMA for read transfer
+	dma_set_read ( FDC_DMA_CHANNEL );
+
+	//! rest of the code is the same...
+}</div></pre>
+            </blockquote>
+
+            <p data-dl-uid="692" data-dl-original="true" data-dl-translated="true"></p>
+            <p data-dl-uid="693" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="694" data-dl-original="true" data-dl-translated="true"
+                >dma_initialize_floppy</b
+              >は、新しいミニドライバを使って DMAC
+              を準備し、フロッピィドライバで使用できるようにする役割を担っています。ここが楽しいところです。
+            </p>
+            <p data-dl-uid="695" data-dl-original="true" data-dl-translated="true">
+              まず、<b data-dl-uid="696" data-dl-original="true" data-dl-translated="true">dma_reset()</b
+              >を呼んで、マスターDMACをリセットします。それから、<b
+                data-dl-uid="697"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >dma_mask_channel()</b
+              >
+              を呼んで、(FDC が使う) チャネル 2 を無効化 (マスク)
+              します。これは、チャネルがもはや使用されていないことを確認し、それを変更できるようにします。
+            </p>
+            <p data-dl-uid="698" data-dl-original="true" data-dl-translated="true">
+              さて、次は楽しいことです。チャネルが使用するアドレスを設定するために、<b
+                data-dl-uid="699"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >dma_set_address</b
+              >ルーチンを呼び出します。これにより、チャネルのアドレスの下位と上位の部分を設定することができます。メンバのバイト成分にアクセスするのを少し簡単にするために、ユニオンを使用します。つまり、a.l
+              をチャネルが使用するバッファに設定します。ユニオンのおかげで、a.byte[0]はその値の下位バイトを、byte[1]は2バイト目を、といったように参照できるようになりました。バッファのサイズである<b
+                data-dl-uid="700"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >長</b
+              >さも同じようにします。したがって、<b
+                data-dl-uid="701"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >dma_set_addressを呼び出して</b
+              >バッファのアドレスを設定し、その下位バイトと上位バイトをバッファのアドレスに設定し、同じように<b
+                data-dl-uid="702"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >dma_set_countを呼び出して</b
+              >長さを設定しています。クールでしょう？
+            </p>
+            <p data-dl-uid="703" data-dl-original="true" data-dl-translated="true">
+              でも、<b data-dl-uid="704" data-dl-original="true" data-dl-translated="true"
+                >dma_reset_flipflopの</b
+              >呼び出しは何ですか？フリップフロップは8ビットDMACで16ビットデータを扱うときだけ使われる。もし16ビットDMACを使うなら、フリップフロップを呼び出す必要はないでしょう。フリップフロップは、16ビットデータの上位バイトと下位バイトを選択するために使用されます。<b
+                data-dl-uid="705"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >フリップフロップをリセットすると、次のバイトデータがローバイトであることをDMACに伝えることになります。</b
+              >フリップフロップがデフォルトの位置でない場合は、ハイ・バイトとして選択されます。DMACは8ビットのデータバスで16ビットのデータを扱うので、これは選択されなければなりません。このバイトが16ビットデータのどの部分を指しているのか、どうやって知ることができるのでしょうか？
+            </p>
+            <p data-dl-uid="706" data-dl-original="true" data-dl-translated="true">
+              最後に、<b data-dl-uid="707" data-dl-original="true" data-dl-translated="true"
+                >dma_set_read()</b
+              >を呼んで DMAC
+              を読み出し用に設定し、すべてのチャネルのマスクを外して、デバイスが再び使用できるようにします。これは、FDCがDMACのチャンネル2を使えるようにするために重要です。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">bool _cdecl dma_initialize_floppy(uint8_t* buffer, unsigned length){
+   union{
+      uint8_t byte[4];//Lo[0], Mid[1], Hi[2]
+      unsigned long l;
+   }a, c;
+
+   a.l=(unsigned)buffer;
+   c.l=(unsigned)length-1;
+
+   //Check for buffer issues
+   if ((a.l &gt;&gt; 24) || (c.l &gt;&gt; 16) || (((a.l &amp; 0xffff)+c.l) &gt;&gt; 16)){
+#ifdef _DEBUG
+      _asm{
+         mov      eax, 0x1337
+         cli
+         hlt
+      }
+#endif
+      return false;
+   }
+
+   dma_reset (1);
+   dma_mask_channel( FDC_DMA_CHANNEL );//Mask channel 2
+   dma_reset_flipflop ( 1 );//Flipflop reset on DMA 1
+
+   dma_set_address( FDC_DMA_CHANNEL, a.byte[0],a.byte[1]);//Buffer address
+   dma_reset_flipflop( 1 );//Flipflop reset on DMA 1
+
+   dma_set_count( FDC_DMA_CHANNEL, c.byte[0],c.byte[1]);//Set count
+   dma_set_read ( FDC_DMA_CHANNEL );
+
+   dma_unmask_all( 1 );//Unmask channel 2
+
+   return true;
+}</div></pre>
+            </blockquote>
+
+            <h1 data-dl-uid="712" data-dl-original="true" data-dl-translated="true">まとめ</h1>
+            <p data-dl-uid="713" data-dl-original="true" data-dl-translated="true">
+              さて、もう1章が終わりましたね。この章は以前の章ほど複雑でも難しくもなかったので、いい息抜きになったのではないでしょうか？
+            </p>
+            <p data-dl-uid="714" data-dl-original="true" data-dl-translated="true">
+              ここからは、ディスクからファイルを読み込む機能がないと、これ以上進めません。ディスクからデータを読み込む機能はありますが、ファイルではありません。これは<b
+                data-dl-uid="715"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ファイルシステムドライバを使って</b
+              >行います。しかし、ちょっと待ってください。FAT12についてはすでに2回ほど説明しましたね。でも、FAT12はもう2回目なんです！いかに頻繁に書き直す必要があるかがわかります。同じ内容を3回目も取り上げるよりは、もう1つテーマを追加することにしましょう。<b
+                data-dl-uid="716"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >仮想ファイルシステム(VFS)</b
+              >です。次の章では、デモプログラムを実行できるようにするかもしれません。
+            </p>
+            <p data-dl-uid="717" data-dl-original="true" data-dl-translated="true">
+              また、OSにグラフィカルなタッチを加えたいという読者も多いので、Vesa Bios Extensions (VBE) や
+              Video Graphics Array (VGA) / Super VGA (SVGA)
+              関連の上級編もリリースするかもしれません。また、現在のシステムを本物のマイクロカーネルにするために、DLLサポート、ドライバ、およびネイティブPEリソースのサポートがあります。
+            </p>
+            <p data-dl-uid="718" data-dl-original="true" data-dl-translated="true">
+              たくさんのクールなものが控えています
+              :)もし、何か取り上げて欲しいトピックがあれば、遠慮なく教えてください。
+            </p>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </body>
+</html>
