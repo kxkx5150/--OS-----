@@ -1,0 +1,1233 @@
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Cache-Control" content="no-cache" />
+    <title></title>
+    <link href="css/reference.css" rel="stylesheet" />
+  </head>
+  <body>
+    <table cellspacing="0" cellpadding="3" width="80%" border="0">
+      <tbody>
+        <tr>
+          <td class="tblhdr">Operating Systems Development Series</td>
+        </tr>
+        <tr>
+          <td align="middle" colspan="2"></td>
+        </tr>
+      </tbody>
+    </table>
+    <table cellspacing="0" cellpadding="5" width="100%" border="0">
+      <tbody>
+        <tr>
+          <td>
+            <!-- Title -->
+
+            <div>
+              <span class="title">User land</span>
+
+              <br />
+              <span class="author">by Mike, 2010</span>
+            </div>
+
+            <h1 data-dl-uid="7" data-dl-original="true" data-dl-translated="true">はじめに</h1>
+
+            ようこそ!
+            <p data-dl-uid="8" data-dl-original="true" data-dl-translated="true">
+              前章では、VFSについて調べ、テキストファイルをロードして表示しました。このVFSを使って、実行可能なプログラムファイルをロードすることもできます。これには、ドライバ、プログラムソフト、共有、ランタイムライブラリなどが含まれます。
+            </p>
+            <p data-dl-uid="9" data-dl-original="true" data-dl-translated="true">
+              この章では、ユーザーランドソフトウェアのサポートに踏み切ります。また、システムAPIとその動作についても見ていきます。
+            </p>
+            <p data-dl-uid="10" data-dl-original="true" data-dl-translated="true">
+              <i data-dl-uid="11" data-dl-original="true" data-dl-translated="true">さっそく</i
+              >始めましょう。
+            </p>
+
+            <h1 data-dl-uid="12" data-dl-original="true" data-dl-translated="true">保護レベル</h1>
+
+            <h2 data-dl-uid="13" data-dl-original="true" data-dl-translated="true">
+              アセンブリ言語の輪
+            </h2>
+
+            <h3 data-dl-uid="14" data-dl-original="true" data-dl-translated="true">カーネルランド</h3>
+            <p data-dl-uid="15" data-dl-original="true" data-dl-translated="true">
+              <a
+                href="http://www.brokenthorn.com/Resources/OSDev5.html"
+                data-dl-uid="16"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >第5章</a
+              >では、アセンブリ言語で使用されるリングの概念について簡単に見てきました。このリングは、異なる保護レベルを表しています。これらの保護レベルはハードウェアの詳細であり、ハードウェアによって実装されます。
+            </p>
+            <p data-dl-uid="17" data-dl-original="true" data-dl-translated="true">
+              リング0で動作するソフトウエアは、最も制御性が高いです。ハードウェアPIO、MMIO、プロセッサのハードウェア制御とテーブル（CPUキャッシュ制御やMMRなど）など、ソフトウェアがより多くのアクションを実行できるようにする特権命令を実行することができる。
+            </p>
+            <p data-dl-uid="18" data-dl-original="true" data-dl-translated="true">
+              特権命令の一覧は<a
+                href="http://www.brokenthorn.com/Resources/OSDev7.html"
+                data-dl-uid="19"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >第7章に</a
+              >示したが、念のためここにも示しておく。
+            </p>
+            保護レベル0より大きいソフトウェアが上記の命令を実行しようとすると、プロセッサは<b
+              data-dl-uid="20"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >保護フォールト（#PF</b
+            >）例外を生成する。
+            <p data-dl-uid="21" data-dl-original="true" data-dl-translated="true"></p>
+
+            <center data-dl-uid="22" data-dl-original="true" data-dl-translated="true">
+              <table
+                border="1"
+                bgcolor="CCCCCC"
+                data-dl-uid="23"
+                data-dl-original="true"
+                data-dl-translated="true"
+              >
+                <tbody data-dl-uid="24" data-dl-original="true" data-dl-translated="true">
+                  <tr data-dl-uid="25" data-dl-original="true" data-dl-translated="true">
+                    <th
+                      colspan="5"
+                      bgcolor="FFFFFF"
+                      data-dl-uid="26"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      特権レベル命令
+                    </th>
+                  </tr>
+                  <tr
+                    bgcolor="AAAAAA"
+                    data-dl-uid="27"
+                    data-dl-original="true"
+                    data-dl-translated="true"
+                  >
+                    <td data-dl-uid="28" data-dl-original="true" data-dl-translated="true">命令名</td>
+                    <td data-dl-uid="29" data-dl-original="true" data-dl-translated="true">説明</td>
+                  </tr>
+                  <tr data-dl-uid="30" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="ffffff"
+                      data-dl-uid="31"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      LGDT
+                    </td>
+                    <td data-dl-uid="32" data-dl-original="true" data-dl-translated="true">
+                      GDTのアドレスをGDTRにロードする。
+                    </td>
+                  </tr>
+                  <tr data-dl-uid="33" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="ffffff"
+                      data-dl-uid="34"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      LLDT
+                    </td>
+                    <td data-dl-uid="35" data-dl-original="true" data-dl-translated="true">
+                      LDTRにLDTのアドレスをロードします。
+                    </td>
+                  </tr>
+
+                  <tr data-dl-uid="36" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="ffffff"
+                      data-dl-uid="37"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      LTR
+                    </td>
+                    <td data-dl-uid="38" data-dl-original="true" data-dl-translated="true">
+                      TRへのタスクレジスタのロード
+                    </td>
+                  </tr>
+                  <tr data-dl-uid="39" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="ffffff"
+                      data-dl-uid="40"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      MOV<i data-dl-uid="41" data-dl-original="true" data-dl-translated="true"
+                        >コントロールレジスタ</i
+                      >
+                    </td>
+                    <td data-dl-uid="42" data-dl-original="true" data-dl-translated="true">
+                      データをコピーし、コントロールレジスタに格納
+                    </td>
+                  </tr>
+                  <tr data-dl-uid="43" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="ffffff"
+                      data-dl-uid="44"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      LMSW
+                    </td>
+                    <td data-dl-uid="45" data-dl-original="true" data-dl-translated="true">
+                      新しいマシンステータスWORDをロードする
+                    </td>
+                  </tr>
+                  <tr data-dl-uid="46" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="ffffff"
+                      data-dl-uid="47"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      CLTS
+                    </td>
+                    <td data-dl-uid="48" data-dl-original="true" data-dl-translated="true">
+                      コントロールレジスタのタスクスイッチフラグのクリア CR0
+                    </td>
+                  </tr>
+
+                  <tr data-dl-uid="49" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="ffffff"
+                      data-dl-uid="50"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      MOV<i data-dl-uid="51" data-dl-original="true" data-dl-translated="true"
+                        >デバッグレジスタ</i
+                      >
+                    </td>
+                    <td data-dl-uid="52" data-dl-original="true" data-dl-translated="true">
+                      データをコピーしてデバッグレジスタに格納
+                    </td>
+                  </tr>
+                  <tr data-dl-uid="53" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="ffffff"
+                      data-dl-uid="54"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      INVD
+                    </td>
+                    <td data-dl-uid="55" data-dl-original="true" data-dl-translated="true">
+                      キャッシュの無効化（ライトバックなし
+                    </td>
+                  </tr>
+                  <tr data-dl-uid="56" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="ffffff"
+                      data-dl-uid="57"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      INVLPG
+                    </td>
+                    <td data-dl-uid="58" data-dl-original="true" data-dl-translated="true">
+                      TLBエントリの無効化
+                    </td>
+                  </tr>
+                  <tr data-dl-uid="59" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="ffffff"
+                      data-dl-uid="60"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      WBINVD
+                    </td>
+                    <td data-dl-uid="61" data-dl-original="true" data-dl-translated="true">
+                      キャッシュの無効化（ライトバックあり
+                    </td>
+                  </tr>
+
+                  <tr data-dl-uid="62" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="ffffff"
+                      data-dl-uid="63"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      HLT
+                    </td>
+                    <td data-dl-uid="64" data-dl-original="true" data-dl-translated="true">
+                      プロセッサの停止
+                    </td>
+                  </tr>
+                  <tr data-dl-uid="65" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="ffffff"
+                      data-dl-uid="66"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      RDMSR
+                    </td>
+                    <td data-dl-uid="67" data-dl-original="true" data-dl-translated="true">
+                      モデル固有レジスタ(MSR)の読み出し
+                    </td>
+                  </tr>
+                  <tr data-dl-uid="68" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="ffffff"
+                      data-dl-uid="69"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      WRMSR
+                    </td>
+                    <td data-dl-uid="70" data-dl-original="true" data-dl-translated="true">
+                      ライト・モデル・スペシフィック・レジスタ（MSR）
+                    </td>
+                  </tr>
+                  <tr data-dl-uid="71" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="ffffff"
+                      data-dl-uid="72"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      RDPMC
+                    </td>
+                    <td data-dl-uid="73" data-dl-original="true" data-dl-translated="true">
+                      性能監視カウンターの読み出し
+                    </td>
+                  </tr>
+                  <tr data-dl-uid="74" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="ffffff"
+                      data-dl-uid="75"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      RDTSC
+                    </td>
+                    <td data-dl-uid="76" data-dl-original="true" data-dl-translated="true">
+                      タイムスタンプカウンターの読み出し
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </center>
+            <p></p>
+
+            <p data-dl-uid="77" data-dl-original="true" data-dl-translated="true"></p>
+
+            <p data-dl-uid="78" data-dl-original="true" data-dl-translated="true">
+              カーネル<b data-dl-uid="79" data-dl-original="true" data-dl-translated="true">ランドや</b>
+              <b data-dl-uid="80" data-dl-original="true" data-dl-translated="true">カーネルモードは</b
+              >、<b data-dl-uid="81" data-dl-original="true" data-dl-translated="true">リング</b
+              >0で動作するソフトウェアのことを指します。
+            </p>
+            <p data-dl-uid="83" data-dl-original="true" data-dl-translated="true">
+              これまでこの連載で書いてきたソフトウェアはすべてカーネルモードのソフトウェアで、カーネルとミニドライバでした。マイクロカーネルとハイブリッドは一般的に、このシリーズで使用しているものより高度なドライバインタフェーススキームを採用しており、ドライバを適切にインストールし、カーネルから完全に分離したユーザモードでドライバを実行できるようになっています。カーネルの一部をユーザーモードにすることも可能で、全ては設計次第です。
+            </p>
+            <p data-dl-uid="84" data-dl-original="true" data-dl-translated="true">
+              システムを最初に起動するときは、BIOSとOSが起動できるようにスーパーバイザーモードで動作しています。
+            </p>
+
+            <h3 data-dl-uid="85" data-dl-original="true" data-dl-translated="true">ユーザーランド</h3>
+            <p data-dl-uid="86" data-dl-original="true" data-dl-translated="true">
+              リング1〜リング3で動作するソフトウェアは、リング0で動作するソフトウェアよりもマシンを制御しにくい。これはマシンを保護するためで、リング1〜3で動作するソフトウェアが原因でエラーが発生した場合、プロセッサは<b
+                data-dl-uid="87"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >一般保護（#GP）</b
+              >例外を使ってシステムエグゼクティブまたはカーネルに問題を通知する。
+            </p>
+            <p data-dl-uid="88" data-dl-original="true" data-dl-translated="true">
+              多くのOSでは、カーネルモードとユーザーモードの2モード制を採用している。x86ファミリーは4つの保護モードをサポートしていますが、これらのオペレーティングシステムでは、アーキテクチャ間での移植性を高めるために2つの保護モードのみを使用しています。
+            </p>
+            <p data-dl-uid="89" data-dl-original="true" data-dl-translated="true">
+              これらのOSでは、カーネルモードのソフトウェアはリング0、ユーザーランドのソフトウェアはリング3で実行されるように設計されています。リング1とリング2は使用されません。ドライバソフトウェアは、リング0で動作してハードウェアデバイスにアクセスするか、リング3で提供されるドライバAPIやシステムAPIを使ってハードウェアデバイスと通信することができる。
+            </p>
+            <p data-dl-uid="90" data-dl-original="true" data-dl-translated="true">
+              ユーザーモードソフトウェアはハードウェアデバイスに直接アクセスできないため、システムタスクを完了するためにオペレーティングシステムに通知する必要があります。これには、テキストの表示、ユーザーからの入力の取得、ドキュメントの印刷などが含まれる。これらの機能は、ライブラリやAPIという形でユーザーモードソフトウェアに提供される。これらのライブラリやAPIは、システムAPIと通信する。
+            </p>
+            システム<i data-dl-uid="91" data-dl-original="true" data-dl-translated="true">API</i
+            >......この言葉は以前にも目にしたことがありますね。システムAPIについてはもう少し詳しく見ていきますが、ここではユーザーモードについて詳しく見ていきましょう。
+            <h3 data-dl-uid="92" data-dl-original="true" data-dl-translated="true">リング-1</h3>
+            <p data-dl-uid="93" data-dl-original="true" data-dl-translated="true">
+              最近のプロセッサには、<b data-dl-uid="94" data-dl-original="true" data-dl-translated="true"
+                >ハイパーバイザーの</b
+              >リング0アクセスを可能にする特別な保護レベルを持つものがある。
+              これは「リング-1」と呼ばれることもある。
+            </p>
+
+            <h1 data-dl-uid="95" data-dl-original="true" data-dl-translated="true">
+              ユーザーランドへようこそ
+            </h1>
+
+            <p data-dl-uid="96" data-dl-original="true" data-dl-translated="true">
+              ユーザーモードに入るには、いくつかのステップが必要です。(さあ、簡単だとは思わなかったでしょう:)
+              しかし、それほど悪いことではありません。
+            </p>
+            <h2 data-dl-uid="97" data-dl-original="true" data-dl-translated="true">
+              ステップ1：グローバルディスクリプターテーブル
+            </h2>
+
+            <p data-dl-uid="98" data-dl-original="true" data-dl-translated="true">
+              まず、<b data-dl-uid="99" data-dl-original="true" data-dl-translated="true"
+                >Global Descriptor Table (GDT)</b
+              >に戻る必要があります。GDTは、初めてプロテクトモードを設定する際に必要となった、あの大きな醜い構造体です。GDTは、プロセッサの情報を含む8バイトのエントリのリストを含んでいることを思い出してください。GDTのエントリーのビットフォーマットをもう一度見てみましょう（重要な部分は<b
+                data-dl-uid="100"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >太字にして</b
+              >あります）。
+            </p>
+
+            <ul>
+              <li><b>Bits 56-63:</b> Bits 24-32 of the base address</li>
+              <li><b>Bit 55:</b> Granularity</li>
+              <ul>
+                <li><b>0:</b> None</li>
+                <li><b>1:</b> Limit gets multiplied by 4K</li>
+              </ul>
+              <li><b>Bit 54:</b> Segment type</li>
+              <ul>
+                <li><b>0:</b> 16 bit</li>
+                <li><b>1:</b> 32 bit</li>
+              </ul>
+              <li><b>Bit 53:</b> Reserved-Should be zero</li>
+              <li><b>Bits 52:</b> Reserved for OS use</li>
+              <li><b>Bits 48-51:</b> Bits 16-19 of the segment limit</li>
+              <li><b>Bit 47:</b> Segment is in memory (Used with Virtual Memory)</li>
+              <li><b>Bits 45-46: Descriptor Privilege Level</b></li>
+              <ul>
+                <li><b>0: (Ring 0) Highest</b></li>
+                <li><b>1: (Ring 1)</b></li>
+                <li><b>2: (Ring 2)</b></li>
+                <li><b>3: (Ring 3) Lowest</b></li>
+              </ul>
+              <li><b>Bit 44:</b> Descriptor Bit</li>
+
+              <ul>
+                <li><b>0:</b> System Descriptor</li>
+                <li><b>1:</b> Code or Data Descriptor</li>
+              </ul>
+              <li><b>Bits 41-43:</b> Descriptor Type</li>
+
+              <ul>
+                <li><b>Bit 43:</b> Executable segment</li>
+                <ul>
+                  <li><b>0:</b> Data Segment</li>
+                  <li><b>1:</b> Code Segment</li>
+                </ul>
+                <li><b>Bit 42:</b> Expansion direction (Data segments), conforming (Code Segments)</li>
+                <li><b>Bit 41:</b> Readable and Writable</li>
+                <ul>
+                  <li><b>0:</b> Read only (Data Segments); Execute only (Code Segments)</li>
+
+                  <li><b>1:</b> Read and write (Data Segments); Read and Execute (Code Segments)</li>
+                </ul>
+              </ul>
+              <li><b>Bit 40:</b> Access bit (Used with Virtual Memory)</li>
+              <li><b>Bits 16-39:</b> Bits 0-23 of the Base Address</li>
+
+              <li><b>Bits 0-15:</b> Bits 0-15 of the Segment Limit</li>
+            </ul>
+
+            <p data-dl-uid="169" data-dl-original="true" data-dl-translated="true">
+              やばい、大丈夫．上の<b data-dl-uid="170" data-dl-original="true" data-dl-translated="true"
+                >DPL（Descriptor Privilege Level）</b
+              >ビットは、そのディスクリプタに使用される特権レベルを表しています。つまり、これらのビットを3に設定することで、実質的にそのディスクリプタをユーザーモードのディスクリプタにすることができるのです。
+            </p>
+            <p data-dl-uid="171" data-dl-original="true" data-dl-translated="true">
+              そこで、最初のステップとして、GDT内に2つの新しいディスクリプタを作成します。1つはユーザーモードデータ用、もう1つはユーザーモードコード用です。これは、<b
+                data-dl-uid="172"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >i86_gdt_initializeを</b
+              >修正して、ユーザーモード・コードとデータ用に2つの新しいGDTエントリーを追加することで行われます。では、それをやってみましょう。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">//! initialize gdt
+int i86_gdt_initialize () {
+
+	//! etc...
+
+	//! set default user mode code descriptor
+	gdt_set_descriptor (3,0,0xffffffff,
+		I86_GDT_DESC_READWRITE|I86_GDT_DESC_EXEC_CODE|I86_GDT_DESC_CODEDATA|
+		I86_GDT_DESC_MEMORY|I86_GDT_DESC_DPL,
+			I86_GDT_GRAND_4K | I86_GDT_GRAND_32BIT | I86_GDT_GRAND_LIMITHI_MASK);
+
+	//! set default user mode data descriptor
+	gdt_set_descriptor (4,0,0xffffffff,
+		I86_GDT_DESC_READWRITE|I86_GDT_DESC_CODEDATA|I86_GDT_DESC_MEMORY|
+		I86_GDT_DESC_DPL,
+			I86_GDT_GRAND_4K | I86_GDT_GRAND_32BIT | I86_GDT_GRAND_LIMITHI_MASK);
+
+	// etc...
+
+	return 0;
+}</div></pre>
+            </blockquote>
+
+            <p data-dl-uid="176" data-dl-original="true" data-dl-translated="true">
+              上記のコードは、他のGDTエントリーを作成するときに行ったものと同じですが、1つだけ変更があります。I86_GDT_DESC_DPL
+              フラグに注目してください。 これにより、両方の DPL ビットが 2 に設定され、ユーザー モード
+              (リング 3)
+              用のビットが作成されます。上記のフラグはすべて、以前の章でプロテクトモードについて説明したときに書いたものです。
+            </p>
+            <p data-dl-uid="177" data-dl-original="true" data-dl-translated="true">
+              必要なのはこれだけです。ユーザモードコードディスクリプタはGDTのインデックス3に、ユーザモードデータディスクリプタはインデックス4にインストールされていることに注意してください。セグメントレジスタは、使用するセレクタのオフセットを含んでいることを忘れないでください。GDTの各エントリは8バイトのサイズなので、コード<b
+                data-dl-uid="178"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >セレクタ0x18</b
+              >（8*3）、<b data-dl-uid="179" data-dl-original="true" data-dl-translated="true"
+                >データセレクタ0x20</b
+              >（8*4）ということになる。
+            </p>
+            <p data-dl-uid="180" data-dl-original="true" data-dl-translated="true">
+              したがって、これらのセレクタを使用するには、上記のセグメントセレクタのいずれかを、使用するセグメントレジスタにコピーすればよいことになります。
+            </p>
+
+            <h3 data-dl-uid="181" data-dl-original="true" data-dl-translated="true">DPL</h3>
+
+            <b data-dl-uid="182" data-dl-original="true" data-dl-translated="true"
+              >DPL（Descriptor Protection Level</b
+            >）は、セグメント記述子の保護レベルです。
+            例えば、私たちのカーネルのコードとデータセグメントのDPLは、リング0アクセスで0です。
+            <h3 data-dl-uid="183" data-dl-original="true" data-dl-translated="true">RPL</h3>
+
+            <p data-dl-uid="184" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="185" data-dl-original="true" data-dl-translated="true"
+                >要求保護レベル(RPL)</b
+              >は、ソフトウェアがCPLをオーバーライドして新しい保護レベルを選択することを可能にします。これは、ソフトウェアがリング0からリング3など他の保護レベルへの変更を要求できるようにするものである。RPLは、記述子セレクタのビット0と1に格納される。
+            </p>
+            <p data-dl-uid="186" data-dl-original="true" data-dl-translated="true">
+              待って、<i data-dl-uid="187" data-dl-original="true" data-dl-translated="true">何</i
+              >？セグメントセレクタは、GDTへのオフセットに過ぎないことを思い出してください。たとえば、0x8バイトはリング0のコードディスクリプタのオフセットでした。0x8
+              と 0x10 は<b data-dl-uid="188" data-dl-original="true" data-dl-translated="true"
+                >セグメントセレクタ</b
+              >です。GDTのエントリーはすべて8バイトなので、セグメントセレクタの値は常に8の倍数、つまり8、16、24、32などです。8
+              は 2 進法では 1000
+              です。つまり、セグメントセレクタの値がどのようなものであっても、下位3ビットは0であることを意味します。
+            </p>
+            <p data-dl-uid="189" data-dl-original="true" data-dl-translated="true">
+              RPLはセグメントセレクタの下位2ビットに格納されます。したがって、セグメントセレクタが0x8の場合、RPLは0です。
+              0xbの場合(0x8ですが、最初の2ビットが設定されており、1000ではなく1011)、RPLは3です。
+              これは、ソフトウェアがユーザーモードに切り替わるために必要なことです。
+            </p>
+
+            <h3 data-dl-uid="190" data-dl-original="true" data-dl-translated="true">CPL</h3>
+
+            <b data-dl-uid="191" data-dl-original="true" data-dl-translated="true"
+              >CPL（Current Protection Level</b
+            >）は、現在実行中のプログラムの保護レベルである。 CPLは、SSとCSのビット0と1に格納されている。
+            <p data-dl-uid="192" data-dl-original="true" data-dl-translated="true">
+              GDTエントリーは8バイトのサイズであることを忘れないでください。プロテクトモードのセグメントレジスタにはセグメントセレクタ（GDTエントリオフセット）が含まれるため、下位3ビットはゼロであることが保証されます。
+              CSとSSの下位2ビットは、ソフトウェアのCPLを格納するために使用されます。
+            </p>
+
+            <h3 data-dl-uid="193" data-dl-original="true" data-dl-translated="true">保護レベル</h3>
+
+            <p data-dl-uid="194" data-dl-original="true" data-dl-translated="true">
+              ソフトウェアが新しいセグメントをセグメントレジスタにロードしようとすると、プロセッサはソフトウェアのCPLとロードしようとするセグメントのRPLに対してチェックを実行します。RPLがCPLよりも高い場合、そのソフトウェアはセグメントをロードできます。そうでない場合、プロセッサは<b
+                data-dl-uid="195"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >General Protection Fault(#GP</b
+              >)を発生させます。
+            </p>
+            <p data-dl-uid="196" data-dl-original="true" data-dl-translated="true">
+              RPLの仕組みを理解することは重要で、ユーザーモードに切り替える際に使用する必要な情報です。
+            </p>
+
+            <h2 data-dl-uid="197" data-dl-original="true" data-dl-translated="true">
+              ステップ2：切り替え
+            </h2>
+
+            <p data-dl-uid="198" data-dl-original="true" data-dl-translated="true">
+              これで、ユーザーモードに切り替えることができます。
+            </p>
+            <p data-dl-uid="199" data-dl-original="true" data-dl-translated="true">
+              ジャンプを実行する方法は2つあります。どちらもメリットとデメリットがあるので、詳しく見ていきましょう。なお、本連載では移植性の観点からIRETを使用します。
+            </p>
+
+            <h3 data-dl-uid="202" data-dl-original="true" data-dl-translated="true">SYSEXIT命令</h3>
+
+            このセクションは、今後拡張していく予定です。
+            <h3 data-dl-uid="203" data-dl-original="true" data-dl-translated="true">IRET / IRETD命令</h3>
+
+            <p data-dl-uid="204" data-dl-original="true" data-dl-translated="true">
+              多くのOSでは、SYSEXIT命令よりも移植性が高いため、この方法を採用している場合があります。大きなOSでは、SYSEXITが使用できない場合のバックアップ方法としてサポートされている場合もあります。
+            </p>
+            <p data-dl-uid="205" data-dl-original="true" data-dl-translated="true">
+              さて、それではIRETはどのようにスイッチの実行に役立つのでしょうか。<a
+                href="http://www.brokenthorn.com/Resources/OSDev5.html"
+                data-dl-uid="206"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >第3章</a
+              >で、モード切り替えの際に使用されるさまざまな方法を思い出してください。IRETはトラップリターン命令です。IRETを実行すると、ユーザーモードのコードに戻るようにスタックフレームを調整することができます。
+            </p>
+            <p data-dl-uid="207" data-dl-original="true" data-dl-translated="true">
+              IRETDが実行されると、スタックに次のようなものがあることを期待します。
+            </p>
+            <ul data-dl-uid="208" data-dl-original="true" data-dl-translated="true">
+              <li data-dl-uid="209" data-dl-original="true" data-dl-translated="true">SS</li>
+              <li data-dl-uid="210" data-dl-original="true" data-dl-translated="true">ESP</li>
+              <li data-dl-uid="211" data-dl-original="true" data-dl-translated="true">EFLAGS</li>
+              <li data-dl-uid="212" data-dl-original="true" data-dl-translated="true">CS</li>
+              <li data-dl-uid="213" data-dl-original="true" data-dl-translated="true">EIP</li>
+            </ul>
+            <p data-dl-uid="214" data-dl-original="true" data-dl-translated="true">
+              IRETD により、プロセッサはスタックから取得した CS:EIP にジャンプします。また、EFLAGS
+              レジスタにスタックから取得した値を設定します。SS:ESPには、スタックから取得したSSとESPの値を指すように設定されます。
+            </p>
+            <p data-dl-uid="215" data-dl-original="true" data-dl-translated="true">
+              これらは、<b data-dl-uid="216" data-dl-original="true" data-dl-translated="true">INT</b
+              >命令実行時に自動的にスタックにプッシュされます。このため、通常の場合、これらの値は変更されないままです。しかし、これらの値を変更することで、IRETにモード切替を行わせることができます。
+            </p>
+            <p data-dl-uid="217" data-dl-original="true" data-dl-translated="true">
+              さて、まずはセグメントセレクタの設定です。下位2ビットが必要なRPLを表していることを思い出してください。この場合、ユーザーモードには3が必要です。では、それを実行しましょう。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">void enter_usermode () {
+
+	_asm {
+
+		cli
+		mov ax, 0x23	; user mode data selector is 0x20 (GDT entry 3). Also sets RPL to 3
+		mov ds, ax
+		mov es, ax
+		mov fs, ax
+		mov gs, ax</div></pre>
+            </blockquote>
+
+            これで、ユーザーモードへの切り替えを実行することができます。これは、IRET用のスタックフレームを構築し、IRETを発行することで行われます。
+
+            <blockquote>
+              <pre><div class="code">		push 0x23		; SS, notice it uses same selector as above
+		push esp		; ESP
+		pushfd			; EFLAGS
+		push 0x1b		; CS, user mode code selector is 0x18. With RPL 3 this is 0x1b
+		lea eax, [a]		; EIP first
+		push eax
+
+		iretd
+	a:
+		add esp, 4 // fix stack
+	}
+}</div></pre>
+            </blockquote>
+
+            <p data-dl-uid="224" data-dl-original="true" data-dl-translated="true">
+              スタックフレームが上記のリストにあったものと一致していることに注意してください。IRETD命令により、上記のコードではリング3の内部で0x1B:aが呼び出されることになります。
+            </p>
+            <p data-dl-uid="225" data-dl-original="true" data-dl-translated="true">
+              しかし、少し問題があります。上記のルーチンを使ったり、カーネルで別の方法でユーザーモードに切り替えたりしようとすると、<b
+                data-dl-uid="226"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ページフォルト（PF）</b
+              >例外が発生するのです。これは、カーネル用のページがカーネルモードアクセス専用にマッピングされているためです。これを解決するには、別の方法でユーザーモードに入るか、ユーザーモードのソフトウェアがアクセスできるようにカーネルをマップする必要があります。
+            </p>
+            <p data-dl-uid="227" data-dl-original="true" data-dl-translated="true">
+              今のところ、ユーザーモードソフトウェアがアクセスできるように、カーネルをマップすることだけを考えています。これには、<b
+                data-dl-uid="228"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >vmmngr_initialize()</b
+              >ルーチンを更新し、PTEとPDEにUSERビットを設定することが含まれます。
+            </p>
+            <p data-dl-uid="229" data-dl-original="true" data-dl-translated="true">
+              より複雑なオペレーティングシステムでは、この方法は使用されないでしょう。この方法は、ユーザーモードソフトウェアからアクセスできるようにカーネルページをマッピングした場合にのみ機能しますが、これは悪いことです。より推奨されるアプローチは、カーネルページをカーネルのみのアクセスのためにマッピングしておき、ユーザプログラムをロードするときに、カーネルのローダコンポーネントにユーザモードページをマッピングさせることです。そして、スタックとヒープのアロケータが、プログラムのスタックとヒープの領域をユーザモードにマップすることになります。この現在の方法は、カーネルスタックをユーザーランドと<b
+                data-dl-uid="230"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >共有</b
+              >するもので、大規模なシステムではこれを行うべきではありません。
+            </p>
+
+            <h3 data-dl-uid="231" data-dl-original="true" data-dl-translated="true">
+              v8086モードへの移行
+            </h3>
+            <p data-dl-uid="232" data-dl-original="true" data-dl-translated="true">
+              v8086モードに入るには、ユーザーモードのタスクが必要です。したがって、上記のようにすれば、v86モードにも入ることができます。ただし、1点だけ少し工夫が必要です。
+            </p>
+            <p data-dl-uid="233" data-dl-original="true" data-dl-translated="true">
+              EFLAGSレジスタの形式を思い出してください。ビット17（VM）は、<b
+                data-dl-uid="234"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >v8086モード制御フラグ</b
+              >です。IRETを行う際にEFLAGSの値をスタックにプッシュするので、v86モードにするためには、EFLAGSのビット17をセットしてからスタックにプッシュすればよいのです。これにより、IRETは戻り時にEFLAGSレジスタのVMビットをセットするようになります。
+            </p>
+            <p data-dl-uid="235" data-dl-original="true" data-dl-translated="true">
+              以上で、v8086モードに移行することができます。
+            </p>
+
+            <h3 data-dl-uid="236" data-dl-original="true" data-dl-translated="true">設計上の注意</h3>
+            <p data-dl-uid="237" data-dl-original="true" data-dl-translated="true">
+              上記の方法は、ユーザモードに入る簡単な方法ですが、コストがかかります：上記の方法が動作するためには、カーネル領域は、リング3ソフトウェアがカーネルメモリにアクセスできるようにマッピングされなければなりません。
+              このため、リング3で実行している間、ソフトウェアは、保護モードによるいくつかの制限がありますが、カーネルルーチンを直接呼び出すことができ、カーネル空間を破壊することさえできます。
+            </p>
+            <p data-dl-uid="238" data-dl-original="true" data-dl-translated="true">
+              上記の問題を解決する可能性のある方法は、カーネルメモリをリング0ソフトウェアのために予約しておくことです。カーネルのローダーコンポーネントは、プログラムをロードしている<i
+                data-dl-uid="239"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >間</i
+              >、プロセスのために必要なメモリのリング3領域をマップすることができます。
+            </p>
+            <p data-dl-uid="240" data-dl-original="true" data-dl-translated="true">
+              これについては、次章でOSのローダを開発する際に、さらに検討する予定です。
+            </p>
+
+            <h1 data-dl-uid="241" data-dl-original="true" data-dl-translated="true">
+              カーネルの世界へ戻る
+            </h1>
+
+            <h2 data-dl-uid="242" data-dl-original="true" data-dl-translated="true">
+              ステップ1：TSSのセットアップ
+            </h2>
+
+            <p data-dl-uid="243" data-dl-original="true" data-dl-translated="true">
+              x86アーキテクチャは、ハードウェア支援によるタスクスイッチングをサポートしています。つまり、このアーキテクチャには、プロセッサが異なるタスクを選択できるようにするためのハードウェア定義構造が含まれています。
+            </p>
+            <p data-dl-uid="244" data-dl-original="true" data-dl-translated="true">
+              最近のほとんどのオペレーティングシステムは、移植性の観点からハードウェアタスク切り替えサポートを利用していません。
+              これらのオペレーティングシステムは、通常、ソフトウェアタスク切り替え方法を採用しています。
+            </p>
+
+            <h3 data-dl-uid="245" data-dl-original="true" data-dl-translated="true">
+              タスクステートセグメント(TSS)
+            </h3>
+
+            <p data-dl-uid="246" data-dl-original="true" data-dl-translated="true">
+              TSSの構造は非常に大きいです。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">#ifdef _MSC_VER
+#pragma pack (push, 1)
+#endif
+
+struct tss_entry {
+	uint32_t prevTss;
+	uint32_t esp0;
+	uint32_t ss0;
+	uint32_t esp1;
+	uint32_t ss1;
+	uint32_t esp2;
+	uint32_t ss2;
+	uint32_t cr3;
+	uint32_t eip;
+	uint32_t eflags;
+	uint32_t eax;
+	uint32_t ecx;
+	uint32_t edx;
+	uint32_t ebx;
+	uint32_t esp;
+	uint32_t ebp;
+	uint32_t esi;
+	uint32_t edi;
+	uint32_t es;
+	uint32_t cs;
+	uint32_t ss;
+	uint32_t ds;
+	uint32_t fs;
+	uint32_t gs;
+	uint32_t ldt;
+	uint16_t trap;
+	uint16_t iomap;
+};
+
+#ifdef _MSC_VER
+#pragma pack (pop, 1)
+#endif
+</div></pre>
+            </blockquote>
+
+            <p data-dl-uid="250" data-dl-original="true" data-dl-translated="true">
+              TSSは、ハードウェアタスクスイッチの前のマシンの状態に関する情報を格納するために使用されます。多くのメンバーを持っているので、見てみましょう。
+            </p>
+            <ul data-dl-uid="251" data-dl-original="true" data-dl-translated="true">
+              <li data-dl-uid="252" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="253" data-dl-original="true" data-dl-translated="true"
+                  >一般的なフィールド。</b
+                >
+              </li>
+              <ul data-dl-uid="254" data-dl-original="true" data-dl-translated="true">
+                <li data-dl-uid="255" data-dl-original="true" data-dl-translated="true">
+                  タスクスイッチ<b data-dl-uid="256" data-dl-original="true" data-dl-translated="true"
+                    >前の</b
+                  >LDT、EIP、EFLAGS、CS、DS、ES、FS、GS、SS、EAX、EBX、ECX、EDX、ESP、EBP、ESI、EDI
+                  の状態
+                </li>
+              </ul>
+              <li data-dl-uid="257" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="258" data-dl-original="true" data-dl-translated="true">prevTSS</b>-
+                タスクリスト内の前のTSSのセグメントセレクタ
+              </li>
+              <li data-dl-uid="259" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="260" data-dl-original="true" data-dl-translated="true">cr3</b>-
+                PDBR、現在のタスクのページディレクトリのアドレス
+              </li>
+              <li data-dl-uid="261" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="262" data-dl-original="true" data-dl-translated="true">トラップ</b>
+              </li>
+              <ul data-dl-uid="263" data-dl-original="true" data-dl-translated="true">
+                <li data-dl-uid="264" data-dl-original="true" data-dl-translated="true">
+                  <b data-dl-uid="265" data-dl-original="true" data-dl-translated="true">ビット0:</b>0:
+                  無効、1: タスク切り替え時にデバッグ例外を発生させる
+                </li>
+              </ul>
+              <li data-dl-uid="266" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="267" data-dl-original="true" data-dl-translated="true">iomap</b>-
+                TSSベースからI/O許可および割り込みリダイレクションビットマップへの16ビットオフセット
+              </li>
+              <li data-dl-uid="268" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="269" data-dl-original="true" data-dl-translated="true">esp0,esp1,esp2</b
+                >- リング0、1、2用のESPスタックポインタ。
+              </li>
+              <li data-dl-uid="270" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="271" data-dl-original="true" data-dl-translated="true">ss0,ss1,ss2</b>-
+                リング0,1,2のSSスタックセグメント
+              </li>
+            </ul>
+            <p data-dl-uid="272" data-dl-original="true" data-dl-translated="true">
+              これらのフィールドのほとんどは、非常に単純です。このため、この構造体のいくつかのフィールド、特にリング
+              0 スタックとセレクタのフィールドを設定する必要があります。
+            </p>
+
+            <h2 data-dl-uid="273" data-dl-original="true" data-dl-translated="true">
+              ステップ2：TSSのインストール
+            </h2>
+
+            <h3 data-dl-uid="274" data-dl-original="true" data-dl-translated="true">
+              ディスクリプタ・セグメント
+            </h3>
+            <p data-dl-uid="275" data-dl-original="true" data-dl-translated="true">
+              TSSは、その名前からも分かるように、<b
+                data-dl-uid="276"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >セグメント</b
+              >です。すべてのセグメントと同様に、TSSはGDTのエントリを必要とします。これにより、タスクがビジー状態か非アクティブ状態かを設定したり、どのソフトウェアがアクセスできるか（DPL）、ディスクリプタで設定できる他のフラグなど、TSSを制御することができます。<b
+                data-dl-uid="277"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >Base Addressフィールドは</b
+              >、設定したTSS構造体のベースアドレスでなければなりません。
+            </p>
+
+            <h3 data-dl-uid="278" data-dl-original="true" data-dl-translated="true">LTR命令</h3>
+            <p data-dl-uid="279" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="280" data-dl-original="true" data-dl-translated="true">LTR（Load</b>Task
+              Register）命令は、TSSを<b
+                data-dl-uid="281"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >TSR</b
+              >レジスタにロードするために使用します。 例えば、以下のようなものです。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">void flush_tss (uint16_t sel) {
+
+	_asm ltr [sel]
+}</div></pre>
+            </blockquote>
+
+            <p data-dl-uid="285" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="286" data-dl-original="true" data-dl-translated="true">axは</b
+              >TSSのセグメントセレクタです。このアーキテクチャはハードウェアタスクの切り替えをサポートしているため、TSRには現在のタスクを定義するTSSのアドレスが格納されます。
+            </p>
+            <p data-dl-uid="287" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="288" data-dl-original="true" data-dl-translated="true"
+                >タスクステートレジスタ(TSR</b
+              >)は、<b data-dl-uid="289" data-dl-original="true" data-dl-translated="true">TSSセレクタ</b
+              >、<b data-dl-uid="290" data-dl-original="true" data-dl-translated="true"
+                >TSSベースアドレス</b
+              >、<b data-dl-uid="291" data-dl-original="true" data-dl-translated="true">TSSリミットを</b
+              >格納するレジスタです。ただし、ソフトウェアで変更できるのは、TSSセレクタのみです。
+            </p>
+
+            <h3 data-dl-uid="292" data-dl-original="true" data-dl-translated="true">
+              TSSのインストール
+            </h3>
+
+            <p data-dl-uid="293" data-dl-original="true" data-dl-translated="true">
+              TSS構造をインストールするには、まずTSSのGDTエントリーをインストールします。次に、上記の<b
+                data-dl-uid="294"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >flush_tss</b
+              >を呼び出して、TSS をカレントタスクとして選択します。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">void install_tss (uint32_t idx, uint16_t kernelSS, uint16_t kernelESP) {
+
+	//! install TSS descriptor
+	uint32_t base = (uint32_t) &amp;TSS;
+	gdt_set_descriptor (idx, base, base + sizeof (tss_entry),
+		I86_GDT_DESC_ACCESS|I86_GDT_DESC_EXEC_CODE|I86_GDT_DESC_DPL|I86_GDT_DESC_MEMORY,
+		0);
+
+	//! initialize TSS
+	memset ((void*) &amp;TSS, 0, sizeof (tss_entry));
+
+	TSS.ss0 = kernelSS;
+	TSS.esp0 = kernelESP;
+
+	TSS.cs=0x0b;
+	TSS.ss = 0x13;
+	TSS.es = 0x13;
+	TSS.ds = 0x13;
+	TSS.fs = 0x13;
+	TSS.gs = 0x13;
+
+	//! flush tss
+	flush_tss (idx * sizeof (gdt_descriptor));
+}</div></pre>
+            </blockquote>
+
+            <p data-dl-uid="298" data-dl-original="true" data-dl-translated="true">
+              上記のコードでは、<b data-dl-uid="299" data-dl-original="true" data-dl-translated="true"
+                >TSSは</b
+              >、我々の<b data-dl-uid="300" data-dl-original="true" data-dl-translated="true"
+                >tss_entry</b
+              >構造体のグローバル構造体の定義です。
+              前のタスク（ユーザーモードセレクタ）とリング0スタック（カーネルスタック、kernelSS:kernelESPに位置）に合わせてTSSのセレクタエントリを設定しています。<b
+                data-dl-uid="301"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >flush_tssは</b
+              >TSSをTSRにインストールします。
+            </p>
+
+            <h1 data-dl-uid="302" data-dl-original="true" data-dl-translated="true">追加命令</h1>
+
+            他にも便利な命令がいくつかあります。これらの命令はすべて、ユーザーモードのソフトウェアで実行することができます。
+            <h3 data-dl-uid="303" data-dl-original="true" data-dl-translated="true">VERR命令</h3>
+
+            <p data-dl-uid="304" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="305" data-dl-original="true" data-dl-translated="true">VERR</b>(Verify
+              Segment is Readable)
+              は、セグメントが読み取り可能かどうかをチェックするために使用できます。読み出し可能であれば、プロセッサはゼロフラグ（ZF）を1にセットします。この命令は、どのプロビレッジレベルでも実行することができます。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">verr [ebx]
+jz .readable	</div></pre>
+            </blockquote>
+
+            <h3 data-dl-uid="309" data-dl-original="true" data-dl-translated="true">VERW命令</h3>
+            <p data-dl-uid="310" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="311" data-dl-original="true" data-dl-translated="true">VERW</b>(Verify
+              Segment is Writable)
+              は、セグメントが書き込み可能かどうかをチェックするために使用できます。書き込み可能であれば、プロセッサはゼロフラグ（ZF）を1にセットします。この命令は、どのプロビレッジレベルでも実行することができます。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">verw [ebx]
+jz .readable	</div></pre>
+            </blockquote>
+
+            <h3 data-dl-uid="315" data-dl-original="true" data-dl-translated="true">LSL命令</h3>
+            <p data-dl-uid="316" data-dl-original="true" data-dl-translated="true">
+              セレクタのセグメントリミットをレジスタにロードする命令です。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">lsl ebx, esp
+jz .success</div></pre>
+            </blockquote>
+
+            <h3 data-dl-uid="320" data-dl-original="true" data-dl-translated="true">ARPL 命令</h3>
+            <p data-dl-uid="321" data-dl-original="true" data-dl-translated="true">
+              セレクタのRPLを調整する命令です。<b
+                data-dl-uid="322"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >arpl dest,srcの</b
+              >形式で、destはメモリ位置またはレジスタ、srcはレジスタです。destのRPLがsrcより小さい場合、destのRPLビットはsrcのRPLビットに設定されます。たとえば、次のようになります。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">arpl ebx, esp</div></pre>
+            </blockquote>
+
+            <h1 data-dl-uid="326" data-dl-original="true" data-dl-translated="true">システムAPI</h1>
+
+            <h2 data-dl-uid="327" data-dl-original="true" data-dl-translated="true">概要</h2>
+
+            <p data-dl-uid="328" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="329" data-dl-original="true" data-dl-translated="true">システム</b>API
+              は、ソフトウェアがオペレーティング
+              システムと相互作用できるようにするツール、文書、およびインターフェイスを提供します。オペレーティングシステムによって使用される用語は異なりますが、基本的な考え方は同じです。例えば、WindowsはこのAPIを「Native
+              API」と呼んでいます。
+            </p>
+            <p data-dl-uid="330" data-dl-original="true" data-dl-translated="true">
+              システムAPIは、ソフトウェアがオペレーティングシステムやデバイスドライバと対話するのを容易にする。
+              システムAPIは、ユーザーモードソフトウェアとカーネルモードソフトウェアの間のインターフェースである。ソフトウェアがシステム情報を必要とするとき、またはファイルの作成などのシステムタスクを実行するときはいつでも、ソフトウェアはシステムコールを呼び出します。
+            </p>
+            <p data-dl-uid="331" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="332" data-dl-original="true" data-dl-translated="true">システムコ</b
+              >ールは、<b data-dl-uid="333" data-dl-original="true" data-dl-translated="true"
+                >システムサービスとも</b
+              >呼ばれ、オペレーティングシステムによって提供されるサービスです。
+              このサービスは、通常、関数またはルーチンです。ソフトウェアは、システムタスクを実行するためにシステムコールを呼び出すことができます。
+            </p>
+
+            <h2 data-dl-uid="334" data-dl-original="true" data-dl-translated="true">設計</h2>
+
+            <h3 data-dl-uid="335" data-dl-original="true" data-dl-translated="true">
+              sysenter / sysexit
+            </h3>
+
+            このセクションは、今後拡張していく予定です。
+            <h3 data-dl-uid="336" data-dl-original="true" data-dl-translated="true">
+              ソフトウェア割り込み
+            </h3>
+            <p data-dl-uid="337" data-dl-original="true" data-dl-translated="true">
+              ほとんどのシステムAPIは、ソフトウェア割り込みを使用して実装されています。ソフトウェアは、<b
+                data-dl-uid="338"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >int 0x21の</b
+              >ような命令を使用して、オペレーティングシステムのサービスを呼び出すことができます。例えば、DOSのTerminate関数を呼び出すには、次のようにします。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">mov ax, 0x4c00 ; function 0x4c (terminate) return code 0
+int 0x21 ; call DOS service</div></pre>
+            </blockquote>
+
+            <p data-dl-uid="342" data-dl-original="true" data-dl-translated="true">
+              上記のコードでは、AHに関数番号が含まれています。int
+              0x21は0x21割り込みベクタを呼び出してDOSを呼び出しています。
+            </p>
+            <p data-dl-uid="343" data-dl-original="true" data-dl-translated="true">
+              上記を動作させるためには、OSが割り込みベクタ0x21のISRをインストールする必要があります。ISRはAHを比較し、正しいカーネルモード関数に制御を渡す<b
+                data-dl-uid="344"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >FSM(Finity State Machine)</b
+              >になるでしょう。そして、親愛なる読者の皆さん、これが設計です。
+            </p>
+            <p data-dl-uid="345" data-dl-original="true" data-dl-translated="true">
+              ソフトウェア割り込みは、SYSENTERやSYSEXITよりも移植性が高いです。このため、ほとんどのOSはこの方法を（おそらく他の方法と一緒に）サポートしています。このシリーズでは、この方法を使用します。
+            </p>
+
+            <h3 data-dl-uid="346" data-dl-original="true" data-dl-translated="true">例</h3>
+            <p data-dl-uid="347" data-dl-original="true" data-dl-translated="true">
+              システムAPIは通常、数百のシステムコールで構成されています。
+            </p>
+            <p data-dl-uid="348" data-dl-original="true" data-dl-translated="true">
+              ここでは、いくつかのオペレーティングシステムと、それらがサポートしているメソッドの一覧を示します。INT番号は、上記の方法によるソフトウェア割り込みベクタ番号です。
+            </p>
+
+            <ul data-dl-uid="349" data-dl-original="true" data-dl-translated="true">
+              <li data-dl-uid="350" data-dl-original="true" data-dl-translated="true">DOS: INT 0x21</li>
+              <li data-dl-uid="351" data-dl-original="true" data-dl-translated="true">
+                Win9x (95,98):INT 0x2F
+              </li>
+              <li data-dl-uid="352" data-dl-original="true" data-dl-translated="true">
+                WinNT (2k,XP,Vista,7)。INT 0x2E、SYSENTER/SYSEXIT、SYSCALL/SYSRET
+              </li>
+              <ul data-dl-uid="353" data-dl-original="true" data-dl-translated="true">
+                <li data-dl-uid="354" data-dl-original="true" data-dl-translated="true">
+                  211以上の関数
+                </li>
+              </ul>
+              <li data-dl-uid="355" data-dl-original="true" data-dl-translated="true">
+                Linuxの場合INT 0x80、SYSENTER/SYSEXIT。
+              </li>
+              <ul data-dl-uid="356" data-dl-original="true" data-dl-translated="true">
+                <li data-dl-uid="357" data-dl-original="true" data-dl-translated="true">
+                  190以上の関数
+                </li>
+              </ul>
+            </ul>
+
+            <h2 data-dl-uid="358" data-dl-original="true" data-dl-translated="true">基本システムAPI</h2>
+
+            <h3 data-dl-uid="359" data-dl-original="true" data-dl-translated="true">
+              ステップ1：システムコールテーブル
+            </h3>
+
+            <p data-dl-uid="360" data-dl-original="true" data-dl-translated="true">
+              ほとんどのシステムAPIは、すべてのサービスを含むシステムコール・テーブルを実装しています。このテーブルは、静的、動的、自動生成、またはその3つの組み合わせのいずれかにすることができます。大規模なオペレーティングシステムでは、通常、システムコールの自動生成された動的サイズのテーブルが採用されています。これは、このテーブルに含まれる可能性のあるシステムサービスの数が多いためで、手作業で作成すると非常に面倒な作業となります。
+            </p>
+            <p data-dl-uid="361" data-dl-original="true" data-dl-translated="true">
+              この目的のためには、カーネルにシステムサービステーブルを定義すればよいのです。このテーブルには、カーネルにある呼び出し可能なさまざまな関数のアドレスが含まれています。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">#define MAX_SYSCALL 3
+
+void* _syscalls[] = {
+
+	DebugPrintf
+};</div></pre>
+            </blockquote>
+
+            <p data-dl-uid="365" data-dl-original="true" data-dl-translated="true">
+              うーん、この表はかなり小さいですね。次の章でこのリストにさらに追加していきますが、あまり複雑にはならないでしょう。
+            </p>
+            <p data-dl-uid="366" data-dl-original="true" data-dl-translated="true">
+              DebugPrintf
+              はユーザモードからアクセス可能であり（カーネルページがマッピングされているため）、DebugPrintf
+              は特権命令を使用していないため、ユーザモードのソフトウェアは技術的に何の問題もなくこのルーチンを直接呼び出すことができます。オペレーティングシステムやエグゼクティブソフトウェアの設計によっては、セキュリティや安定性の問題を引き起こす可能性があります。
+            </p>
+            <p data-dl-uid="367" data-dl-original="true" data-dl-translated="true">
+              このため、カーネルページはカーネルモードからしかアクセスできないようにしておくことが一般的に推奨されています。
+              ソフトウェアは複雑になりますが、最終的には努力に見合った結果を得ることができるかもしれません。
+            </p>
+
+            <h3 data-dl-uid="368" data-dl-original="true" data-dl-translated="true">
+              ステップ2：サービスディスパッチャ
+            </h3>
+
+            <p data-dl-uid="369" data-dl-original="true" data-dl-translated="true">
+              次のステップは、サービスディスパッチャのISRを作成することです。その前に、どのISRを使うか決めなければなりません。ここではLinuxに倣って0x80を使うことにします。しかし、多くのOSは異なるベクタを使用しています。では、ISRをインストールしましょう。
+            </p>
+            <p data-dl-uid="370" data-dl-original="true" data-dl-translated="true">
+              ISRはHAL層が管理するIDTに格納されていることを思い出してください。また、IDTディスクリプタはそれぞれDPLの設定を持っていることを<a
+                href="OSDev15.html"
+                data-dl-uid="371"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >15</a
+              >章で思い出してください。<b
+                data-dl-uid="372"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >IDTエントリのDPLがCPLより小さいと、GPFが発生します。</b
+              >つまり、ユーザモードに入ると、DPL
+              3のIDTディスクリプタを持つISRしか呼び出せなくなるのです。リング3のソフトウェアからシステム割り込みを呼び出したいので、このISRを正しいフラグでインストールしなければなりません。
+            </p>
+            <p data-dl-uid="373" data-dl-original="true" data-dl-translated="true">
+              しかし、現在のHALサブシステムの設計では、setvect()を呼び出すだけでは、特定のフラグを設定することができないため、これを実現することはできません。この問題を回避するために、<b
+                data-dl-uid="374"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >setvect() は、オプションのフラグを設定できるように、 2番目のパラメータを</b
+              >持つように修正されました。これは、C++のデフォルトのパラメータ機能を使用して実現されているため、他のコードを更新する必要はありません。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">void syscall_init () {
+
+	//! install interrupt handler!
+	setvect (0x80, syscall_dispatcher, I86_IDT_DESC_RING3);
+}</div></pre>
+            </blockquote>
+
+            <p data-dl-uid="378" data-dl-original="true" data-dl-translated="true">これで全部です :)</p>
+            <p data-dl-uid="379" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="380" data-dl-original="true" data-dl-translated="true"
+                >syscall_dispatcher</b
+              >は、システムコール用の ISR です。このISRは、<b
+                data-dl-uid="381"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >_syscallsで</b
+              >関数を検索することによって、どのシステムサービスを呼び出すかを決定する必要があります。通常、システムAPIは関数番号を識別するためにEAXを使用します。ここでも同じことをするつもりです。上で定義したシステム・サービス・テーブルのおかげで、EAXをインデックスとして使用することができます。したがって、呼び出す関数は<b
+                data-dl-uid="382"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >_syscalls [eax]</b
+              >となります。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">_declspec(naked)
+void syscall_dispatcher () {
+
+	static int idx=0;
+	_asm mov [idx], eax
+
+	//! bounds check
+	if (idx&gt;=MAX_SYSCALL)
+		_asm iretd
+
+	//! get service
+	static void* fnct = _syscalls[idx];</div></pre>
+            </blockquote>
+
+            <p data-dl-uid="386" data-dl-original="true" data-dl-translated="true">
+              さて、これで呼び出す関数へのポインタができました。しかし、ここでちょっとした問題が発生します。上記は、EAXで与えられた値に基づいて、必要なサービス関数へのポインタを効果的に取得します。しかし、その関数が何であるかはわかりません。また、その関数に何を渡せばいいのか、パラメータはどれくらいあるのかもわかりません。
+            </p>
+            <p data-dl-uid="387" data-dl-original="true" data-dl-translated="true">
+              解決策の1つは、関数呼び出しのためにすべてのレジスタをスタックにプッシュすることである。サービスはすべてCルーチンなので、C関数が期待するような方法でパラメータを渡さなければなりません。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">	//! and call service
+	_asm {
+		push edi
+		push esi
+		push edx
+		push ecx
+		push ebx
+		call fnct
+		add esp, 20
+		iretd
+	}
+}</div></pre>
+            </blockquote>
+
+            <p data-dl-uid="391" data-dl-original="true" data-dl-translated="true">
+              これで終わりです :)<b data-dl-uid="392" data-dl-original="true" data-dl-translated="true"
+                >add esp, 20</b
+              >は、プッシュした 20 バイトをスタックからポップし、<b
+                data-dl-uid="393"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >IRETD</b
+              >命令で ISR からリターンしていることに注意してください。
+            </p>
+            <p data-dl-uid="394" data-dl-original="true" data-dl-translated="true">
+              システムソフトウェアやエグゼクティブがそれぞれの割り込みベクタにISRをインストー
+              ルした後、ソフトウェアはソフトウェア割り込みを発行してそれを呼び出すことができま
+              す。例えば、<b data-dl-uid="395" data-dl-original="true" data-dl-translated="true"
+                >syscall_initを</b
+              >呼んでISRをインストールした場合、次のようにシステムサービスを呼び出すことができます。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">_asm {
+	xor eax, eax ; function 0, DebugPrintf
+	lea ebx, [stringToPrint]
+	int 0x80 ; call OS
+}</div></pre>
+            </blockquote>
+
+            <h3 data-dl-uid="399" data-dl-original="true" data-dl-translated="true">設計上の注意点</h3>
+            <p data-dl-uid="400" data-dl-original="true" data-dl-translated="true">
+              多くのOSは割り込みベクタ番号やレジスタの詳細をC言語のインタフェースで抽象化しています。
+              大きなOSではシステムサービスを直接呼び出すことも可能ですが、システムがユーザランドソフトウェアに提供するシステムサービスに関する標準Cインタフェースを開発することが推奨されます。
+            </p>
+            <p data-dl-uid="401" data-dl-original="true" data-dl-translated="true">
+              大型のOSでは、ディスプレイにメッセージを表示するようなシステムサービスは一般にありません。むしろ、ユーザがAPIを使ってカーネルモードのサービスやサーバ、デバイスドライバと対話できるような、ユーザランドのソフトウェアから呼び出せるようなサービスが含まれるでしょう。このため、大規模なOSでは、数百の関数呼び出しからなるシステムAPIを含むのが一般的です。
+            </p>
+
+            <h1 data-dl-uid="436" data-dl-original="true" data-dl-translated="true">まとめ</h1>
+            <p data-dl-uid="437" data-dl-original="true" data-dl-translated="true">
+              ユーザランドへようこそ!
+            </p>
+            <p data-dl-uid="438" data-dl-original="true" data-dl-translated="true">
+              これで、ユーザランドとカーネルランドの切り替えに必要なものは全て揃いました。これで、ユーザモードのページをマッピングし、ロードし、ユーザモードでプログラムを実行することができるようになりました。しかし、システムがタスクを管理しないため、OSのカーネルにうまく戻ることはできません。これについては、次の章で見ていきます。
+            </p>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </body>
+</html>
