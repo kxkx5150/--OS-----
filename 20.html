@@ -1,0 +1,1643 @@
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Cache-Control" content="no-cache" />
+    <title></title>
+    <link href="css/reference.css" rel="stylesheet" />
+  </head>
+  <body>
+    <table cellspacing="0" cellpadding="3" width="80%" border="0">
+      <tbody>
+        <tr>
+          <td class="tblhdr">Operating Systems Development Series</td>
+        </tr>
+        <tr>
+          <td align="middle" colspan="2"></td>
+        </tr>
+      </tbody>
+    </table>
+    <table border="0" cellpadding="5" cellspacing="0" width="100%">
+      <tbody>
+        <tr>
+          <td>
+            <div>
+              <span class="title">FileSystems and the VFS</span>
+
+              <br />
+              <span class="author">by Mike, 2010</span>
+            </div>
+            <h1 data-dl-uid="7" data-dl-original="true" data-dl-translated="true">はじめに</h1>
+
+            <p data-dl-uid="8" data-dl-original="true" data-dl-translated="true">
+              オペレーティングシステム開発のための終わりのないシリーズの22番目の章へようこそ！これは22番目の章というより、OS開発シリーズの2年目です。
+            </p>
+            <p data-dl-uid="9" data-dl-original="true" data-dl-translated="true">
+              これはファイルシステムに関連したチュートリアルです (心配しないでください、これが最後です ;)
+              。
+              最初のものは、ブートコードからメインブートローダープログラムをロードするために必要なものでした。そしてもうひとつは、カーネルがプログラムをロードして実行できるようにするためのものです。しかし、この章と他の2つの章の間には違いがあります。
+            </p>
+            <p data-dl-uid="10" data-dl-original="true" data-dl-translated="true">
+              しかし、この章のスパイスとして、また新しいものを紹介するために、<b
+                data-dl-uid="11"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >Virtual FileSystems (VFS)</b
+              >
+              にも注目します。
+              これにより、あらゆるファイルシステムドライバや異なるディスクデバイスと同じようにインターフェースすることができるようになります。これはローカルディスクドライブにも使えますし、ネットワークファイルシステムとのインターフェースにも使えます。
+            </p>
+            <p data-dl-uid="12" data-dl-original="true" data-dl-translated="true">
+              <i data-dl-uid="13" data-dl-original="true" data-dl-translated="true"
+                >準備はいいですか？</i
+              >
+            </p>
+
+            <h1 data-dl-uid="14" data-dl-original="true" data-dl-translated="true">ファイルシステム</h1>
+
+            <h2 data-dl-uid="15" data-dl-original="true" data-dl-translated="true">概要</h2>
+
+            <h3 data-dl-uid="16" data-dl-original="true" data-dl-translated="true">ファイルシステム</h3>
+            <p data-dl-uid="17" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="18" data-dl-original="true" data-dl-translated="true">ファイル</b
+              >システムは、情報の読み取りと書き込みの論理的な方法を定義します。このように、ファイルシステムは<b
+                data-dl-uid="19"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >仕様と</b
+              >考えることができます。PCのファイルシステムは、デスクトップのファイルとフォルダの概念に基づいています。
+            </p>
+            <p data-dl-uid="20" data-dl-original="true" data-dl-translated="true">
+              ファイルシステムには、さまざまな種類があります。FAT12、FAT16、FAT32、NTFS、ext（Linux）、HFS（古いMACで使用）、特定の企業が社内で使用するファイルシステム（GFS
+              - Google File
+              System）、ネットワークだけで使用するファイルシステム（NFS）などがあります。また、独自のファイルシステム実装を開発・設計することも可能です。
+            </p>
+            <p data-dl-uid="21" data-dl-original="true" data-dl-translated="true">
+              ファイルシステムは、データの保存と整理のために使用されます。ファイルシステムは、取り外し可能なメディア（フロッピー、フラッシュドライブ、CD、DVD）、ローカルドライブ（ハードディスクドライブ）、ネットワーククライアント上のファイルやディレクトリにアクセスする簡単な方法を提供します。
+              ファイルシステムは、インメモリイメージとして存在することも可能です。例えば、特殊なタイプのファイルシステムの「足跡」をその中に含むファイルを読み込むことができます。
+            </p>
+            <h3 data-dl-uid="22" data-dl-original="true" data-dl-translated="true">
+              ファイルとフォルダー
+            </h3>
+            <p data-dl-uid="23" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="24" data-dl-original="true" data-dl-translated="true">ファイルとは</b
+              >、プログラムまたはユーザーに対して何かを示すデータのグループです。このデータは、私たちが望むものであれば何でもあり得ます。例えば、<b
+                data-dl-uid="25"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >テキストファイルは</b
+              >テキスト情報を含んでいます。<b
+                data-dl-uid="26"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >フォルダは</b
+              >、ファイルの論理的なグループです。<b
+                data-dl-uid="27"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ディレクトリとも</b
+              >呼ばれます。
+            </p>
+            <p data-dl-uid="28" data-dl-original="true" data-dl-translated="true">
+              ディレクトリは、大量のファイルを管理するための手段です。 ディレクトリは通常、<b
+                data-dl-uid="29"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ツリー</b
+              >構造を形成します。これは、<b
+                data-dl-uid="30"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ディレクトリツリーと</b
+              >呼ばれています。すべてのディレクトリとファイルの親となるディレクトリは1つだけです。<b
+                data-dl-uid="32"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ファイルパスとは</b
+              >、ディレクトリツリー内のファイルの位置のことです。例えば、<b
+                data-dl-uid="33"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >a:↵myfile.txtという</b
+              >ファイルは、myfile.txtがファイル名です。<b
+                data-dl-uid="34"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >a:\mydirmyfile.txt</b
+              >は、デバイス "a: "のルートディレクトリにあるサブディレクトリ mydir にあるファイル
+              myfile.txt のことです。
+            </p>
+
+            <p data-dl-uid="35" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="36" data-dl-original="true" data-dl-translated="true"
+                >ファイルおよびフォルダーの命名</b
+              >
+            </p>
+            <p data-dl-uid="37" data-dl-original="true" data-dl-translated="true">
+              フォルダやファイルの名前は、そのファイルやフォルダの内容を表す文字列です。
+              ファイルシステムは、ファイル名とフォルダ名をそれぞれ異なる方法で実装し、それぞれに制約があります。
+              たとえば、FAT12では、ディレクトリエントリにファイル名とフォルダ名を11バイトの配列（ファイル名が8、拡張子が3）で格納しています。これは<b
+                data-dl-uid="38"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >8.3命名規則とも</b
+              >呼ばれる）これにより、ファイル名とフォルダ名は11文字に制限されます。一方、NTFSは<b
+                data-dl-uid="39"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >LFN（Long File Name</b
+              >）をサポートし255文字に制限されています。NTFSは、別の例として、ファイル名をファイル属性とともに<b
+                data-dl-uid="40"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >マスターファイル</b
+              >テーブルに格納しています。
+            </p>
+            <p data-dl-uid="41" data-dl-original="true" data-dl-translated="true">
+              ほとんどのファイルシステムのファイル名は、大文字と小文字を区別しません。しかし、いくつかのファイルシステムは、内部的にファイル名を異なる方法で保存することがあります。たとえば、フロッピーディスク上のファイル名を8.3小文字にしていても、OSからそのファイルを読み込むときにはすべて大文字のファイル名を使うことができることをご存じでしょうか。Windowsではファイル名のLFNが表示されますが、FAT12の8.3ファイルエントリには、その8.3オール大文字ファイル名だけが入ります。これが可能になるのです。
+            </p>
+
+            <h2 data-dl-uid="42" data-dl-original="true" data-dl-translated="true">ファイルの種類</h2>
+
+            <h3 data-dl-uid="43" data-dl-original="true" data-dl-translated="true">
+              シンボリックリンクの
+            </h3>
+            <p data-dl-uid="44" data-dl-original="true" data-dl-translated="true">
+              シンボリックリンクは、短いパスを提供する方法です。例えば、a:/folder/link.lnkはa:/otherfolder/subsubfolder/yet
+              another folder/link.txtを指しています。
+              これで、テキストファイルに簡単にアクセスできるようになりました。シンボリックリンクは、フォルダーを整理するためにも非常によく使われます。Windowsのスタートメニューのようなものです。プログラムへのシンボリックリンクが含まれています。
+              シンボリックリンクの実装はそれほど難しくはない。与えられたノード（これがリンクになる）を見つけるのです。それはリンクであるように見えるので、あなたは本当のパスを取得し、代わりにそのファイルを読み取る。
+            </p>
+            <p data-dl-uid="45" data-dl-original="true" data-dl-translated="true">
+              Windowsショートカットは、シンボリックリンクの一種です。
+            </p>
+
+            <h3 data-dl-uid="46" data-dl-original="true" data-dl-translated="true">パイプ</h3>
+            <p data-dl-uid="47" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="48" data-dl-original="true" data-dl-translated="true">プロセス間通信(IPC</b
+              >)の一種をパイプと呼びます。パイプは、通常2つ以上のプロセス間の<b
+                data-dl-uid="49"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >仮想ファイル</b
+              >です。Unix の stdout, stdin, stderror が最も良い例でしょう。
+              これらは通常のファイルとして扱われますが、stdoutに書き込まれたデータは画面上に表示されます（またはstdout.txtに表示されます）。
+            </p>
+
+            <h2 data-dl-uid="50" data-dl-original="true" data-dl-translated="true">
+              特殊なファイルタイプ
+            </h2>
+
+            <p data-dl-uid="51" data-dl-original="true" data-dl-translated="true"></p>
+            <h3 data-dl-uid="52" data-dl-original="true" data-dl-translated="true">メタファイル</h3>
+            <p data-dl-uid="53" data-dl-original="true" data-dl-translated="true"></p>
+            <p data-dl-uid="54" data-dl-original="true" data-dl-translated="true">
+              ファイルシステムの中には、ファイルシステム用に特別なファイルやフォルダを実装しているものがあります。通常、同じディレクトリに同じ名前のファイルやフォルダを2つ置くことはできません（フォルダと同じ名前を共有するファイル名も同様）。このため、これらの隠しファイルを使ってファイルやフォルダーに名前を付けることも、実装によってはできない場合があります。
+            </p>
+            <p data-dl-uid="55" data-dl-original="true" data-dl-translated="true">
+              例えば、NTFSでは、ファイルシステム用にいくつかのメタファイルを用意しています。これらのファイルは、システム・ドライブのルート・ディレクトリ（通常はC:）に配置されます。隠しファイルやシステムファイルの表示にチェックを入れても表示されませんが、そこに上記のような名前のファイルを作成するとどうなるかを見てみましょう。これらのファイルは他の場所でも作成できますが、メタファイルの関係でルート・ディレクトリに作成すると「file
+              already exists」エラーが発生します。
+            </p>
+            <p data-dl-uid="56" data-dl-original="true" data-dl-translated="true"></p>
+
+            <h3 data-dl-uid="57" data-dl-original="true" data-dl-translated="true">デバイスファイル</h3>
+            <p data-dl-uid="58" data-dl-original="true" data-dl-translated="true"></p>
+            <p data-dl-uid="59" data-dl-original="true" data-dl-translated="true">
+              Unix系システム、DOS（ひいてはWindows）には、<b
+                data-dl-uid="60"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >デバイスを</b
+              >表す特別な「ファイル」であるデバイスファイルがあります。
+              例えば、NUL（ヌルデバイス）、CLOCK$、PRN（プリンタ）などがそうです。以下、デバイスファイルの一覧です。
+            </p>
+            <ul data-dl-uid="61" data-dl-original="true" data-dl-translated="true">
+              <li data-dl-uid="62" data-dl-original="true" data-dl-translated="true">CON</li>
+              <li data-dl-uid="63" data-dl-original="true" data-dl-translated="true">PRN</li>
+              <li data-dl-uid="64" data-dl-original="true" data-dl-translated="true">AUX</li>
+              <li data-dl-uid="65" data-dl-original="true" data-dl-translated="true">CLOCK$</li>
+              <li data-dl-uid="66" data-dl-original="true" data-dl-translated="true">NUL</li>
+              <li data-dl-uid="67" data-dl-original="true" data-dl-translated="true">
+                COM0，COM1，...COM9
+              </li>
+              <li data-dl-uid="68" data-dl-original="true" data-dl-translated="true">
+                LPT0, LPT1, ...LPT9
+              </li>
+            </ul>
+            これらの名前はDOSやWindowsで特別な意味を持つため、ファイルやフォルダーに上記のような名前を付けることはできません。
+            <p data-dl-uid="69" data-dl-original="true" data-dl-translated="true"></p>
+            。
+            <p data-dl-uid="70" data-dl-original="true" data-dl-translated="true"></p>
+            <h3 data-dl-uid="71" data-dl-original="true" data-dl-translated="true">.および.</h3>
+            <p data-dl-uid="72" data-dl-original="true" data-dl-translated="true"></p>
+            <p data-dl-uid="73" data-dl-original="true" data-dl-translated="true">
+              .および...は、一部のファイルシステムで実装されている特殊なファイルです。は、カレントディレクトリを参照するファイル情報を含むファイルのファイル名です。...」は、そのファイルの親ディレクトリを参照する情報を含むファイルのファイル名である。例えば、カレントディレクトリが<b
+                data-dl-uid="74"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >c:</b
+              >
+              <b data-dl-uid="75" data-dl-original="true" data-dl-translated="true">⇄mydirの</b
+              >場合、パス名<b data-dl-uid="76" data-dl-original="true" data-dl-translated="true">...</b
+              >はC:を、パス名<b data-dl-uid="77" data-dl-original="true" data-dl-translated="true">...</b
+              >はc:⇄mydirを参照することになります。
+            </p>
+
+            <h2 data-dl-uid="78" data-dl-original="true" data-dl-translated="true">
+              ファイルシステムの種類
+            </h2>
+
+            <h3 data-dl-uid="79" data-dl-original="true" data-dl-translated="true">
+              フラットファイルシステム
+            </h3>
+            <p data-dl-uid="80" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="81" data-dl-original="true" data-dl-translated="true"
+                >フラットファイルシステムとは</b
+              >、サブディレクトリを持たないファイルシステムのことで、すべてのファイルが同じ（ルート）ディレクトリに格納されています。初期のコンピューターシステムの多くは、フラットファイルシステムを使用していました。最近のオペレーティングシステムは、より高度な階層型ファイルシステムを実装しているのが一般的です。フラットファイルシステムは、小型で導入が簡単な反面、初期化が困難です。
+            </p>
+
+            <h3 data-dl-uid="82" data-dl-original="true" data-dl-translated="true">
+              階層型ファイルシステム
+            </h3>
+            <p data-dl-uid="83" data-dl-original="true" data-dl-translated="true">
+              サブディレクトリをサポートするファイルシステムです。最近のファイルシステム（FAT12、FAT16、FAT32、etx、NTFSなど）のほとんどは、このタイプに分類されます。(FAT12の最初のバージョンはフラットファイルシステムでした。ただし、それ以降のバージョンではサブディレクトリをサポートしています)。
+            </p>
+
+            <h3 data-dl-uid="84" data-dl-original="true" data-dl-translated="true">
+              ジャーナリングファイルシステム
+            </h3>
+            <p data-dl-uid="85" data-dl-original="true" data-dl-translated="true">
+              このタイプのファイルシステムは、ファイルシステムの変更に関する「ジャーナル」を使用します。これは、システムがファイルやディレクトリに対して行おうとしている変更を、手順を完了する前に記録したものです。これにより、ファイルシステムの操作中にクラッシュが発生した場合（ファイルの書き込みなど）、ジャーナルを読んで変更を元に戻し、ファイルシステムを修復できることが保証されます。
+            </p>
+
+            <h2 data-dl-uid="86" data-dl-original="true" data-dl-translated="true">
+              ファイルシステムドライバ
+            </h2>
+            <p data-dl-uid="87" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="88" data-dl-original="true" data-dl-translated="true">ファイル</b
+              >システムが「ファイル」と「ディレクトリ」の読み書きの仕様を定義するのに対して、<b
+                data-dl-uid="89"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ファイルシステムドライバは</b
+              >特定のタイプのファイルシステムの実装を含んでいます。ファイルシステムドライバの例としては、マイクロソフト社のNTFSファイルシステムを実装した<b
+                data-dl-uid="90"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ntfs.sysが</b
+              >あります。ファイルシステムドライバはまた、より大きなソフトウェアの中のミニドライバとして実装されることもあります。
+              ブートローダはその良い例です。ブートローダは、別のドライバプログラムなしでディスクからファイルをロードできなければならないので、ブートローダ自体の中に、異なるタイプのファイルシステムのためのいくつかのファイルシステムミニドライバを含んでいます。このシリーズでブートローダを開発した人は、すでに
+              FAT12 ファイルシステムを経験し、私たちのブートローダ用に FAT12
+              のミニドライバを開発したはずです。
+            </p>
+
+            <h1 data-dl-uid="91" data-dl-original="true" data-dl-translated="true">
+              仮想ファイルシステム(VFS)
+            </h1>
+
+            <h2 data-dl-uid="92" data-dl-original="true" data-dl-translated="true">概要</h2>
+
+            <p data-dl-uid="93" data-dl-original="true" data-dl-translated="true">
+              仮想ファイルシステム(VFS<b
+                data-dl-uid="94"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >)</b
+              >は、特定のファイルシステム実装の上にある抽象化レイヤです。
+              ソフトウェアは、VFSを通してストレージデバイスにアクセスします。これにより、ソフトウェアは、使用されているデバイスやファイルシステムの知識がなくても、異なるストレージデバイスへの読み取りや書き込みを行うことができます。また、インストールされたファイルシステムやデバイスの数だけ、同じコードを動作させることができます。
+            </p>
+            <p data-dl-uid="95" data-dl-original="true" data-dl-translated="true">
+              基本的な考え方は、単一のシステムインターフェイスで、あらゆるファイルシステムを統一的に扱えるようにすることです。Windows、Linux、Mac
+              OSはすべて、異なる方法でVFSをサポートしています。
+            </p>
+
+            <h2 data-dl-uid="96" data-dl-original="true" data-dl-translated="true">実装</h2>
+
+            <p data-dl-uid="97" data-dl-original="true" data-dl-translated="true">
+              VFSを実装するには、さまざまな方法があります。
+            </p>
+
+            <h3 data-dl-uid="98" data-dl-original="true" data-dl-translated="true">
+              マウントポイントリスト
+            </h3>
+
+            <p data-dl-uid="99" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="100" data-dl-original="true" data-dl-translated="true"
+                >マウントポイントリストとは</b
+              >、マウントされたファイルシステムと、それらがマウントされている場所のリストです。
+              例えば、ファイルを読み込む必要がある場合、OSは通常VFS
+              ReadFile()関数を呼び出し、マウントされたファイルシステムのリストを検索して、ファイルがあるデバイスとファイルシステムを探します。そして、読み取り要求をそのファイルシステムのReadFile()関数に渡します。
+            </p>
+
+            <h3 data-dl-uid="101" data-dl-original="true" data-dl-translated="true">ノードグラフ</h3>
+
+            <p data-dl-uid="102" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="103" data-dl-original="true" data-dl-translated="true">ノード グラ</b
+              >フには、ファイル、フォルダー、マウント
+              ポイントなど、さまざまな種類のファイルを表すノードのグラフが含まれます。各ファイルノード構造には、通常、ファイルの読み取りと書き込みを行うファイルシステム固有のルーチンへの関数ポインタが含まれている。
+            </p>
+            例えば、次のようなFILE構造を作ることができます。
+
+            <div class="code">
+              <blockquote>
+                <pre>
+typedef struct _FILE {
+
+	char        name[32];    //filename
+	uint32_t    flags;       //flags
+	uint32_t    fileLength;  //length of file
+	read_funct  read;        //function pointers to read,write,open,close file
+	write_funct write;
+	open_funct  open;
+	close_funct close;
+
+}FILE, *PFILE;
+</pre
+                >
+              </blockquote>
+            </div>
+
+            <p data-dl-uid="107" data-dl-original="true" data-dl-translated="true">
+              関数ポインタは、このFILE構造体に格納されていることに注意してください。例えば、ファイルを読み込むためにfopen()を呼び出すと、最終的にVFSのOpenFile()関数が呼び出されます。VFSのファイル操作ルーチンが行う必要があるのは、特定のFILEの関数ポインタに制御を移すことだけです。
+            </p>
+
+            <div class="code">
+              <blockquote>
+                <pre>
+void VfsOpenFile (PFILE file, const char* filename) {
+
+	if (file)
+		file-&gt;open (filename);
+
+}
+</pre
+                >
+              </blockquote>
+            </div>
+
+            <p data-dl-uid="111" data-dl-original="true" data-dl-translated="true">
+              これにより、ファイルシステムで定義されたルーチンを呼び出すことができます。
+            </p>
+
+            <h3 data-dl-uid="112" data-dl-original="true" data-dl-translated="true">DOSとWindows</h3>
+            <p data-dl-uid="113" data-dl-original="true" data-dl-translated="true">
+              DOSとWindowsでは、マウントされたファイルシステムを表すためにaからzまでの文字が割り当てられます。
+              Windowsでは、ドライブレターとそのObject Manager名の間にシンボリックリンクが保持されます。
+              例えば、ドライブレターc: (シンボリックリンク名 \GLOBAL??\C:) はObject名
+              \DeviceHardDiskVolume1 device
+              objectにマップされることがあります。ファイルシステムはデバイスオブジェクトを所有するために自身を登録することができます。ファイルシステムがそのオブジェクトを所有することが判明した場合、残りのファイルパス名
+              (この例では "myfile.txt") がそのファイルシステムの FileOpen() 関数に渡されます。
+            </p>
+            <p data-dl-uid="114" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="115" data-dl-original="true" data-dl-translated="true"
+                >ドライブレターの割り当て</b
+              >
+            </p>
+            <p data-dl-uid="116" data-dl-original="true" data-dl-translated="true">
+              Windows
+              では、マウントされたファイルシステムを表すデバイスやパーティションに、ドライブレターを割り当てることができます。(ブート時に、ファイルシステムドライバがデバイスオブジェクトの所有者として登録されていない場合、WindowsはデバイスにRAWミニドライバを使用します)。ドライブレターは、ネットワーク共有ドライブ、仮想ディスクイメージ、ローカルまたはネットワーククライアント内の別の場所へのシンボリックリンクを参照することもできます。ただし、「a」から「z」まで26文字しか使えないため、26個のデバイスに限定される。
+            </p>
+
+            <h2 data-dl-uid="117" data-dl-original="true" data-dl-translated="true">インターフェース</h2>
+            <p data-dl-uid="118" data-dl-original="true" data-dl-translated="true">
+              簡単のために、VFSの実装では、ドライブレターの割り当てとマウントポイントリストを使用することにします。このシリーズで紹介するOSでは、デバイス管理やI/O管理は行っていませんので、シンプルな実装にする必要があります。
+            </p>
+            <p data-dl-uid="119" data-dl-original="true" data-dl-translated="true">
+              個人的には、ファイルシステムドライバの前にVFSを先に開発することをお勧めします。そうすれば、VFSのインターフェースやフレームワークは既に完成しているはずです。
+            </p>
+            <h3 data-dl-uid="120" data-dl-original="true" data-dl-translated="true">ファイル</h3>
+            <p data-dl-uid="121" data-dl-original="true" data-dl-translated="true">
+              C言語を使ったことがある人なら、悪名高いFILE*データ型はすでによく知られています。FILE*は、ファイル・オブジェクトへのポインタを表す<b
+                data-dl-uid="122"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >抽象データ型（ADT</b
+              >）です。ISO
+              Cでは、C言語の実装はFILE型を定義しなければならないと定義していますが、構造体の中身は定義していません。つまり、FILE*はISO
+              Cですが、構造体の中身はインプリメンテーションで定義されたものです。
+            </p>
+            <p data-dl-uid="123" data-dl-original="true" data-dl-translated="true">
+              ファイルの現在の状態を表すファイル構造体は、どのようにでも定義できます。
+              つまり、ファイルには名前とサイズがあり、これはすでに2つのメンバーです。<b
+                data-dl-uid="124"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ファイル終了（EOF）か</b
+              >どうかをフラグする方法と、ファイル固有のフラグが必要で、これがさらに2つのメンバとなる。さらに、ファイルの現在位置（クラスタとクラスタオフセット）を追跡する方法も必要で、次のようなものがある。
+            </p>
+            <p data-dl-uid="125" data-dl-original="true" data-dl-translated="true"></p>
+
+            <div class="code">
+              <blockquote>
+                <pre>
+typedef struct _FILE {
+
+	char        name[32];
+	uint32_t    flags;
+	uint32_t    fileLength;
+	uint32_t    id;
+	uint32_t    eof;
+	uint32_t    position;
+	uint32_t    currentCluster;
+	uint32_t    device;
+
+}FILE, *PFILE;
+</pre
+                >
+              </blockquote>
+            </div>
+
+            簡単だったでしょう？<b data-dl-uid="129" data-dl-original="true" data-dl-translated="true"
+              >idは</b
+            >、お望みであれば、識別の目的で使用できます。<b
+              data-dl-uid="130"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >deviceは</b
+            >、ファイルが存在するデバイスを表します。
+            <p data-dl-uid="131" data-dl-original="true" data-dl-translated="true"></p>
+
+            <h3 data-dl-uid="132" data-dl-original="true" data-dl-translated="true">ファイルの種類</h3>
+            <p data-dl-uid="133" data-dl-original="true" data-dl-translated="true">
+              これまで、ファイル、ディレクトリ、シンボリックリンクなど、さまざまな種類のファイルについて説明してきました。簡単のために、ここではファイルとディレクトリにのみ焦点を当てます。ファイルの種類を表すために、上記のFILE構造体の<b
+                data-dl-uid="134"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >フラグ・</b
+              >メンバにこれらのフラグを使用します。
+            </p>
+
+            <div class="code">
+              <blockquote>
+                <pre>
+#define FS_FILE       0
+#define FS_DIRECTORY  1
+#define FS_INVALID    2
+</pre
+                >
+              </blockquote>
+            </div>
+
+            <h2 data-dl-uid="138" data-dl-original="true" data-dl-translated="true">操作について</h2>
+
+            <p data-dl-uid="139" data-dl-original="true" data-dl-translated="true">
+              ファイルに対して実行できる典型的な操作がいくつかあります。
+            </p>
+            <ul data-dl-uid="140" data-dl-original="true" data-dl-translated="true">
+              <li data-dl-uid="141" data-dl-original="true" data-dl-translated="true">開く</li>
+              <li data-dl-uid="142" data-dl-original="true" data-dl-translated="true">閉じる</li>
+              <li data-dl-uid="143" data-dl-original="true" data-dl-translated="true">読む</li>
+              <li data-dl-uid="144" data-dl-original="true" data-dl-translated="true">書き込む</li>
+              <li data-dl-uid="145" data-dl-original="true" data-dl-translated="true">マウント</li>
+              <li data-dl-uid="146" data-dl-original="true" data-dl-translated="true">アンマウント</li>
+            </ul>
+
+            OpenとCloseはファイルオブジェクト（ファイルやディレクトリ、ファイルタイプは問わない）を開いたり閉じたりする操作で、ReadとWriteはファイルタイプの読み込みと書き込みを行う操作です。これらはすべて、Cの標準ファイルI/O関数を通じてプログラマに公開されています。
+            <p data-dl-uid="147" data-dl-original="true" data-dl-translated="true"></p>
+            。
+            <p data-dl-uid="148" data-dl-original="true" data-dl-translated="true">
+              VFSの場合は、fsys.hにある<b
+                data-dl-uid="149"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ボリューム・マネージャを通じて</b
+              >公開されます。
+            </p>
+
+            <div class="code">
+              <blockquote>
+                <pre>
+extern FILE volOpenFile (const char* fname);
+extern void volReadFile (PFILE file, unsigned char* Buffer, unsigned int Length);
+extern void volCloseFile (PFILE file);
+extern void volRegisterFileSystem (PFILESYSTEM, unsigned int deviceID);
+extern void volUnregisterFileSystem (PFILESYSTEM);
+extern void volUnregisterFileSystemByID (unsigned int deviceID);
+</pre
+                >
+              </blockquote>
+            </div>
+
+            <p data-dl-uid="153" data-dl-original="true" data-dl-translated="true">
+              例えば、C言語のfopen()ルーチンを呼び出すとします。このルーチンは、FILEオブジェクトを返すvolOpenFile()ルーチンを呼び出します。ファイルへのパスは、"a:
+              \myfile.txt"
+              のように渡します。ボリューム・マネージャはマウント・ポイント・リストを検索し、ファイル・システムが「a」を表すデバイスIDに登録されているかどうかを確認します。もし登録されていれば、ファイルシステムドライバのFileOpen()メソッドを呼び出し、「myfile.txt」を渡します。
+              複雑に聞こえるかもしれませんが、心配しないでください。でも、このデモの実装はとても簡単です。
+            </p>
+            <h2 data-dl-uid="154" data-dl-original="true" data-dl-translated="true">
+              ボリュームマネージャの実装
+            </h2>
+
+            <h3 data-dl-uid="155" data-dl-original="true" data-dl-translated="true">
+              ファイルシステムの抽象化
+            </h3>
+            <p data-dl-uid="156" data-dl-original="true" data-dl-translated="true">
+              最初に必要なのは、ファイルシステム固有の情報を抽象化する方法です。
+              これには、ファイルシステムの名前やファイルに対して実行可能な操作が含まれます。これは関数ポインターを用いて行われる．
+            </p>
+
+            <div class="code">
+              <blockquote>
+                <pre>
+typedef struct _FILE_SYSTEM {
+
+	char Name [8];
+	FILE               (*Directory)  (const char* DirectoryName);
+	void	           (*Mount)      ();
+	void               (*Read)       (PFILE file, unsigned char* Buffer, unsigned int Length);
+	void	           (*Close)      (PFILE);
+	FILE               (*Open)       (const char* FileName);
+
+}FILESYSTEM, *PFILESYSTEM;
+</pre
+                >
+              </blockquote>
+            </div>
+
+            <h3 data-dl-uid="160" data-dl-original="true" data-dl-translated="true">実装</h3>
+            <p data-dl-uid="161" data-dl-original="true" data-dl-translated="true">
+              ボリューム・マネージャは、デモのVFSをインプリメントします。fsys.hとfsys.cppに含まれています。デバイスは26個あるので、<b
+                data-dl-uid="162"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >DEVICE_MAXという</b
+              >定数を作ると便利です。各デバイスはマウント可能なファイルシステムを1つだけ持つことができるので、（マウントポイントリストのように）リストに格納します。
+            </p>
+
+            <div class="code">
+              <blockquote>
+                <pre>
+#define DEVICE_MAX 26
+
+//! File system list
+PFILESYSTEM _FileSystems[DEVICE_MAX];
+</pre
+                >
+              </blockquote>
+            </div>
+
+            <p data-dl-uid="166" data-dl-original="true" data-dl-translated="true">
+              以下は、その仕組みです。ファイルシステムはポインタのリストとして格納しているので、ポインタが有効であれば、そこにファイルシステムが登録されていることになります。配列の各要素は、それが参照するドライブ文字を表します。つまり、'a'
+              は _FileSystems[0] に、'b' は _FileSystems[1]
+              に、といった具合です。ファイルシステムが書き込むディスクを管理するのはファイルシステムの責任です。
+            </p>
+            <p data-dl-uid="167" data-dl-original="true" data-dl-translated="true">
+              このメソッドを使用すると、非常に基本的ですが、デバイスに簡単にアクセスすることができます。例えば、volOpenFile()
+              はパスの最初の文字(ドライブ文字)をチェックし、そのデバイスにファイルシステムが登録されているかどうか、リストを検索するだけでよいのです。もし登録されていれば、そのファイルシステムの
+              open() メソッドを呼び出し、ファイル名をドライバに渡します。デフォルトでは 'a'
+              を使用しますが、入力パスに ':'
+              が含まれている場合は、代わりにデバイスの最初の文字を使用します。 これにより、volOpenFile
+              は<b data-dl-uid="168" data-dl-original="true" data-dl-translated="true">"myfile.txt"</b
+              >と<b data-dl-uid="169" data-dl-original="true" data-dl-translated="true"
+                >"a:myfile.txt"</b
+              >
+              という2通りの方法で呼び出すことができます（ここで "a"
+              はファイルが存在するデバイスを表します）。かっこいいでしょう？
+            </p>
+
+            <div class="code">
+              <blockquote>
+                <pre>
+FILE volOpenFile (const char* fname) {
+
+	if (fname) {
+
+		//! default to device 'a'
+		unsigned char device = 'a';
+
+		//! filename
+		char* filename = (char*) fname;
+
+		//! in all cases, if fname[1]==':' then the first character must be device letter
+		if (fname[1]==':') {
+
+			device = fname[0];
+			filename += 2; //strip it from pathname
+		}
+
+		//! call filesystem
+		if (_FileSystems [device - 'a']) {
+
+			//! set volume specific information and return file
+			FILE file = _FileSystems[device - 'a']-&gt;Open (filename);
+			file.deviceID = device;
+			return file;
+		}
+	}
+
+	FILE file;
+	file.flags = FS_INVALID;
+	return file;
+}</pre
+                >
+              </blockquote>
+            </div>
+
+            <p data-dl-uid="173" data-dl-original="true" data-dl-translated="true">
+              他のファイル操作ルーチンは基本的にすべて同じです。 VFS
+              がどのようにファイルシステムを保存しているかを知れば、volRegisterFileSystem()
+              ルーチン・ファミリーがどのように動作するか想像がつくはずです。基本的には、ファイルシステムへのポインタをリストに格納したり、クリアしたりするだけです。
+            </p>
+
+            <div class="code">
+              <blockquote>
+                <pre>
+void volRegisterFileSystem (PFILESYSTEM fsys, unsigned int deviceID) {
+
+	if (deviceID &lt; DEVICE_MAX)
+		if (fsys)
+			_FileSystems[ deviceID ] = fsys;
+}</pre
+                >
+              </blockquote>
+            </div>
+
+            <p data-dl-uid="177" data-dl-original="true" data-dl-translated="true">
+              さて、それではファイルシステム・ドライバを初期化し、VolRegisterFileSystem()を呼び出して自分自身を登録します。
+              fopen()を呼び出し、VolOpenFile()を呼び出して、ファイルシステムのopen()メソッドを呼び出しました。これで準備は整いましたが、何かが足りません...とても重要な何かが...ファイルシステム・ドライバそのものが!
+            </p>
+            <p data-dl-uid="178" data-dl-original="true" data-dl-translated="true">
+              そうですね、もう一回やってみましょうか......。
+            </p>
+
+            <h1 data-dl-uid="179" data-dl-original="true" data-dl-translated="true">FAT12 - テイク3</h1>
+
+            <p data-dl-uid="180" data-dl-original="true" data-dl-translated="true"></p>
+            <h2 data-dl-uid="181" data-dl-original="true" data-dl-translated="true">はじめに</h2>
+            <p data-dl-uid="182" data-dl-original="true" data-dl-translated="true"></p>
+            <p data-dl-uid="183" data-dl-original="true" data-dl-translated="true">
+              このシリーズでは、過去に2回、FAT12を見て実装しました。そのため、今回もFAT12について詳しく説明する予定はありません。しかし、今回はFAT12をCドライバのコードとその動作とともに復習することにします。
+            </p>
+            <p data-dl-uid="184" data-dl-original="true" data-dl-translated="true">
+              必要であれば、<a
+                href="http://www.brokenthorn.com/Resources/OSDev11.html"
+                data-dl-uid="185"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >第11章を</a
+              >参照しながら読んでください。
+            </p>
+            <h2 data-dl-uid="186" data-dl-original="true" data-dl-translated="true">ブートセクター</h2>
+
+            <p data-dl-uid="187" data-dl-original="true" data-dl-translated="true">
+              重要なファイルシステムの情報の多くは、ブートストラッププログラムとともにブートセクタに格納されていることを思い出してください。具体的には、ブートセクターにある<b
+                data-dl-uid="188"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >Bios Paramater Block (PBP)</b
+              >に格納されているのです。
+            </p>
+            <p data-dl-uid="189" data-dl-original="true" data-dl-translated="true">
+              ファイルシステムをマウントするときに、後で使用するために BPB
+              からこの情報を読み出して保存する必要があります。これを行うには、ブートセクターに一致する構造体を作成します。
+            </p>
+
+            <div class="code">
+              <blockquote>
+                <pre>
+typedef struct _BOOT_SECTOR {
+
+	uint8_t			Ignore[3];		//first 3 bytes are ignored (our jmp instruction)
+	BIOSPARAMATERBLOCK	Bpb;			//BPB structure
+	BIOSPARAMATERBLOCKEXT	BpbExt;			//extended BPB info
+	uint8_t			Filler[448];		//needed to make struct 512 bytes
+
+}BOOTSECTOR, *PBOOTSECTOR;
+</pre
+                >
+              </blockquote>
+            </div>
+
+            <p data-dl-uid="193" data-dl-original="true" data-dl-translated="true">
+              ブートセクタがどのように見えるかの良い例は、Stage1
+              ブートローダプログラムがメモリ上でどのように見えるかを考えてみることです。Stage1
+              の一番最初の命令（<a
+                href="http://www.brokenthorn.com/Resources/OSDev4.html"
+                data-dl-uid="194"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >4 章のデモ</a
+              >、Stage1.asm を参照）は<b
+                data-dl-uid="195"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >jmp loader</b
+              >
+              です。これは3バイト命令なので、上の構造の最初の3バイトは、jmp 命令の<b
+                data-dl-uid="196"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >オペレーションコード（OPCode）</b
+              >です。
+            </p>
+            <p data-dl-uid="197" data-dl-original="true" data-dl-translated="true">
+              また、<a
+                href="http://www.brokenthorn.com/Resources/OSDev4.html"
+                data-dl-uid="198"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >第4</a
+              >章でOEMパラメータブロック（別名、Biosパラメータブロック（BPB））を取り上げましたので、覚えておいてください。このため、BIOSPARAMATERBLOCKは、この構造体の次にあります。また、FAT32などの他のファイルシステム用にBPBを拡張したBIOSPARAMATERBLOCKEXT構造体も提供しています。
+            </p>
+            <p data-dl-uid="199" data-dl-original="true" data-dl-translated="true">
+              ブートセクタの最後の448バイトは、ブートセクタのプログラムコードの残りを含んでいます。今すぐには重要ではないので、<b
+                data-dl-uid="200"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >Filler</b
+              >メンバのパディングとして扱います。これにより、BOOTSECTOR構造体がディスク上のブートセクター（512バイト）と正確に同じサイズになることが保証されます。
+            </p>
+            <p data-dl-uid="201" data-dl-original="true" data-dl-translated="true">
+              BIOSPARAMATERBLOCKは、BPBのフォーマットを定義する構造体です。これはブートセクターと同じ構造体で、<a
+                href="http://www.brokenthorn.com/Resources/OSDev5.html"
+                data-dl-uid="202"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >第5</a
+              >章で詳しく説明しました。
+            </p>
+
+            <div class="code">
+              <blockquote>
+                <pre>
+typedef struct _BIOS_PARAMATER_BLOCK {
+
+	uint8_t			OEMName[8];
+	uint16_t		BytesPerSector;
+	uint8_t			SectorsPerCluster;
+	uint16_t		ReservedSectors;
+	uint8_t			NumberOfFats;
+	uint16_t		NumDirEntries;
+	uint16_t		NumSectors;
+	uint8_t			Media;
+	uint16_t		SectorsPerFat;
+	uint16_t		SectorsPerTrack;
+	uint16_t		HeadsPerCyl;
+	uint32_t		HiddenSectors;
+	uint32_t		LongSectors;
+
+}BIOSPARAMATERBLOCK, *PBIOSPARAMATERBLOCK;
+</pre
+                >
+              </blockquote>
+            </div>
+
+            <p data-dl-uid="206" data-dl-original="true" data-dl-translated="true">
+              上記の構造体は見慣れたものでしょう :)そうでなければ、<a
+                href="http://www.brokenthorn.com/Resources/OSDev5.html"
+                data-dl-uid="207"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >第5</a
+              >章の説明を読んでください。
+            </p>
+            <p data-dl-uid="208" data-dl-original="true" data-dl-translated="true">
+              しかし、BIOSPARAMATERBLOCKEXTは新しいかもしれません。BPBについてはすでに詳しく説明し、過去にFAT12の解析に使用しましたが、FAT12のブートセクタはBPB拡張メンバに依存しないのです。しかし、FAT32はそうです。
+            </p>
+
+            <div class="code">
+              <blockquote>
+                <pre>
+typedef struct _BIOS_PARAMATER_BLOCK_EXT {
+
+	uint32_t			SectorsPerFat32;   //sectors per FAT
+	uint16_t			Flags;             //flags
+	uint16_t			Version;           //version
+	uint32_t			RootCluster;       //starting root directory
+	uint16_t			InfoCluster;
+	uint16_t			BackupBoot;        //location of bootsector copy
+	uint16_t			Reserved[6];
+
+}BIOSPARAMATERBLOCKEXT, *PBIOSPARAMATERBLOCKEXT;
+</pre
+                >
+              </blockquote>
+            </div>
+
+            <p data-dl-uid="212" data-dl-original="true" data-dl-translated="true">
+              これで全部です
+              :)すべて以前の章で詳しく説明されています。これらの構造体は、ファイルシステムドライバにBPBのデータを参照する簡単な方法を提供し、後でファイルシステムを使用できるようにします。必要なのはブートセクタを読み込むことと、PBOOTSECTOR
+              を通してデータにアクセスすることです。
+            </p>
+            <p data-dl-uid="213" data-dl-original="true" data-dl-translated="true">
+              前の章で開発したフロッピーディスクドライバを使って、セクタを読み取ります。
+            </p>
+
+            <div class="code">
+              <blockquote>
+                <pre>
+	//! Boot sector info
+	PBOOTSECTOR bootsector;
+
+	//! read boot sector
+	bootsector = (PBOOTSECTOR) flpydsk_read_sector (0);
+</pre
+                >
+              </blockquote>
+            </div>
+
+            <p data-dl-uid="217" data-dl-original="true" data-dl-translated="true">
+              必要なのはこれだけです :)重要な情報はすべて<b
+                data-dl-uid="218"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >bootsector.bpb</b
+              >
+              にあります。あとは、ファイルシステムをマウントするだけです...
+            </p>
+
+            <h2 data-dl-uid="219" data-dl-original="true" data-dl-translated="true">
+              ファイルシステムのマウント
+            </h2>
+
+            <p data-dl-uid="220" data-dl-original="true" data-dl-translated="true">
+              さて、BPB の情報がメモリに入ったので、ファイルシステムを使う準備をする必要があり
+              ます。まず、必要な情報を決定することから始めます。
+            </p>
+            <p data-dl-uid="221" data-dl-original="true" data-dl-translated="true">
+              さて、ディスク上の総セクタ数が必要です。また、ディレクトリエントリの総数も必要です。その他に、<b
+                data-dl-uid="222"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ファイルアロケーションテーブル(FAT)</b
+              >とルートディレクトリを使用する際に役立つ情報があります。
+            </p>
+
+            <div class="code">
+              <blockquote>
+                <pre>
+typedef struct _MOUNT_INFO {
+
+	uint32_t numSectors;
+	uint32_t fatOffset;
+	uint32_t numRootEntries;
+	uint32_t rootOffset;
+	uint32_t rootSize;
+	uint32_t fatSize;
+	uint32_t fatEntrySize;
+
+}MOUNT_INFO, *PMOUNT_INFO;
+</pre
+                >
+              </blockquote>
+            </div>
+
+            <p data-dl-uid="226" data-dl-original="true" data-dl-translated="true">
+              さて...ブートセクタはすでに BOOTSECTOR 構造体に格納されていますね？これを知っていれば、BPB
+              から MOUNT_INFO 構造体に情報をコピーすることができます。
+            </p>
+            <p data-dl-uid="227" data-dl-original="true" data-dl-translated="true">
+              さてと...FAT12でフォーマットされたディスクの最初のFATとルートディレクトリの位置を確認しましょう。
+            </p>
+            <p data-dl-uid="228" data-dl-original="true" data-dl-translated="true"></p>
+
+            <table border="2" width="85%">
+              <tbody>
+                <tr bgcolor="#CCCCCC">
+                  <td>Boot Sector</td>
+                  <td>Extra Reserved Sectors</td>
+                  <td bgcolor="#aaaaaa">File Allocation Table 1</td>
+                  <td>File Allocation Table 2</td>
+                  <td bgcolor="#aaaaaa">Root Directory (FAT12/FAT16 Only)</td>
+                  <td>Data Region containng files and directories.</td>
+                </tr>
+              </tbody>
+            </table>
+            <p></p>
+
+            <p data-dl-uid="238" data-dl-original="true" data-dl-translated="true"></p>
+            <p data-dl-uid="239" data-dl-original="true" data-dl-translated="true">
+              FATが2つあることに注意してください。最初のFATは、ディスクのブートセクタの直後にあります。このため、MOUNT_INFOの<b
+                data-dl-uid="240"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >fatOffsetを</b
+              >1に設定しています。また、Root
+              Directoryは両方のFATの直後にあることに注意してください。これを知っていれば、ルート・ディレクトリの開始セクタを見つけるための簡単な計算を思いつくことができます。<b
+                data-dl-uid="241"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >(NumberOfFATs * sectorsPerFAT) + 1</b
+              >. ブートセクタのために 1 を加える必要があります。
+            </p>
+            <p data-dl-uid="242" data-dl-original="true" data-dl-translated="true">
+              これで、最初のFATとルート・ディレクトリの位置がわかりました。
+              ルート・ディレクトリのサイズを求めるために必要なのは、ルート・ディレクトリのエントリ数と各エントリのサイズです。
+              FAT12の各ディレクトリ・エントリは、サイズが32バイトの特定の構造形式になっています。つまり、<b
+                data-dl-uid="243"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >bootsector-&gt;Bpb.NumDirEntries * 32で</b
+              >、ディレクトリが占めるバイト数ということになります。これをセクタあたりのバイト数で割ってセクタ数に変換しています。
+            </p>
+
+            <div class="code">
+              <blockquote>
+                <pre>
+	//! store mount info
+	_MountInfo.numSectors     = bootsector-&gt;Bpb.NumSectors;
+	_MountInfo.fatOffset      = 1;
+	_MountInfo.fatSize        = bootsector-&gt;Bpb.SectorsPerFat;
+	_MountInfo.fatEntrySize   = 8;
+	_MountInfo.numRootEntries = bootsector-&gt;Bpb.NumDirEntries;
+	_MountInfo.rootOffset     = (bootsector-&gt;Bpb.NumberOfFats * bootsector-&gt;Bpb.SectorsPerFat) + 1;
+	_MountInfo.rootSize       = ( bootsector-&gt;Bpb.NumDirEntries * 32 ) / bootsector-&gt;Bpb.BytesPerSector;
+</pre
+                >
+              </blockquote>
+            </div>
+
+            <p data-dl-uid="247" data-dl-original="true" data-dl-translated="true">
+              以上で完了です。これでFAT12ドライバは初期化できました。簡単でしょう?MOUNT_INFO
+              に重要なファイルシステム情報があるので、あとはディレクトリを解析してファイルを読み込むだけです
+              :)
+            </p>
+
+            <h2 data-dl-uid="248" data-dl-original="true" data-dl-translated="true">
+              ディレクトリのパース
+            </h2>
+
+            <h3 data-dl-uid="249" data-dl-original="true" data-dl-translated="true">フォーマット</h3>
+            <p data-dl-uid="250" data-dl-original="true" data-dl-translated="true">
+              FAT12のディレクトリは32バイトの構造体で構成され、ファイルやサブディレクトリの情報を提供します。
+              各ディレクトリのエントリは次のようなフォーマットになっています。
+            </p>
+
+            <div class="code">
+              <blockquote>
+                <pre>
+typedef struct _DIRECTORY {
+
+	uint8_t   Filename[8];           //filename
+	uint8_t   Ext[3];                //extension (8.3 filename format)
+	uint8_t   Attrib;                //file attributes
+	uint8_t   Reserved;
+	uint8_t   TimeCreatedMs;         //creation time
+	uint16_t  TimeCreated;
+	uint16_t  DateCreated;           //creation date
+	uint16_t  DateLastAccessed;
+	uint16_t  FirstClusterHiBytes;
+	uint16_t  LastModTime;           //last modification date/time
+	uint16_t  LastModDate;
+	uint16_t  FirstCluster;          //first cluster of file data
+	uint32_t  FileSize;              //size in bytes
+
+}DIRECTORY, *PDIRECTORY;
+</pre
+                >
+              </blockquote>
+            </div>
+
+            <p data-dl-uid="254" data-dl-original="true" data-dl-translated="true">
+              これだけです
+              :)これはディレクトリエントリです。DIRECTORY構造に格納される情報は、サブディレクトリでもファイルでもかまいません。<b
+                data-dl-uid="255"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >Filenameと</b
+              >
+              <b data-dl-uid="256" data-dl-original="true" data-dl-translated="true">Extには</b
+              >、ファイルやディレクトリの8.3形式の名前が含まれています。
+            </p>
+            <p data-dl-uid="257" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="258" data-dl-original="true" data-dl-translated="true">Attribは</b
+              >、ファイルまたはディレクトリの属性を含んでいます。参考までに以下の値を持つ。
+            </p>
+
+            <ul>
+              <li>Read only: 1</li>
+              <li>Hidden: 2</li>
+              <li>System: 4</li>
+              <li>Volume Lable: 8</li>
+              <li>Subdirectory: 0x10</li>
+              <li>Archive: 0x20</li>
+              <li>Device: 0x60</li>
+            </ul>
+
+            <p data-dl-uid="267" data-dl-original="true" data-dl-translated="true">
+              なお、本シリーズでは不要なので使用しませんが、お好きな方はご自身のシステムでファイル属性の作業や設定のサポートを提供することができます。
+            </p>
+            <p data-dl-uid="268" data-dl-original="true" data-dl-translated="true">
+              この構造体におけるすべての<b
+                data-dl-uid="269"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >日付</b
+              >メンバは、特定のビットフォーマットに従う。
+            </p>
+
+            <ul>
+              <li><b>Bits 0-4</b>: Day (0-31)</li>
+              <li><b>Bits 5-8</b>: Month (0-12)</li>
+              <li><b>Bits 9-15</b>: Year</li>
+            </ul>
+            この構造体のすべての<b data-dl-uid="277" data-dl-original="true" data-dl-translated="true"
+              >タイム</b
+            >メンバーは、特定のビットフォーマットに従います:
+            <p data-dl-uid="278" data-dl-original="true" data-dl-translated="true"></p>
+
+            <ul>
+              <li><b>Bits 0-4</b>: Second</li>
+              <li><b>Bits 5-10</b>: Minute</li>
+              <li><b>Bits 11-15</b>: Hour</li>
+            </ul>
+
+            <p data-dl-uid="286" data-dl-original="true" data-dl-translated="true">
+              ファイルやディレクトリの日付や時刻を変更したり取得したりする必要がないため、このシリーズでは使用していません。しかし、読者の皆様には、お好きなように機能を追加していただければと思います。
+            </p>
+            <p data-dl-uid="287" data-dl-original="true" data-dl-translated="true">
+              FAT12でフォーマットされたフロッピーディスクでは、クラスタは1セクタ（512バイト）と同じ大きさであることを思い出してください。このため、DIRECTORYの<b
+                data-dl-uid="288"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >FirstCluster</b
+              >フィールドは、ファイルの最初のセクタも指しています。したがって、このセクタを読むことで、ファイルの最初の512バイトを効果的に読み取ることができます。
+            </p>
+            <p data-dl-uid="289" data-dl-original="true" data-dl-translated="true">
+              それでは、ディレクトリを解析して、ファイルを探してみましょう。
+            </p>
+
+            <h3 data-dl-uid="290" data-dl-original="true" data-dl-translated="true">パース</h3>
+            <p data-dl-uid="291" data-dl-original="true" data-dl-translated="true">
+              ディレクトリはディレクトリエントリ構造のリストを含んでいることを思い出してください。
+              これを知っていれば、ディレクトリを解析してファイルやディレクトリを見つけるのは非常に簡単になります。
+            </p>
+            <p data-dl-uid="292" data-dl-original="true" data-dl-translated="true">
+              まず、ルートディレクトリを読み込むことから始めます。ファイルシステムをマウントしたときにBPBからルート・ディレクトリ・セクタを取得し、<b
+                data-dl-uid="293"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >_MountInfo.rootOffsetに</b
+              >格納したことを思い出してください。したがって、必要なことはセクタをロードし、<b
+                data-dl-uid="294"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >DIRECTORY*を</b
+              >使用してディレクトリ・エントリにアクセスすることだけです。
+            </p>
+            <p data-dl-uid="295" data-dl-original="true" data-dl-translated="true">
+              次に、ループしてファイル名を比較し、一致するものを探します。ToDosFileName()を使用して、入力ファイル名をDOS
+              8.3ファイル名フォーマットに変換します。例えば、入力ファイル名「Myfile.txt」をFAT12内部フォーマット「MYFILE
+              TXT」に変換する。
+            </p>
+            <p data-dl-uid="296" data-dl-original="true" data-dl-translated="true">
+              セクタを読み込んで、セクタ内の各エントリを比較します。また、ファイル名をC文字列に変換し、単純なstrcmp()呼び出しでファイル名が一致するかどうかをテストできるようにしていることにお気づきでしょう。一致するものが見つかったら、FILE構造体を埋めてそれを返します。
+            </p>
+            <p data-dl-uid="297" data-dl-original="true" data-dl-translated="true">
+              それでは、見てみましょう。
+            </p>
+
+            <div class="code">
+              <blockquote>
+                <pre>
+FILE fsysFatDirectory (const char* DirectoryName) {
+
+	FILE file;
+	unsigned char* buf;
+	PDIRECTORY directory;
+
+	//! get 8.3 directory name
+	char DosFileName[11];
+	ToDosFileName (DirectoryName, DosFileName, 11);
+	DosFileName[11]=0;</pre
+                >
+              </blockquote>
+            </div>
+
+            <p data-dl-uid="301" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="302" data-dl-original="true" data-dl-translated="true">DirectoryNameには</b
+              >、探したいディレクトリ名やファイル名が入ります。 myfile.txt」のような入力ファイル名をDOS
+              8.3ファイルシステムのフォーマット「MYFILE TXT」に変換してDosFileNameに格納します。
+            </p>
+
+            <div class="code">
+              <blockquote>
+                <pre>
+	for (int sector=0; sector&lt;14; sector++) {
+
+		//! read in sector
+		buf = (unsigned char*) flpydsk_read_sector ( _MountInfo.rootOffset + sector );
+
+		//! get directory info
+		directory = (PDIRECTORY) buf;</pre
+                >
+              </blockquote>
+            </div>
+
+            <p data-dl-uid="306" data-dl-original="true" data-dl-translated="true">
+              ルートディレクトリから読み込んでいます。ルートクラスタは_MountInfoに格納されており、ファイルシステムをマウントしたときに<b
+                data-dl-uid="307"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >Bios Paramater Block（BPB</b
+              >）から取得した情報が格納されています。<b
+                data-dl-uid="308"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >_MountInfo.rootOffsetには</b
+              >ルートディレクトリの最初のクラスタが格納されています。ルートディレクトリには、最大で224のDIRECTORYエントリーが含まれます。1つのDIRECTORYエントリーは32バイトで、224*32=7168バイト、7168バイト/512バイト（1クラスタは512バイト）=14となります。つまり、ルートディレクトリは14のクラスタから構成されていることになります。
+            </p>
+            <p data-dl-uid="309" data-dl-original="true" data-dl-translated="true">
+              これを知っていれば、ディレクトリ全体を一度に読み込むのではなく、セクタごとに読み込んで、ディレクトリの各部分を解析することができます。
+            </p>
+
+            <div class="code">
+              <blockquote>
+                <pre>
+		//! 16 entries per sector
+		for (int i=0; i&lt;16; i++) {
+
+			//! get current filename
+			char name[11];
+			memcpy (name, directory-&gt;Filename, 11);
+			name[11]=0;
+
+			//! find a match?
+			if (strcmp (DosFileName, name) == 0) {</pre
+                >
+              </blockquote>
+            </div>
+
+            <p data-dl-uid="313" data-dl-original="true" data-dl-translated="true">
+              DIRECTORYのエントリが32バイトであることを知ると、1クラスタ512バイト÷32バイト＝16となります。つまり、1つのセクタに16のDIRECTORYエントリがあることになります。そこで、各エントリーをループしてファイル名を比較し、探しているファイルまたはディレクトリを見つけます。<b
+                data-dl-uid="317"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >file</b
+              >
+              <b data-dl-uid="315" data-dl-original="true" data-dl-translated="true"
+                >.currentClusterには</b
+              >、後で読み込むファイルの最初のクラスタが格納され、<b
+                data-dl-uid="316"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >file.fileLengthには</b
+              >、ファイルのサイズがバイトで格納されます。DIRECTORYのエントリ属性に基づいて設定します。
+            </p>
+
+            <div class="code">
+              <blockquote>
+                <pre>
+				//! found it, set up file info
+				strcpy (file.name, DirectoryName);
+				file.id             = 0;
+				file.currentCluster = directory-&gt;FirstCluster;
+				file.eof            = 0;
+				file.fileLength     = directory-&gt;FileSize;
+
+				//! set file type
+				if (directory-&gt;Attrib == 0x10)
+					file.flags = FS_DIRECTORY;
+				else
+					file.flags = FS_FILE;
+
+
+				//! return file
+				return file;
+			}</pre
+                >
+              </blockquote>
+            </div>
+
+            <p data-dl-uid="321" data-dl-original="true" data-dl-translated="true">
+              あと少し...ファイルやディレクトリがまだ見つかっていない場合は、次のDIRECTORYエントリに移動するだけです。もしファイルが見つからなかったら、FS_INVALIDをセットして戻ります。
+            </p>
+
+            <div class="code">
+              <blockquote>
+                <pre>
+			//! go to next directory
+			directory++;
+		}
+	}
+
+	//! unable to find file
+	file.flags = FS_INVALID;
+	return file;
+}</pre
+                >
+              </blockquote>
+            </div>
+
+            <p data-dl-uid="325" data-dl-original="true" data-dl-translated="true">
+              以上です。上記のルーチンはFAT12内のディレクトリとファイルに対して動作します。このルーチンを呼び出すと、ルートディレクトリから任意のフォルダやファイル名を検索し、その情報を返します。
+            </p>
+            <h3 data-dl-uid="326" data-dl-original="true" data-dl-translated="true">サブディレクトリ</h3>
+            <p data-dl-uid="327" data-dl-original="true" data-dl-translated="true">
+              FAT12
+              の古いバージョンはフラットでしたが、このファイルシステムの新しいバージョンはサブディレクトリをサポートしています。これにより、ディレクトリを使用することができ、多くのファイルをより簡単に管理することができるようになりました。例えば、大規模なOSではOS固有のファイルを<b
+                data-dl-uid="328"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >システム</b
+              >ディレクトリで分けたり、ユーザープロファイルを含む<b
+                data-dl-uid="329"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ユーザー</b
+              >ディレクトリで分けたりするとよいでしょう。
+            </p>
+            <p data-dl-uid="330" data-dl-original="true" data-dl-translated="true">
+              サブディレクトリは、DIRECTORYフラグが設定されているだけの普通のファイルです。このため、まずファイルの読み方について知っておく必要があります。
+            </p>
+
+            <h2 data-dl-uid="331" data-dl-original="true" data-dl-translated="true">ファイルの読み方</h2>
+
+            <h3 data-dl-uid="332" data-dl-original="true" data-dl-translated="true">フォーマット</h3>
+            <p data-dl-uid="333" data-dl-original="true" data-dl-translated="true">
+              さて、ディレクトリを解析してファイルを探すことができるようになりました。次に、ファイルの内容を読み取る方法が必要です。技術的には、ファイルのディレクトリエントリ構造の<b
+                data-dl-uid="334"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >FirstCluster</b
+              >フィールドだけで、どのファイルでも最初の512バイトを読むことができることを思い出してください。それ以上のクラスタを読み込むには、<b
+                data-dl-uid="335"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >File Allocation Table (FAT)</b
+              >を解析する必要があります。
+            </p>
+            <p data-dl-uid="336" data-dl-original="true" data-dl-translated="true">
+              FATはクラスタ番号を含むいくつかのエントリから構成されていることを思い出してください。
+              これらのエントリのサイズはファイルシステムに依存します。FAT12は1エントリあたり12ビット、FAT16は16ビット、FAT32は32ビットです。
+            </p>
+            <p data-dl-uid="337" data-dl-original="true" data-dl-translated="true">
+              FATはリンクリストではなく、物理ディスク全体を表すエントリーの表だと考えてください。ディスクの第1クラスタは、FATの最初のエントリで表されます。2番目のクラスターは2番目のエントリで表され、以下同様です。つまり、クラスタとFATのエントリは1対1の関係になっています。このため、FAT12でのファイルの読み書きが容易になります。
+            </p>
+
+            <h3 data-dl-uid="338" data-dl-original="true" data-dl-translated="true">
+              ファイルの読み込み
+            </h3>
+
+            <p data-dl-uid="339" data-dl-original="true" data-dl-translated="true">
+              ファイルを読み込むには、そのファイルの現在のクラスタを読み込みます。
+              FATテーブルを解析して、ディスク上の次のクラスタを見つけようとします。次のクラスタが見つかったら、次に読み込むファイルのために「現在のクラスタ」を更新します。
+            </p>
+            <p data-dl-uid="340" data-dl-original="true" data-dl-translated="true">
+              読み込むクラスタは、ファイルがオープンされたときに設定されました。このルーチンの最初の呼び出しでは、<b
+                data-dl-uid="341"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >file-&gt;currentCluster</b
+              >は<b data-dl-uid="342" data-dl-original="true" data-dl-translated="true"
+                >DIRECTORY-&gt;FirstCluster</b
+              >
+              と同じになります。
+            </p>
+            <p data-dl-uid="343" data-dl-original="true" data-dl-translated="true">
+              このクラスタは、ディスク上のデータ領域へのオフセットです。FAT12でフォーマットされたディスクのフォーマットを思い出して、FATとデータ領域の位置を確認しましょう。
+            </p>
+
+            <p data-dl-uid="344" data-dl-original="true" data-dl-translated="true"></p>
+
+            <table border="2" width="85%">
+              <tbody>
+                <tr bgcolor="#CCCCCC">
+                  <td>Boot Sector</td>
+                  <td>Extra Reserved Sectors</td>
+                  <td bgcolor="#aaaaaa">File Allocation Table 1</td>
+                  <td>File Allocation Table 2</td>
+                  <td>Root Directory (FAT12/FAT16 Only)</td>
+                  <td bgcolor="#aaaaaa">Data Region containng files and directories.</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <p data-dl-uid="354" data-dl-original="true" data-dl-translated="true"></p>
+            <p data-dl-uid="355" data-dl-original="true" data-dl-translated="true">
+              各FATは9セクタを使用することを忘れないでください。FATは2つあるので、9+9=18です。また、前節でルートディレクトリは14セクタであると結論づけました。18+14=32.これは、両方のFATとルート・ディレクトリが占有するセクタの量です。ここまでの式は<b
+                data-dl-uid="356"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >32 + file-&gt;currentCluster</b
+              >
+              ですが、ここから1を引くと、<b
+                data-dl-uid="357"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >32 + (file-&gt;currentCluster - 1)</b
+              >となります。これが読み込むべきセクタで、ファイル・データが格納されています。
+            </p>
+
+            <div class="code">
+              <blockquote>
+                <pre>
+void fsysFatRead(PFILE file, unsigned char* Buffer, unsigned int Length) {
+
+	if (file) {
+
+		//! starting physical sector
+		unsigned int physSector = 32 + (file-&gt;currentCluster - 1);
+
+		//! read in sector
+		unsigned char* sector = (unsigned char*) flpydsk_read_sector ( physSector );
+
+		//! copy block of memory
+		memcpy (Buffer, sector, 512);
+</pre
+                >
+              </blockquote>
+            </div>
+
+            <p data-dl-uid="361" data-dl-original="true" data-dl-translated="true">
+              次のクラスタを読み込むには、FATテーブルをパースする必要があります。FAT テーブルは 9
+              セクタなので、9 セクタすべてを読むのではなく、どのセクタを読む必要があるのかを判断します。
+            </p>
+            <p data-dl-uid="362" data-dl-original="true" data-dl-translated="true">
+              まず、次のクラスターがどこにあるか、バイト・オフセットを取得します。これを行うには、クラスタの値にクラスタのサイズを掛けます。<b
+                data-dl-uid="363"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >FAT</b
+              >32のクラスタのサイズは4バイトなので、FAT32を使用している場合は4倍します。FAT16を使用している場合は、クラスタエントリごとに2バイトを使用するため、2倍します。もちろん、これで問題ありませんが、FAT12ではどうでしょうか。FAT12では1クラスタ・エントリあたり12ビットを使用します。1バイト目が8ビット、2バイト目が4ビットで、4ビットは8ビットの半分なので、0.5ビットとなります。
+            </p>
+            <p data-dl-uid="364" data-dl-original="true" data-dl-translated="true">
+              あとはこのバイトオフセットをセクタサイズで割って、読み込むFATのセクタを求めればよい。リマンダーはこのセクタ内のオフセットで、これがFATから読み込むクラスタとなります。
+              これが<b data-dl-uid="365" data-dl-original="true" data-dl-translated="true"
+                >entryOffsetに</b
+              >なります。
+            </p>
+            <p data-dl-uid="366" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="367" data-dl-original="true" data-dl-translated="true">FATは</b>、<b
+                data-dl-uid="368"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >uint8_t FAT [SECTOR_SIZE*2]</b
+              >と定義されています。FATのセクタを1つではなく、2つメモリに読み込んでいることに注目してください。なぜそうするのでしょうか。セクタのサイズが512バイトだとすると、512バイト*8=4096ビット/セクタです。4096ビット÷12ビット(FATエントリ)で、341.3333...となります。つまり、エントリーは第1セクタと第2セクタの間に位置することになります。これでは、ファイルを読み込むときに問題が発生する。このため、1番目のセクタの最後のクラスタ値が破損しないように、追加のセクタをロードする必要があります。
+            </p>
+
+            <div class="code">
+              <blockquote>
+                <pre>
+		unsigned int FAT_Offset = file-&gt;currentCluster + (file-&gt;currentCluster / 2); //multiply by 1.5
+		unsigned int FAT_Sector = 1 + (FAT_Offset / SECTOR_SIZE);
+		unsigned int entryOffset = FAT_Offset % SECTOR_SIZE;
+
+		//! read 1st FAT sector
+		sector = (unsigned char*) flpydsk_read_sector ( FAT_Sector );
+		memcpy (FAT, sector, 512);
+
+		//! read 2nd FAT sector
+		sector = (unsigned char*) flpydsk_read_sector ( FAT_Sector + 1 );
+		memcpy (FAT + SECTOR_SIZE, sector, 512);
+</pre
+                >
+              </blockquote>
+            </div>
+
+            <p data-dl-uid="372" data-dl-original="true" data-dl-translated="true">
+              FATセクタが読み込まれた後、クラスタ番号を読み込んでいます。
+            </p>
+            <p data-dl-uid="373" data-dl-original="true" data-dl-translated="true">
+              ここで問題にぶつかります。8ビットの値を読み込むと、クラスタ値の12ビット全部を読み込むことができないのです。そこで、uint16_tを使って16ビットを読み込むことにします。もちろん、12ビットの値のビット数が多すぎるという問題があります。
+            </p>
+            <p data-dl-uid="374" data-dl-original="true" data-dl-translated="true">
+              もう少し詳しく見てみましょう。これがFATだとします。FATをバイトに分割し、12ビットのエントリーをマークします。
+              (これは<a
+                href="http://www.brokenthorn.com/Resources/OSDev6.html"
+                data-dl-uid="375"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >第6章</a
+              >から引用しています)
+            </p>
+
+            <div class="code">
+              <blockquote>
+                <pre>
+               Note: Binary numbers seperated in bytes.
+	       Each 12 bit FAT cluster entry is displayed.
+
+                                   |                           |
+   01011101       0111010   01110101  00111101  0011101  0111010  0011110 0011110
+   |                |              |              |            |               |
+   |                |1st cluster   |              |3rd cluster-|               |
+   |-0 cluster  ----|              |2nd cluster---|            |4th cluster----|
+</pre
+                >
+              </blockquote>
+            </div>
+
+            <p data-dl-uid="379" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="380" data-dl-original="true" data-dl-translated="true"
+                >すべての偶数クラスタが最初のバイトのすべてをコピーし、2番目のバイトの一部をコピーしていることに注意してください。</b
+              >また、<b data-dl-uid="380" data-dl-translated="true"
+                >すべての奇数クラスターは最初のバイトの一部をコピーしますが、2番目のバイトのすべてをコピー</b
+              >することに注意してください
+            </p>
+            <p data-dl-uid="381" data-dl-original="true" data-dl-translated="true">
+              このことから、クラスタが偶数の場合は、<b
+                data-dl-uid="382"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >次のクラスタに属するので、上位4ビットをマスクします。</b
+              >クラスタが奇数の場合は、<b
+                data-dl-uid="383"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >4ビット下にシフトします（最初のクラスタで使用したビットを破棄するため）</b
+              >。
+            </p>
+            <p data-dl-uid="384" data-dl-original="true" data-dl-translated="true">
+              さて、これでこの関数を終了させましょう。
+            </p>
+
+            <div class="code">
+              <blockquote>
+                <pre>
+		//! read entry for next cluster
+		uint16_t nextCluster = *( uint16_t*) &amp;FAT [entryOffset];
+
+		//! test if entry is odd or even
+		if( file-&gt;currentCluster &amp; 0x0001 )
+			nextCluster &gt;&gt;= 4;      //grab high 12 bits
+		else
+			nextCluster &amp;= 0x0FFF;   //grab low 12 bits
+
+		//! test for end of file
+		if ( nextCluster &gt;= 0xff8) {
+
+			file-&gt;eof = 1;
+			return;
+		}
+
+		//! test for file corruption
+		if ( nextCluster == 0 ) {
+
+			file-&gt;eof = 1;
+			return;
+		}
+
+		//! set next cluster
+		file-&gt;currentCluster = nextCluster;
+	}
+}
+</pre
+                >
+              </blockquote>
+            </div>
+
+            <h3 data-dl-uid="388" data-dl-original="true" data-dl-translated="true">
+              ファイルの書き込み
+            </h3>
+
+            [章更新で完結予定！】。］
+            <h2 data-dl-uid="389" data-dl-original="true" data-dl-translated="true">サブディレクトリ</h2>
+
+            <p data-dl-uid="390" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="391" data-dl-original="true" data-dl-translated="true"
+                >サブディレクトリは</b
+              >、DIRECTORY
+              属性が設定されたファイルです。サブディレクトリから読み込むには、そのディレクトリ名を持つディスク上のFAT12ファイルを探し出し、FATを使用する他のファイルと同じ方法で読み込めばよいのです。
+            </p>
+            <p data-dl-uid="392" data-dl-original="true" data-dl-translated="true">
+              ファイルが読み込まれた後、最初のバイトから最後のバイトまでは、単なるDIRECTORYエントリの配列です。このディレクトリを読み込むには、ルートディレクトリと同じようにDIRECTORYエントリーを解析します
+              :-)これらは、ディレクトリ内のファイルやフォルダになります。
+            </p>
+            <p data-dl-uid="393" data-dl-original="true" data-dl-translated="true">
+              それでは、見てみましょう。
+            </p>
+
+            <div class="code">
+              <blockquote>
+                <pre>
+FILE fsysFatOpenSubDir (FILE kFile,
+			const char* filename) {
+
+	FILE file;
+
+	//! get 8.3 directory name
+	char DosFileName[11];
+	ToDosFileName (filename, DosFileName, 11);
+	DosFileName[11]=0;</pre
+                >
+              </blockquote>
+            </div>
+
+            <p data-dl-uid="397" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="398" data-dl-original="true" data-dl-translated="true">filenameには</b
+              >、探したいファイルやディレクトリが含まれています。入力ファイル名「myfile.txt」をDOS
+              8.3ファイルシステム形式「MYFILE TXT」に変換し、<b
+                data-dl-uid="400"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >DosFileNameに</b
+              >格納します。
+            </p>
+
+            <div class="code">
+              <blockquote>
+                <pre>
+	//! read directory
+	while (! kFile.eof ) {
+
+		//! read directory
+		unsigned char buf[512];
+		fsysFatRead (&amp;file, buf, 512);
+
+		//! set directort
+		PDIRECTORY pkDir = (PDIRECTORY) buf;</pre
+                >
+              </blockquote>
+            </div>
+
+            <p data-dl-uid="404" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="405" data-dl-original="true" data-dl-translated="true">fileは</b
+              >解析したいサブディレクトリです。FAT12では普通のファイルなので、ファイルのセクタを読み込むことを覚えておいてください。ファイルはDIRECTORYエントリの配列で構成されています。DIRECTORYのメンバーにアクセスしやすくするために、<b
+                data-dl-uid="406"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >pkDirを</b
+              >使用してセクタの内容をポイントしています。さて、このディレクトリを検索してみましょう...
+            </p>
+
+            <div class="code">
+              <blockquote>
+                <pre>
+		//! 16 entries in buffer
+		for (unsigned int i = 0; i &lt; 16; i++) {
+
+			//! get current filename
+			char name[11];
+			memcpy (name, pkDir-&gt;Filename, 11);
+			name[11]=0;
+
+			//! match?
+			if (strcmp (name, DosFileName) == 0) {</pre
+                >
+              </blockquote>
+            </div>
+
+            <p data-dl-uid="410" data-dl-original="true" data-dl-translated="true">
+              DIRECTORYの各エントリは32バイトです。1つのセクタ（FAT12ではクラスタ）は512バイトなので、512バイト÷32バイト＝16のDIRECTORYエントリが1つのセクタに存在します。そこで、16個のエントリすべてをループして名前を比較します。検索しているファイル名と一致するものが見つかれば、そのファイルを見つけたことになります。
+            </p>
+
+            <div class="code">
+              <blockquote>
+                <pre>
+				//! found it, set up file info
+				strcpy (file.name, filename);
+				file.id             = 0;
+				file.currentCluster = pkDir-&gt;FirstCluster;
+				file.fileLength     = pkDir-&gt;FileSize;
+				file.eof            = 0;
+
+				//! set file type
+				if (pkDir-&gt;Attrib == 0x10)
+					file.flags = FS_DIRECTORY;
+				else
+					file.flags = FS_FILE;
+
+				//! return file
+				return file;
+			}</pre
+                >
+              </blockquote>
+            </div>
+
+            <p data-dl-uid="414" data-dl-original="true" data-dl-translated="true">
+              ファイルが見つかったら、FILE構造体に最初のファイルクラスタ（後で読めるように）、ファイルサイズ（EOFのタイミングが分かるように）、属性（ファイルかディレクトリか）を記入します。
+            </p>
+            <p data-dl-uid="415" data-dl-original="true" data-dl-translated="true">
+              ファイルが見つからなかった場合は、次のエントリに移動します。このループは、ファイルの終端まで続けられます。ファイルが見つからなかった場合は、FS_INVALIDをセットして、リターンする。
+            </p>
+
+            <div class="code">
+              <blockquote>
+                <pre>
+			//! go to next entry
+			pkDir++;
+		}
+	}
+
+	//! unable to find file
+	file.flags = FS_INVALID;
+	return file;
+}</pre
+                >
+              </blockquote>
+            </div>
+
+            <p data-dl-uid="419" data-dl-original="true" data-dl-translated="true">
+              このルーチンと<b data-dl-uid="420" data-dl-original="true" data-dl-translated="true"
+                >FsysFatDirectory</b
+              >ルーチンが類似していることに注意してください。
+            </p>
+
+            <h1 data-dl-uid="444" data-dl-original="true" data-dl-translated="true">まとめ</h1>
+
+            <p data-dl-uid="445" data-dl-original="true" data-dl-translated="true">
+              これは楽しい章でしたね。これでディスクからファイルを読み込むことができるようになりました。そうですね、「そろそろ時間だ！」という感じでしょうか。マルチタスクとプログラム実行に大きく飛躍する準備はほぼ整いました。しかし、マルチタスクに入る前に、ローダーについて説明する必要があります。ローダーはプログラムをロードして実行し、アドレス空間にマッピングする役割を果たします。また、アドレス空間におけるヒープ管理、スタック管理もカバーする必要があります。
+            </p>
+            <p data-dl-uid="446" data-dl-original="true" data-dl-translated="true">
+              メモリ管理の章を大幅に更新する予定なので、ヒープ管理とスタック管理はメモリ管理の章の次の章に移すかもしれません。いずれにせよ、変更点については随時お知らせしていくつもりです。
+            </p>
+            <p data-dl-uid="447" data-dl-original="true" data-dl-translated="true">
+              とはいえ、これでそろそろマルチタスクに飛び込む時期が来たということです。その次は？ユーザーモード
+            </p>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </body>
+</html>
