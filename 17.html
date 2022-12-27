@@ -1,0 +1,2564 @@
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Cache-Control" content="no-cache" />
+    <title></title>
+    <link href="css/reference.css" rel="stylesheet" />
+  </head>
+  <body>
+    <table cellspacing="0" cellpadding="3" width="80%" border="0">
+      <tbody>
+        <tr>
+          <td class="tblhdr">Operating Systems Development Series</td>
+        </tr>
+        <tr>
+          <td align="middle" colspan="2"></td>
+        </tr>
+      </tbody>
+    </table>
+    <table cellspacing="0" cellpadding="5" width="100%" border="0">
+      <tbody>
+        <tr>
+          <td>
+            <!-- Title -->
+
+            <div>
+              <span class="title">Keyboard</span>
+
+              <br />
+              <span class="author">by Mike, 2008, 2009</span>
+            </div>
+
+            <h1 data-dl-uid="7" data-dl-original="true" data-dl-translated="true">はじめに</h1>
+
+            ようこそ!
+            <p data-dl-uid="8" data-dl-original="true" data-dl-translated="true">
+              この章では、もう少し複雑なキーボードを取り上げます。キーボードの歴史、キーボード内部、8042
+              と 8048 マイクロコントローラ、そしてキーボードドライバの開発について学びます。
+            </p>
+            <p data-dl-uid="9" data-dl-original="true" data-dl-translated="true">
+              また、このシリーズで最初にプログラミングするデバイスでもあります。楽しみですか？ハードウェアプログラミングの仕組みはすでに学び、経験も積んでいます。
+              次はそれを試す番です。<i data-dl-uid="10" data-dl-original="true" data-dl-translated="true"
+                >準備はいいですか？</i
+              >これはまた、1つのコントローラだけでなく、<i
+                data-dl-uid="11"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >2つの</i
+              >コントローラで作業する必要がある最初のデバイスです。
+              これらのコントローラは、互いに通信し、私たちのシステムも通信します。さらに複雑なのは、両方のコントローラがそれぞれ独自のコマンドを持っていて、それを使って動作させることができることです。このため、この章では、いくつかの箇所でかなり詳しく説明しています。
+            </p>
+            <p data-dl-uid="12" data-dl-original="true" data-dl-translated="true">
+              また、この章には最初の対話型デモも含まれています。基本的なコマンドラインパーサです。<i
+                data-dl-uid="13"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >興奮しましたか？</i
+              >
+            </p>
+            <p data-dl-uid="14" data-dl-original="true" data-dl-translated="true">
+              この章はまた、デバイスドライバをより深く考察する最初の章でもあります。ハードウェアの抽象化とデバイスドライバの重要性。
+            </p>
+            <p data-dl-uid="15" data-dl-original="true" data-dl-translated="true">
+              以下はそのリストです。
+            </p>
+            <p data-dl-uid="16" data-dl-original="true" data-dl-translated="true"></p>
+            <ul data-dl-uid="17" data-dl-original="true" data-dl-translated="true">
+              <li data-dl-uid="18" data-dl-original="true" data-dl-translated="true">
+                キーボード-バックインタイムとキーボードレイアウト
+              </li>
+              <li data-dl-uid="19" data-dl-original="true" data-dl-translated="true">
+                キーボードの内部
+              </li>
+              <li data-dl-uid="20" data-dl-original="true" data-dl-translated="true">
+                キーボードのプロトコル
+              </li>
+              <li data-dl-uid="21" data-dl-original="true" data-dl-translated="true">
+                キーボード・エンコーダ
+              </li>
+              <li data-dl-uid="22" data-dl-original="true" data-dl-translated="true">
+                キーボード・コントローラ
+              </li>
+              <li data-dl-uid="23" data-dl-original="true" data-dl-translated="true">
+                スキャンコードセット
+              </li>
+              <li data-dl-uid="24" data-dl-original="true" data-dl-translated="true">キーボードIRQ</li>
+            </ul>
+            <p data-dl-uid="25" data-dl-original="true" data-dl-translated="true">さあ、始めよう</p>
+            <h1 data-dl-uid="26" data-dl-original="true" data-dl-translated="true">キーボード - 歴史</h1>
+
+            <h2 data-dl-uid="27" data-dl-original="true" data-dl-translated="true">過去に戻る</h2>
+
+            キーボードは、私たちがコンピュータに入力するために使用する入力デバイスです。
+            キーボードが最初に導入されたときは、典型的なタイプライターをモデルにしていました。しかし、キーボードの作りは、それを直接モデル化したものではありません。
+            <p data-dl-uid="28" data-dl-original="true" data-dl-translated="true">
+              1877年にChristopher Latham
+              Sholesによってタイプライターの特許が取得されると、いくつかのメーカーや人々がオリジナルのデザインをさらに発展させました。一連の発明を通じて進化したのが電信機です。同じ頃、1930年代には、IBMがキーパンチ（タイプライターと組み合わせたパンチカードマシン）を加算機で使っていた。初期のコンピュータのキーボードは、キーパンチと電信機の両方の設計を取り入れたものであった。
+            </p>
+            <p data-dl-uid="29" data-dl-original="true" data-dl-translated="true">
+              ENIAC（Electronic Numerical Integrator And
+              Computer）は、最初の汎用コンピュータでした。ENIACは1946年にパンチカードリーダーを入力と出力の両方に使用しました。
+            </p>
+            <p data-dl-uid="30" data-dl-original="true" data-dl-translated="true">
+              1948年には、電気機械式タイプライターを入出力装置として使用した「BINAC（BINary Automatic
+              Computer）」が登場した。
+            </p>
+            <p data-dl-uid="31" data-dl-original="true" data-dl-translated="true">
+              これらの発明から、キーボードはいつ進化したのだろうか。1964年、MIT（Fernando
+              Corbató氏）、ベル研究所、ゼネラル・エレクトリック社が共同で、Multics（Multiplexed
+              Information and Computing Service）マシンを開発した。
+              Multicsでは、新しいインターフェイスが登場したのだ。テレビと電動タイプライターに使われていたブラウン管（CRT）の技術を組み合わせて、ビデオ・ディスプレイ・ターミナル（VDT）を作ったのである。VDTは、ユーザーが入力した内容を見ることができるようにし、コンピュータをより使いやすくした。1970年代から1980年代にかけて、ほとんどのコンピューターにVDTと入力用の電子キーボードが搭載された。その後、VDTに代わってCRTやLCDのディスプレイが登場し、電子キーボードも汎用コンピュータの標準となりました。
+            </p>
+            <p data-dl-uid="32" data-dl-original="true" data-dl-translated="true">
+              現在、私たちはパソコンに向かうたびにキーボードを使用しています。キーボードのレイアウトのほとんどはまだタイプライターから残っており、使い方も同じです。しかし、新しい時代の電子機器のおかげで、キーボードは多くの異なる形で提供されるようになりました。一般的なプラスチック製のキーボードから、折りたたみ式やバックライト付きのキーボード、さらにはレーザーキーボードまで。
+            </p>
+            <h2 data-dl-uid="33" data-dl-original="true" data-dl-translated="true">
+              キーボードレイアウト
+            </h2>
+
+            一般的なキーボードのレイアウトは、<b
+              data-dl-uid="34"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >QWERTYという</b
+            >文字が最初の5文字であることから、<b data-dl-uid="34" data-dl-translated="true"
+              >QWERTYキーボードと</b
+            >呼ばれています。QWERTY配列は、タイプライター時代に、初期のタイプライターが元々持っていた機械的な限界から、タイピストの入力速度を遅くするために意図的に設計されたものである。これは主に、キーを押す間隔を短くし、プリントヘッドが詰まらないように十分な時間を確保するためでした。
+            <p data-dl-uid="35" data-dl-original="true" data-dl-translated="true">
+              QWERTY配列は、今日まですべてのキーボードで適応されています。
+            </p>
+            <h1 data-dl-uid="36" data-dl-original="true" data-dl-translated="true">キーボード内部</h1>
+
+            キーボードのキーを押すと、実際に何が起こるのでしょうか？キーボードが押したキーをどうやってプログラムに伝えるのでしょうか？今読んでいるテキストは、キーボードで入力されたものです。キーボードにはどのような機能があるのでしょうか？<i
+              data-dl-uid="37"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >ちょっと見てみましょう。</i
+            >
+            <p data-dl-uid="38" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="39" data-dl-original="true" data-dl-translated="true"
+                >注：正確な情報はキーボードの種類とモデルによって異なります。ここでは、一般的な102キーボードのみを取り上げます。</b
+              >
+            </p>
+            <h2 data-dl-uid="40" data-dl-original="true" data-dl-translated="true">ケースを開ける</h2>
+
+            キーボードが複雑なプリント基板から、マイクロプロセッサーを搭載した1枚の基板になったことに驚かれるかもしれません。キーボードを開けてみると、こんな感じです。
+            <p data-dl-uid="41" data-dl-original="true" data-dl-translated="true"></p>
+
+            <center><img src="./17_files/Inside_of_keyboard.jpg" /></center>
+
+            <p data-dl-uid="44" data-dl-original="true" data-dl-translated="true">
+              はい、これだけです。いかにシンプルか、おわかりいただけるでしょう。基板が1枚、グリッドが1枚です。上の写真では、グリッドが少し見えにくいかもしれません。しかし、よく見ると、グリッド内のポイントがキーボードの<b
+                data-dl-uid="45"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >キー位置と</b
+              >一致していることに気づくでしょう。これが「<b
+                data-dl-uid="46"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >キーマトリックス</b
+              >」です。ほとんどのキーボードでは、キーマトリックスを構成する回路は、グリッドの各ポイントの間で途切れています。キーがキーマトリックスのある点の上にあることを知り、キーを押せば、その点のスイッチが押され、水平回路が完成し、電流が流れるようになる。キーの機械的な動きによって生じる線の振動は<b
+                data-dl-uid="47"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >バウンスと</b
+              >呼ばれ、キーボードの<b data-dl-uid="48" data-dl-original="true" data-dl-translated="true"
+                >マイクロプロセッサー</b
+              >（別名<b data-dl-uid="49" data-dl-original="true" data-dl-translated="true"
+                >キーボード・エンコーダー</b
+              >）によってフィルタリングされます。少し複雑に思われるかもしれませんが、ご安心ください。次のセクションで詳しく説明します。
+            </p>
+            <h3 data-dl-uid="50" data-dl-original="true" data-dl-translated="true">
+              キーボード・エンコーダ
+            </h3>
+
+            キーボードに搭載されているマイクロプロセッサーは、<b
+              data-dl-uid="51"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >Intel 8048の</b
+            >原型となるもので、偶然にもIntelの最初のマイクロコントローラーでもある。このコントローラは、<b
+              data-dl-uid="52"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >キーボード・エンコーダと</b
+            >呼ばれています。使用するキーボード・エンコーダは、キーボードによって大きく異なります。キーボード・エンコーダは何百種類とありますが、基本的にはどれも同じことをします。
+            <p data-dl-uid="53" data-dl-original="true" data-dl-translated="true">
+              キーグリッド内の行と列は、キーボードエンコーダの8ビットI/Oポートに接続されています。キーが押されると、キーグリッド内のその位置にあるスイッチが閉じられ、電流が流れて回路が完成します。この電流は、キーボードエンコーダのピンが、キーの位置と一致する正しいポートに接続されることを可能にします。したがって、コントローラーがすべきことは、ポートをスキャンして、ポート線がアクティブかどうかをチェックすることで、キーがダウンしているかどうかを確認することです。
+            </p>
+            <p data-dl-uid="54" data-dl-original="true" data-dl-translated="true">
+              キーが押されていれば、キーボード・エンコーダはその位置を<b
+                data-dl-uid="55"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ROM（Read Only Memory</b
+              >）文字マップ内で検索し、その文字の<b
+                data-dl-uid="56"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >スキャン・</b
+              >コードを内部16バイト・メモリーに格納します。
+              キーボード・プロセッサには独自のタイマー、33の命令セット、さらに128Kの外部メモリーをアクセスすることが可能です。そのタイマーを使って、キーが押されているかどうかを、ユーザー入力か<b
+                data-dl-uid="57"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >バウンスかで</b
+              >判断することができます。<b
+                data-dl-uid="58"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >バウンドした</b
+              >場合は、通常、人間が入力できる速度よりはるかに速い。タイマーが0になったときにまだキーが押されていれば、リセットされ、その文字が内部の16バイトのバッファに挿入されます。
+            </p>
+            <p data-dl-uid="59" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="60" data-dl-original="true" data-dl-translated="true"
+                >ここで重要なのは、私たちが通信できるキーボード・コントローラが2つあるということです。キーボードに内蔵されているキーボード・エンコーダと、マザーボードに内蔵されているキーボード・コントローラです。</b
+              >もう一方のコントローラについては、後で少し見ていきますので、心配しないでください;)今のところ、2つのコントローラがあり<b
+                data-dl-uid="61"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >、キーボードエンコーダはそのうちの</b
+              >1つであることを覚えておいてください。
+            </p>
+            <p data-dl-uid="62" data-dl-original="true" data-dl-translated="true">
+              キーボード・エンコーダは<b
+                data-dl-uid="63"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >キーボード・プロトコルで</b
+              >定義された方法でシステムと通信します。 見てみましょう。
+            </p>
+            <h3 data-dl-uid="64" data-dl-original="true" data-dl-translated="true">
+              キーボード・プロトコル
+            </h3>
+
+            キーボードエンコーダは、データをバイトとしてマザーボードのオンボードキーボードコントローラに送信します。送信方法は、キーボードのインターフェイスで使用される<b
+              data-dl-uid="65"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >プロトコールに</b
+            >依存します。これは通常、5ピンDINコネクター、6ピンMini-DINコネクター、USBコネクター、SDLコネクター、または有線（IR）インターフェースを使用したワイヤレスである。
+            <p data-dl-uid="66" data-dl-original="true" data-dl-translated="true">
+              AT/XTキーボードに使用される5ピンのDINコネクターは、通常コンピューターの背面にあり、以下のような形状をしています。
+            </p>
+            <p data-dl-uid="67" data-dl-original="true" data-dl-translated="true"></p>
+
+            <center>
+              <img src="./17_files/fpdin1.jpg" /> <br /><i
+                >1: Clock 2: Data 3: N/A 4: Ground 5: Vcc (+5V)</i
+              >
+            </center>
+
+            <p data-dl-uid="72" data-dl-original="true" data-dl-translated="true">
+              マザーボードは、電源ユニット（PSU）からVccとGroundピンを通じて電力を供給します。
+              clockピンは、キーボードのデータとシステムクロックの間の同期に使用されます。キーボードからのデータは、データピンを介してシリアルデータとして送信されます。
+            </p>
+            <p data-dl-uid="73" data-dl-original="true" data-dl-translated="true">
+              PS/2キーボードに使用される、より一般的な6ピンMini-DINコネクタは、非常によく似ています。
+            </p>
+            <p data-dl-uid="74" data-dl-original="true" data-dl-translated="true"></p>
+
+            <center>
+              <img src="./17_files/spindin1.jpg" /> <br /><i
+                >1: Data 2: N/A 3: Ground 4: Vcc (+5V) 5: Clock 6: N/A</i
+              >
+            </center>
+
+            <p data-dl-uid="79" data-dl-original="true" data-dl-translated="true">
+              特に新しいことはありません。DINは特に意味はなく、これを開発した規格団体（Deutsches Institut
+              für Normung、英語ではGerman Institute for Standardization）のことである。
+            </p>
+            <p data-dl-uid="80" data-dl-original="true" data-dl-translated="true">
+              SDL（Shielded Data Link）コネクタとよく似ている。
+            </p>
+            <p data-dl-uid="81" data-dl-original="true" data-dl-translated="true"></p>
+
+            <center>
+              <img src="./17_files/sdl.jpg" /> <br /><i
+                >A: N/A B: Data C: Ground D: Clock E: Vcc (+5V) F: N/A</i
+              >
+            </center>
+
+            <p data-dl-uid="86" data-dl-original="true" data-dl-translated="true"></p>
+            <p data-dl-uid="87" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="88" data-dl-original="true" data-dl-translated="true"
+                >ユニバーサル・シリアル・バス（USB）</b
+              >コネクタは、さまざまなデバイスで使用されている規格です。USBデバイスを直接操作するのは、かなり複雑なトピックです。USBは4つのピンで構成されています。1:
+              Vcc (+5V), 2: Data-, 3: Data+, 4: Ground.
+            </p>
+            <p data-dl-uid="89" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="90" data-dl-original="true" data-dl-translated="true"
+                >USBレガシーサポートは</b
+              >、USBポートを搭載した最新のコンピュータのほとんどで使用されています。このため、これらのコンピュータのマザーボードは、USBキーボードやマウスをPS/2キーボードやマウスとしてエミュレートすることができます。
+              このため。<b data-dl-uid="91" data-dl-original="true" data-dl-translated="true"
+                >PS/2互換インターフェイスを使用したUSBキーボードやマウスとの通信は動作します。</b
+              >つまり、USBキーボードやマウスをお持ちの方でも、このチュートリアルのコードとデモは、マザーボードが提供するエミュレーションのおかげで、問題なく動作します。
+            </p>
+            <p data-dl-uid="92" data-dl-original="true" data-dl-translated="true">
+              このように、キーボードとコンピュータの間のインターフェースは、それほど複雑ではありません。キーボードコントローラとキーボードエンコーダの間でデータをビットとして送信する方法を提供するだけです。
+              データはマザーボード上のオンボードまたは統合キーボードコントローラに送られます。キーボードコントローラーが制御します。
+            </p>
+            <h3 data-dl-uid="93" data-dl-original="true" data-dl-translated="true">
+              キーボードコントローラー
+            </h3>
+
+            システムケース内のキーボードコントローラは，通常，<b
+              data-dl-uid="94"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >8042キーボードコントローラを</b
+            >そのまま使用しています。キーボード・コントローラは、キーボードのプロトコルを介してキーボード・エンコーダとインターフェイスし、そのインターフェイス方法を提供します。ほとんどの新しいシステムでは、キーボードコントローラは独立した<b
+              data-dl-uid="95"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >集積回路（IC）ではなく</b
+            >、<b data-dl-uid="97" data-dl-original="true" data-dl-translated="true"
+              >フロッピーディスクコントローラ（FDC）</b
+            >、<b data-dl-uid="98" data-dl-original="true" data-dl-translated="true"
+              >パラレルポートインターフェース</b
+            >、<b data-dl-uid="99" data-dl-original="true" data-dl-translated="true"
+              >シリアルポートインターフェース</b
+            >、<b data-dl-uid="100" data-dl-original="true" data-dl-translated="true"
+              >マウスインターフェース</b
+            >も収容するマザーボードの<b
+              data-dl-uid="96"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >スーパー入出力（IO）コントローラの</b
+            >一部になっています。ほとんどの新しいシステムのスーパーIOコントローラは、マザーボードのサウスブリッジの<b
+              data-dl-uid="102"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >業界標準アーキテクチャ（ISA）ではなく</b
+            >、<b data-dl-uid="101" data-dl-original="true" data-dl-translated="true"
+              >低ピンカウント（LPC）</b
+            >バスを使用しています。
+            <h3 data-dl-uid="103" data-dl-original="true" data-dl-translated="true">スキャンコード</h3>
+            <b data-dl-uid="104" data-dl-original="true" data-dl-translated="true">スキャンコードとは</b
+            >、キーの状態を表すデータパケットです。キーが押されたり、離されたり、押さえられたりすると、<b
+              data-dl-uid="105"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >スキャン</b
+            >コードがコンピュータに搭載された<b
+              data-dl-uid="106"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >キーボードコントローラに</b
+            >送信されます。スキャンコードには、2つのタイプがあります。<b
+              data-dl-uid="107"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >メイクコードと</b
+            >
+            <b data-dl-uid="108" data-dl-original="true" data-dl-translated="true">ブレイクコード</b
+            >です。<b data-dl-uid="109" data-dl-original="true" data-dl-translated="true">メイク</b
+            >コードは、キーが押されたり、押されたままになったときに送信され、<b
+              data-dl-uid="110"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >ブレーク</b
+            >コードは、キーが離されたときに送信されます。キーボードの各キーには、固有のメイクコードとブレイクコードがあります。すべてのスキャンコードを表す数字のセットが、キーボードの<b
+              data-dl-uid="111"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >スキャンコードセットを</b
+            >構成しています。
+            <p data-dl-uid="112" data-dl-original="true" data-dl-translated="true">
+              キーボードが使用できるスキャンセットは、一般に3種類あります。しかし、スキャン値はランダムであるため、どのスキャンセットを使用しているかを簡単に判断する方法はありません。このため、ルックアップテーブルを使って、スキャンコードが表すキーを決定する必要があります。
+            </p>
+            <p data-dl-uid="113" data-dl-original="true" data-dl-translated="true">
+              それでは、スキャンコードのテーブルを見てみましょう。<b
+                data-dl-uid="114"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >注意:
+                これらのテーブルは重要です!キーボードでどのキーが押されたかを判断するために使用します。</b
+              >また、これらのテーブルのスキャンコードはすべて16進数です。
+            </p>
+            <p data-dl-uid="115" data-dl-original="true" data-dl-translated="true">
+              これらの表はかなり大きいので、別のリソースとして置くことにしました。リソースセクションにあるテーブルをご覧ください<a
+                href="OSDevScanCodes.html"
+                data-dl-uid="116"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >。</a
+              >
+            </p>
+            <p data-dl-uid="117" data-dl-original="true" data-dl-translated="true">
+              例を見てみましょう。キーボードでshift+Aキーを押した場合、あなたのコンピュータに送信されるメイクコードは何でしょうか？まず、shiftキーが押され、次にAキーが押されます。次にAキーが離され、その後シフトキーが離されます。スキャンコードセットが最近のキーボードのデフォルトのスキャンコードセットであると仮定すると、左シフトキーのメイクコードは0x12、ブレークコードは0xF0と0x12になります。Aキーのメイクコードは0x1C、ブレークコードは0xF0,
+              0x1Cとなります。したがって、このイベントが発生すると、次のようなスキャンコードがコンピュータに送信されます。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">Key events: shift down  A down  A released  Shift released
+Scan codes: 0x12        0x1C    0xF0 0x1C   0xF0 0x12</div></pre>
+            </blockquote>
+
+            上記を見ると、送信されるスキャンコードは0x12、0x1C、0xF0、0x1C、0xF0、および0x12であることがわかります。
+            <p data-dl-uid="121" data-dl-original="true" data-dl-translated="true">
+              キーを押したままにしておくと、そのキーは<b
+                data-dl-uid="122"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >タイプミスに</b
+              >なります。つまり、キーボードは、キーを離すか、別のキーを押すまで、キーのメイクコードを送り続けます。試してみましょう。お気に入りのテキストエディタを開き、あるキーを押したままにします。しばらくすると、同じ文字がもう一つ現れ、その後にその文字が長く続きます。<b
+                data-dl-uid="123"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >タイプマティックディレイは</b
+              >、タイプマティックモードに入るまでの待ち時間を秒単位で、<b
+                data-dl-uid="124"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >タイプマティックレートは</b
+              >、コンピュータに送信する1秒あたりのキャラクターメイクコードの量を決定するものです。タイペマティックモード中は、文字データのバッファリングは行われません。
+              複数のキーを押している場合は、最後に押したキーだけがタイペマティックモードになります。
+            </p>
+            <p data-dl-uid="125" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="126" data-dl-original="true" data-dl-translated="true"
+                >スキャンコードはとても重要な</b
+              >機能です。スキャンコードがオンボードのキーボードコントローラーに送信されると、キーボードコントローラーはスキャンコードを内部メモリーに格納します。その後、キーボードコントローラは、その<b
+                data-dl-uid="127"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >割り込み要求（IR）</b
+              >ラインをハイにトグルします。この割り込み線が<b
+                data-dl-uid="128"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >プログラマブル割り込みコントローラ（PIC</b
+              >）によってマスクされていない場合、<b
+                data-dl-uid="129"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >IRQ 1が</b
+              >発火します。IRQがマスクされていても、リードバッファはソフトウェアで読むことができるので、スキャンコードを読めば、今どのキーが離されたか、押されたかを判断することができる。
+            </p>
+            <h1 data-dl-uid="130" data-dl-original="true" data-dl-translated="true">
+              キーボードインタフェース。デバイスドライバの開発
+            </h1>
+
+            この章では、すでに多くのことを取り上げてきました。インターフェイスデバイスとしてのキーボードの歴史、QWERTYキーボードレイアウト、キーボードの内部を見て、キーボードがどのように機能するか、それを機能させる主要な構成要素について見てきました。また、スキャンコードセットとキーボードのプロトコルについても説明しました。まだ、すべてを理解していなくても心配しないでください。これから数回に分けて、さらに詳しく見ていきます。また、キーボード用のデバイスドライバも開発する予定です。かっこいいでしょう？このセクションのすべてのコードは、最終的なデモにも含まれます。
+            <h2 data-dl-uid="131" data-dl-original="true" data-dl-translated="true">
+              キーボードインタフェース。ポーリング
+            </h2>
+
+            キーボードには、<b data-dl-uid="133" data-dl-original="true" data-dl-translated="true"
+              >キーボードエンコーダと</b
+            >マザーボード上の<b data-dl-uid="134" data-dl-original="true" data-dl-translated="true"
+              >キーボード</b
+            >コントローラの<b data-dl-uid="132" data-dl-original="true" data-dl-translated="true"
+              >2つの</b
+            >コントローラがあることを、前のセクションで説明しました。この章では、1つのハードウェアデバイスを制御するために、複数の異なるコントローラとインターフェイスする必要があります。その通りです。これらのコントローラの<b
+              data-dl-uid="135"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >両方と</b
+            >通信することができます。まあ、そんなところです。キーボードエンコーダにコマンドを送るとき、オンボードのキーボードコントローラに送りますが、キーボードプロトコルでキーボードエンコーダに再ルーティングされます。
+            <p data-dl-uid="136" data-dl-original="true" data-dl-translated="true">
+              さて、これで両方のコントローラと通信できるようになりました。なんて楽しいんでしょう。両方のコントローラがお互いに動作していることを知ると、お互いに通信することもできます。キーボード・エンコーダは、オンボードのキーボード・コントローラにいろいろなコードを送って記憶させることができます。これらはスキャンコードであったり、エラーコードであったりします。これは私達がまたキーボード
+              エンコーダーおよびオンボードのコントローラーの両方からの情報を受け取ることを可能にします。
+            </p>
+            <p data-dl-uid="137" data-dl-original="true" data-dl-translated="true">
+              これらの通信はすべて、IN命令とOUT命令を使用して、IOアドレス空間にマッピングされたコントローラポートに読み書きすることで行われます。これらのポートが何であるかを気にする必要はありませんが、コントローラで
+              IO マッピングがどのように機能するかを理解することは、ここでより重要になります。
+            </p>
+            <p data-dl-uid="138" data-dl-original="true" data-dl-translated="true">
+              これは、キーボードとのインターフェイスの1つの方法です。コントローラと手動で通信して、キーが押されたか、上げられたか、などをチェックすることができます。これはキーボードの<b
+                data-dl-uid="139"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ポーリングと</b
+              >呼ばれています。このように、キーボードから最後のスキャンコードを得るには、キーボードコントローラにポーリングする必要があります。
+            </p>
+            <h2 data-dl-uid="140" data-dl-original="true" data-dl-translated="true">
+              キーボードのインターフェイス割り込み要求(IRQ)
+            </h2>
+
+            PICのチュートリアルで、キーボードコントローラは割り込みラインを使用するように設定できることを覚えましたか？
+            キーが押されたり離されたりすると、キーボードコントローラはIRQ
+            1を発行するように設定できます。これはキーボードとのインターフェースとして最も一般的な方法です。
+            <p data-dl-uid="141" data-dl-original="true" data-dl-translated="true">
+              IRQ
+              1が発生したときはいつでも、スキャンコードが実際にキーボードコントローラに送信されたかどうかをテストする必要があります。これは、キーボードコントローラをポーリングして、最後のスキャンコードを取得することによって行われます。
+            </p>
+            <h2 data-dl-uid="142" data-dl-original="true" data-dl-translated="true">
+              詳細8042キーボードマイクロコントローラ
+            </h2>
+
+            <center>
+              <img src="./17_files/8042_3.jpg" /><br /><i>The original 8042 Microcontroller</i>
+            </center>
+
+            <p data-dl-uid="147" data-dl-original="true" data-dl-translated="true">
+              これは、キーボード・エンコーダとインターフェースするマイクロコントローラです。キーボード・コントローラは、もともと8042マイクロコントローラで始まったマイクロコントローラ・ファミリーの一部です。最近のコンピューターでは、キーボード・コントローラーは独立した<b
+                data-dl-uid="148"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >集積回路（IC）ではなく</b
+              >、その機能はマザーボード自体によってエミュレートされています。つまり、コントローラーの機能はマザーボードのチップセットに統合されているのです。
+            </p>
+            <p data-dl-uid="149" data-dl-original="true" data-dl-translated="true">
+              キーボード・コントローラーは、2つのモードで動作することができます。<b
+                data-dl-uid="150"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >AT</b
+              >互換モードと<b data-dl-uid="151" data-dl-original="true" data-dl-translated="true"
+                >PS/2互換</b
+              >モードがあり、どちらのモードで動作させるかによって、外部とのインタフェースが異なります。
+              まず、コントローラの外観を見てみましょう。
+            </p>
+            <p data-dl-uid="152" data-dl-original="true" data-dl-translated="true"></p>
+
+            <center><img src="./17_files/8042_4.jpg" /></center>
+
+            <p data-dl-uid="155" data-dl-original="true" data-dl-translated="true">
+              はい。それです。<b data-dl-uid="156" data-dl-original="true" data-dl-translated="true"
+                >P10-P17</b
+              >ピンがコントローラーの<b
+                data-dl-uid="157"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >入力ポート</b
+              >です。P<b data-dl-uid="158" data-dl-original="true" data-dl-translated="true">20-P</b
+              >27はコントローラーの<b data-dl-uid="159" data-dl-original="true" data-dl-translated="true"
+                >出力ポート</b
+              >です。これらのピンの正確な意味は、コントローラの動作モードによって異なります。
+            </p>
+            <p data-dl-uid="162" data-dl-original="true" data-dl-translated="true">
+              これらのポートについては、コマンドで操作できるため、後で詳しく説明します。
+            </p>
+            <p data-dl-uid="163" data-dl-original="true" data-dl-translated="true">
+              他のほとんどのピンは、私たちにとって重要ではありません。他のピンのほとんどは、私たちにとって重要ではありません。私は、完全性を期すために、ここにそれらを加えることにしました。
+            </p>
+            <p data-dl-uid="164" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="165" data-dl-original="true" data-dl-translated="true">XTAL 1と</b>
+              <b data-dl-uid="166" data-dl-original="true" data-dl-translated="true">XTAL 2は</b>
+              <b data-dl-uid="167" data-dl-original="true" data-dl-translated="true">水晶発振器入力</b
+              >端子です。XTAL 1は、CLKを外部で駆動する場合、グランドに接続することもできます。同様に、<b
+                data-dl-uid="168"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >XTAL 2</b
+              >は、CLKが外部で駆動されている場合、<b
+                data-dl-uid="169"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >CLKに</b
+              >接続することができます。
+            </p>
+            <p data-dl-uid="170" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="171" data-dl-original="true" data-dl-translated="true">RESETは</b
+              >、Low(0)にするとコントローラがリセットされます。
+            </p>
+            <p data-dl-uid="172" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="173" data-dl-original="true" data-dl-translated="true">SSは</b
+              >、マイコンの<b data-dl-uid="174" data-dl-original="true" data-dl-translated="true"
+                >シングルステップ</b
+              >端子です。<b data-dl-uid="175" data-dl-original="true" data-dl-translated="true">CSは</b
+              >、データレジスタポートインタフェースに使用される<b
+                data-dl-uid="176"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >チップセレクト</b
+              >端子です。<b data-dl-uid="177" data-dl-original="true" data-dl-translated="true">EA（No</b
+              >, not the company ;）は、<b
+                data-dl-uid="178"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >外部アクセス</b
+              >入力ピンです。<b data-dl-uid="179" data-dl-original="true" data-dl-translated="true"
+                >OTP（One Time Programmable）ROMを</b
+              >ディセーブルし、外部からコントローラへコマンドを送信することができます。
+            </p>
+            <p data-dl-uid="180" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="181" data-dl-original="true" data-dl-translated="true">RD</b
+              >出力イネーブル入力です。 データレジスタポートインタフェースに使用します。<b
+                data-dl-uid="182"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >A0</b
+              >はコマンド/データレジスタ選択入力です。 データレジスタポートインタフェースに使用します。<b
+                data-dl-uid="183"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >WR</b
+              >はライトイネーブル入力ラインです。 データレジスタポートインタフェースに使用します。
+            </p>
+            <p data-dl-uid="184" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="185" data-dl-original="true" data-dl-translated="true">SYNCは</b
+              >クロック出力信号です。<b
+                data-dl-uid="186"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >D0～D7</b
+              >はデータレジスタポートインタフェースで使用します。<b
+                data-dl-uid="187"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >GND</b
+              >はグランドピン(Vss)です。<b
+                data-dl-uid="188"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >Vdd</b
+              >は+5V 入力端子です。<b data-dl-uid="189" data-dl-original="true" data-dl-translated="true"
+                >PROGは</b
+              >、I/Oエクスパンダアクセス時の8243へのアドレス/データストローブとして使用されます。<b
+                data-dl-uid="190"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >Vcc</b
+              >は、もう 1 つの +5V 入力ピンです。
+            </p>
+            <p data-dl-uid="191" data-dl-original="true" data-dl-translated="true">
+              キーボードコントローラは、キーボードの動作を制御するためのインターフェイスを提供します。これは、ポートI/O空間にマッピングされたポートを介してキーボード・コントローラと通信することによって行われます。ご存知のように、キーボードコントローラと通信するためには、INとOUTの命令を使い、それがどのようにマッピングされているかを知る必要があるのです。それでは、見てみましょう。
+            </p>
+            <p data-dl-uid="192" data-dl-original="true" data-dl-translated="true"></p>
+            <h2 data-dl-uid="193" data-dl-original="true" data-dl-translated="true">ポートマッピング</h2>
+
+            i86アーキテクチャでは、キーボードと通信するために以下のポートが使用されます。
+            <p data-dl-uid="194" data-dl-original="true" data-dl-translated="true"></p>
+
+            <center>
+              <table border="1">
+                <tbody>
+                  <tr>
+                    <th bgcolor="#aaaaaa" colspan="3">Keyboard Controller Ports</th>
+                  </tr>
+                  <tr bgcolor="#cccccc">
+                    <td>Port</td>
+                    <td>Read/Write</td>
+                    <td>Descripton</td>
+                  </tr>
+                  <tr bgcolor="#cccccc">
+                    <td colspan="3">Keyboard Encoder</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">0x60</td>
+                    <td>Read</td>
+                    <td>Read Input Buffer</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">0x60</td>
+                    <td>Write</td>
+                    <td>Send Command</td>
+                  </tr>
+                  <tr bgcolor="#cccccc">
+                    <td colspan="3">Onboard Keyboard Controller</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">0x64</td>
+                    <td>Read</td>
+                    <td>Status Register</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#cccccc">0x64</td>
+                    <td>Write</td>
+                    <td>Send Command</td>
+                  </tr>
+                </tbody>
+              </table>
+            </center>
+
+            <p data-dl-uid="224" data-dl-original="true" data-dl-translated="true">
+              この表は悪くないと思います;)基本的には<b
+                data-dl-uid="225"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >キーボード・エンコーダにコマンドを送るには、ポート0x60にコマンド・バイトを書き込む。</b
+              >ただし、その前にキーボード・コントローラのステータス・レジスタのビット0（出力バッファが一杯）が0であることを確認し、安全であることを確認する必要があります。もし、キーボードコントローラのステータスレジスタのビット1（入力バッファフル）が1であれば、データは入力バッファにあり、読み出し可能な状態になっています。<b
+                data-dl-uid="226"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ポート0x60から読み出すと、キーボード・エンコーダからこのデータを取得することができます。</b
+              >キーボード・エンコーダから読み出されるデータは、通常、キーボードから得られるものですが、特定の値を返すようにマイクロコントローラを再プログラムすることもできます。
+            </p>
+            <p data-dl-uid="227" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="228" data-dl-original="true" data-dl-translated="true"
+                >ポート0x64に値を書き込むと、オンボードのキーボードコントローラにコマンドバイトを送信できます。
+                ポート0x64から読み出すと、キーボードコントローラのステータスバイトを取得できます。</b
+              >
+            </p>
+            <p data-dl-uid="229" data-dl-original="true" data-dl-translated="true">
+              これらすべてを知っていれば、これらのコントローラとの間でコマンドバイトやデータの読み書きを行うルーチンを簡単に提供することができます。ここでは、これらのコントローラで使用されるIOポートを抽象化しています。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">enum KYBRD_ENCODER_IO {
+ 
+	KYBRD_ENC_INPUT_BUF	=	0x60,
+	KYBRD_ENC_CMD_REG	=	0x60
+};
+ 
+enum KYBRD_CTRL_IO {
+ 
+	KYBRD_CTRL_STATS_REG	=	0x64,
+	KYBRD_CTRL_CMD_REG	=	0x64
+};</div></pre>
+            </blockquote>
+
+            <p data-dl-uid="233" data-dl-original="true" data-dl-translated="true">
+              これらのコントローラと対話するために使用されるルーチンは、コントローラのコマンドに関するいくつかの知識が必要であるため、まだ説明しないことにします。
+            </p>
+            <h2 data-dl-uid="234" data-dl-original="true" data-dl-translated="true">レジスタ</h2>
+
+            <h3 data-dl-uid="235" data-dl-original="true" data-dl-translated="true">
+              ステータスレジスタ
+            </h3>
+
+            これは、20番目のアドレス・ラインを有効にすることを取り上げたときと同じように見えるかもしれません。ステータス・レジスタを読むには、単にI/Oポート0x64から読み込みます。返される値は、特定のフォーマットに従った8ビット値です。このフォーマットは、コントローラのモードによって少し異なります。
+            <p data-dl-uid="236" data-dl-original="true" data-dl-translated="true">
+              再度、紹介します。重要なものは<b
+                data-dl-uid="237"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >太字に</b
+              >しました。
+            </p>
+
+            <ul>
+              <li><b>Bit 0: 出力バッファの状態</b></li>
+              <ul>
+                <li>0: 出力バッファは空です、まだ読まないでください</li>
+                <li>1: 出力バッファ満杯、読んでください</li>
+              </ul>
+              <li><b>Bit 1: 入力バッファーの状態</b></li>
+
+              <ul>
+                <li>0: 入力バッファは空、書き込み可能</li>
+                <li>1: 入力バッファが一杯、書き込み不可</li>
+              </ul>
+
+              <li><b>Bit 2:</b> システム・フラグ</li>
+              <ul>
+                <li>0: パワーオンリセット後に設定</li>
+                <li>
+                  1: キーボードコントローラーのセルフテスト（BAT）が正常に終了した後にセットされる。
+                </li>
+              </ul>
+              <li><b>Bit 3:</b> コマンドデータ</li>
+
+              <ul>
+                <li>0: 入力バッファへの最後の書き込みがデータ（ポート 0x60 経由）</li>
+
+                <li>1: 入力バッファへの最後の書き込みはコマンド（ポート0x64経由）</li>
+              </ul>
+              <li><b>Bit 4:</b> キーボードロック</li>
+              <ul>
+                <li>0: ロックされている</li>
+                <li>1: ロックされていない</li>
+              </ul>
+              <li><b>Bit 5:</b> 補助出力バッファフル</li>
+              <ul>
+                <li>PS/2 Systems:</li>
+
+                <ul>
+                  <li>
+                    0: ポート0x60からの読み出しが有効かどうかを判断 有効な場合、0=キーボード・データ
+                  </li>
+
+                  <li>1: マウスデータ、ポート0x60からの読み込みが可能な場合のみ</li>
+                </ul>
+                <li>AT Systems:</li>
+                <ul>
+                  <li>0: OK flag</li>
+
+                  <li>
+                    キーボードコントローラからキーボードへの送信でタイムアウト。これは、キーボードが存在しないことを示す場合がある
+                  </li>
+                </ul>
+              </ul>
+              <li><b>Bit 6:</b> Timeout</li>
+              <ul>
+                <li>0: OK flag</li>
+
+                <li>1: Timeout</li>
+
+                <li>PS/2:</li>
+                <ul>
+                  <li>一般的なタイムアウト</li>
+                </ul>
+                <li>AT:</li>
+                <ul>
+                  <li>
+                    キーボードからキーボードコントローラへの送信でタイムアウト。パリティエラーの可能性あり（この場合、ビット6と7の両方が設定される）
+                  </li>
+                </ul>
+              </ul>
+
+              <li><b>Bit 7:</b> パリティエラー</li>
+
+              <ul>
+                <li>0: OKフラグ、エラーなし</li>
+                <li>1: 最後のバイトでパリティエラー</li>
+              </ul>
+            </ul>
+
+            <p data-dl-uid="293" data-dl-original="true" data-dl-translated="true">
+              キーボードの現在の状態を判断し、何ができて何ができないかを確認するために、ステータス・レジスタを読み込む必要があります。例えば、キーボードが接続されていない状態で、キーボードにコマンドを送ろうとは思いません。そこで、コマンドを送る前に現在の状態を読み込んでテストしたい。
+            </p>
+            <p data-dl-uid="294" data-dl-original="true" data-dl-translated="true">
+              また、プロセッサが命令を実行するスピードは、キーボードコントローラが応答できるスピードよりはるかに速いことも考慮する必要があります。このため、キーボードコントローラが次のコマンドに対応できるようになるのを待つ必要がある場合が多くあります。これを確認するには、ステータス・レジスタを読み込んでビット0（Output
+              Buffer
+              Full）をテストし、次のコマンドを送信してよいかどうかを確認する必要があります。これを行わないと、前のコマンドは破棄され、新しいコマンドが実行され始めますが、これは好ましくないかもしれません。
+            </p>
+            <p data-dl-uid="295" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="296" data-dl-original="true" data-dl-translated="true"
+                >別のコマンドを送信したり、コントローラからデータを読み取る前に、コントローラの準備が整うのを待つことが重要です。</b
+              >
+            </p>
+            <p data-dl-uid="297" data-dl-original="true" data-dl-translated="true">
+              ステータス・レジスタの読み書きにビット・マスクを使用することができます。本章の最後のデモで使用されたものを示します。各ビットが上に示したリストの正しいビットとどのように共起しているかに注意してください。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">enum KYBRD_CTRL_STATS_MASK {
+ 
+	KYBRD_CTRL_STATS_MASK_OUT_BUF	=	1,		//00000001
+	KYBRD_CTRL_STATS_MASK_IN_BUF	=	2,		//00000010
+	KYBRD_CTRL_STATS_MASK_SYSTEM	=	4,		//00000100
+	KYBRD_CTRL_STATS_MASK_CMD_DATA	=	8,		//00001000
+	KYBRD_CTRL_STATS_MASK_LOCKED	=	0x10,		//00010000
+	KYBRD_CTRL_STATS_MASK_AUX_BUF	=	0x20,		//00100000
+	KYBRD_CTRL_STATS_MASK_TIMEOUT	=	0x40,		//01000000
+	KYBRD_CTRL_STATS_MASK_PARITY	=	0x80		//10000000
+};</div></pre>
+            </blockquote>
+
+            素晴らしい!あとは、キーボードコントローラのステータスレジスタをポート0x64から読み出し、上記のビットマスクに基づいて、好きなビットをテストしてステータスをチェックするだけです。
+            <p data-dl-uid="301" data-dl-original="true" data-dl-translated="true">
+              つまり、キーボードコントローラのステータスレジスタから読み出すには、次のようにすればよいのです。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">//! read status from keyboard controller
+uint8_t kybrd_ctrl_read_status () {
+ 
+	return inportb (KYBRD_CTRL_STATS_REG);
+}</div></pre>
+            </blockquote>
+
+            <h3 data-dl-uid="305" data-dl-original="true" data-dl-translated="true">
+              読み書きを行う。入力バッファ
+            </h3>
+
+            コマンドを送信するには、まずキーボードコントローラの準備が整うのを待ちます。
+            これは、入力バッファが一杯になったかどうかを確認することで行われます。キーボードコントローラのステータスレジスタを読み、ビットをテストすることによって、これをテストします。もし0なら、バッファは空なので、コマンドバイトを送ります。(この情報はすべて、上に示したステータスレジスタのビットレイアウトの中にあることを思い出してください)。
+
+            <blockquote>
+              <pre><div class="code">//! send command byte to keyboard controller
+void kybrd_ctrl_send_cmd (uint8_t cmd) {
+ 
+	//! wait for kkybrd controller input buffer to be clear
+	while (1)
+		if ( (kybrd_ctrl_read_status () &amp; KYBRD_CTRL_STATS_MASK_IN_BUF) == 0)
+			break;
+ 
+	outportb (KYBRD_CTRL_CMD_REG, cmd);
+}</div></pre>
+            </blockquote>
+
+            キーボードエンコーダは、下図に示すように非常によく似ています。<b
+              data-dl-uid="309"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >キーボードエンコーダに送られるコマンドは、まずキーボードコントローラに送られることを覚えておいてください。</b
+            >このため、キーボード・コントローラがコマンドに対応できる状態であることを確認する必要があります。
+
+            <blockquote>
+              <pre><div class="code">//! read keyboard encoder buffer
+uint8_t kybrd_enc_read_buf () {
+ 
+	return inportb (KYBRD_ENC_INPUT_BUF);
+}
+ 
+//! send command byte to keyboard encoder
+void kybrd_enc_send_cmd (uint8_t cmd) {
+ 
+	//! wait for kkybrd controller input buffer to be clear
+	while (1)
+		if ( (kybrd_ctrl_read_status () &amp; KYBRD_CTRL_STATS_MASK_IN_BUF) == 0)
+			break;
+ 
+	//! send command byte to kybrd encoder
+	outportb (KYBRD_ENC_CMD_REG, cmd);
+}</div></pre>
+            </blockquote>
+
+            <h2 data-dl-uid="313" data-dl-original="true" data-dl-translated="true">
+              キーボードエンコーダコマンド
+            </h2>
+
+            ポート0x60にコマンドバイトを書き込むと、キーボードコントローラはその値を直接キーボードエンコーダーに送信します。以下にコマンド・バイトのリストを示します。
+            <p data-dl-uid="314" data-dl-original="true" data-dl-translated="true"></p>
+
+            <center data-dl-uid="315" data-dl-original="true" data-dl-translated="true">
+              <table border="1" data-dl-uid="316" data-dl-original="true" data-dl-translated="true">
+                <tbody data-dl-uid="317" data-dl-original="true" data-dl-translated="true">
+                  <tr data-dl-uid="318" data-dl-original="true" data-dl-translated="true">
+                    <th
+                      bgcolor="#aaaaaa"
+                      colspan="3"
+                      data-dl-uid="319"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      コマンド一覧
+                    </th>
+                  </tr>
+                  <tr
+                    bgcolor="#cccccc"
+                    data-dl-uid="320"
+                    data-dl-original="true"
+                    data-dl-translated="true"
+                  >
+                    <td data-dl-uid="321" data-dl-original="true" data-dl-translated="true">
+                      コマンド名
+                    </td>
+                    <td data-dl-uid="322" data-dl-original="true" data-dl-translated="true">説明</td>
+                  </tr>
+                  <tr data-dl-uid="323" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="#cccccc"
+                      data-dl-uid="324"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      0xED
+                    </td>
+                    <td data-dl-uid="325" data-dl-original="true" data-dl-translated="true">
+                      LEDの設定
+                    </td>
+                  </tr>
+                  <tr data-dl-uid="326" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="#cccccc"
+                      data-dl-uid="327"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      0xEE
+                    </td>
+                    <td data-dl-uid="328" data-dl-original="true" data-dl-translated="true">
+                      エコーコマンド。診断テストとして0xEEをポート0x60に返す
+                    </td>
+                  </tr>
+                  <tr data-dl-uid="329" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="#cccccc"
+                      data-dl-uid="330"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      0xF0
+                    </td>
+                    <td data-dl-uid="331" data-dl-original="true" data-dl-translated="true">
+                      セットされた代替スキャンコード
+                    </td>
+                  </tr>
+                  <tr data-dl-uid="332" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="#cccccc"
+                      data-dl-uid="333"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      0xF2
+                    </td>
+                    <td data-dl-uid="334" data-dl-original="true" data-dl-translated="true">
+                      ポート0x60から読み込む次の2バイトとして、2バイトのキーボードIDコードを送信する
+                    </td>
+                  </tr>
+                  <tr data-dl-uid="335" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="#cccccc"
+                      data-dl-uid="336"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      0xF3
+                    </td>
+                    <td data-dl-uid="337" data-dl-original="true" data-dl-translated="true">
+                      オートリピートディレイとリピートレートの設定
+                    </td>
+                  </tr>
+                  <tr data-dl-uid="338" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="#cccccc"
+                      data-dl-uid="339"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      0xF4
+                    </td>
+                    <td data-dl-uid="340" data-dl-original="true" data-dl-translated="true">
+                      キーボードの有効化
+                    </td>
+                  </tr>
+                  <tr data-dl-uid="341" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="#cccccc"
+                      data-dl-uid="342"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      0xF5
+                    </td>
+                    <td data-dl-uid="343" data-dl-original="true" data-dl-translated="true">
+                      パワーオン状態へのリセットとイネーブルコマンドの待ち受け
+                    </td>
+                  </tr>
+                  <tr data-dl-uid="344" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="#cccccc"
+                      data-dl-uid="345"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      0xF6
+                    </td>
+                    <td data-dl-uid="346" data-dl-original="true" data-dl-translated="true">
+                      パワーオンリセット、キーボードスキャン開始
+                    </td>
+                  </tr>
+                  <tr data-dl-uid="347" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="#cccccc"
+                      data-dl-uid="348"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      0xF7
+                    </td>
+                    <td data-dl-uid="349" data-dl-original="true" data-dl-translated="true">
+                      すべてのキーをオートリピートに設定(PS/2のみ)
+                    </td>
+                  </tr>
+                  <tr data-dl-uid="350" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="#cccccc"
+                      data-dl-uid="351"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      0xF8
+                    </td>
+                    <td data-dl-uid="352" data-dl-original="true" data-dl-translated="true">
+                      すべてのキーでメイクコードとブレークコードを送信するように設定(PS/2のみ)
+                    </td>
+                  </tr>
+                  <tr data-dl-uid="353" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="#cccccc"
+                      data-dl-uid="354"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      0xF9
+                    </td>
+                    <td data-dl-uid="355" data-dl-original="true" data-dl-translated="true">
+                      すべてのキーをメイクコードのみ生成するように設定する
+                    </td>
+                  </tr>
+                  <tr data-dl-uid="356" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="#cccccc"
+                      data-dl-uid="357"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      0xFA
+                    </td>
+                    <td data-dl-uid="358" data-dl-original="true" data-dl-translated="true">
+                      すべてのキーをオートリピートおよびメイク/ブレークコードの生成に設定する
+                    </td>
+                  </tr>
+                  <tr data-dl-uid="359" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="#cccccc"
+                      data-dl-uid="360"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      0xFB
+                    </td>
+                    <td data-dl-uid="361" data-dl-original="true" data-dl-translated="true">
+                      キーを1つだけオートリピートさせる
+                    </td>
+                  </tr>
+                  <tr data-dl-uid="362" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="#cccccc"
+                      data-dl-uid="363"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      0xFC
+                    </td>
+                    <td data-dl-uid="364" data-dl-original="true" data-dl-translated="true">
+                      1つのキーをメイク/ブレークコード生成に設定
+                    </td>
+                  </tr>
+                  <tr data-dl-uid="365" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="#cccccc"
+                      data-dl-uid="366"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      0xFD
+                    </td>
+                    <td data-dl-uid="367" data-dl-original="true" data-dl-translated="true">
+                      1つのキーでブレークコードのみを生成するように設定
+                    </td>
+                  </tr>
+                  <tr data-dl-uid="368" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="#cccccc"
+                      data-dl-uid="369"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      0xFE
+                    </td>
+                    <td data-dl-uid="370" data-dl-original="true" data-dl-translated="true">
+                      最後の結果の再送
+                    </td>
+                  </tr>
+                  <tr data-dl-uid="371" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="#cccccc"
+                      data-dl-uid="372"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      0xFF
+                    </td>
+                    <td data-dl-uid="373" data-dl-original="true" data-dl-translated="true">
+                      キーボードの電源をリセットし、セルフテストを開始する。
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </center>
+
+            <p data-dl-uid="374" data-dl-original="true" data-dl-translated="true">
+              小さなコマンドはすべて上記の表に記載されていますが、より複雑なコマンドを詳しく見てみましょう。
+            </p>
+            <h3 data-dl-uid="375" data-dl-original="true" data-dl-translated="true">
+              コマンド0xED - 発光ダイオード(LED)の設定
+            </h3>
+
+            このコマンドは、キーボードのLEDを設定するために使用されます。ポート 0x60
+            に書き込まれた次のバイトは、キーボードの LED を更新し、以下に示すフォーマットに従います。
+            <ul data-dl-uid="376" data-dl-original="true" data-dl-translated="true">
+              <li data-dl-uid="377" data-dl-original="true" data-dl-translated="true">
+                ビット<b data-dl-uid="378" data-dl-original="true" data-dl-translated="true">0：</b
+                >スクロールロックLED（0：オフ 1：オン）
+              </li>
+              <li data-dl-uid="379" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="380" data-dl-original="true" data-dl-translated="true">第1</b
+                >ビット：NumロックLED（0:消灯 1:点灯）
+              </li>
+              <li data-dl-uid="381" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="382" data-dl-original="true" data-dl-translated="true">第2</b
+                >ビット：キャップスロックLED（0:消灯 1:点灯）
+              </li>
+            </ul>
+            <p data-dl-uid="383" data-dl-original="true" data-dl-translated="true">
+              他のビットはすべて0でなければなりません。
+            </p>
+            <p data-dl-uid="384" data-dl-original="true" data-dl-translated="true">
+              このコマンドは、ちょっと遊んでみるのも楽しいかもしれません;)以下は、デモがキーボードのライトを更新するために使用するルーチンの例です。パラメータがtrueかfalseかによってビットをセットしたりクリアしたりしていることに注目してください。また、最初にコマンドバイトをキーボードエンコーダーに書き、次にデータバイトを書き込んでいることにも注目してください。これらは両方ともキーボードエンコーダのコマンドレジスタに送られます。KYBRD_ENC_CMD_SET_LED
+              は0xED（私たちが使っているコマンドバイト）用の定数です。魔法は使っていません :)
+            </p>
+
+            <blockquote>
+              <pre><div class="code">//! sets leds
+void kkybrd_set_leds (bool num, bool caps, bool scroll) {
+ 
+	uint8_t data = 0;
+ 
+	//! set or clear the bit
+	data = (scroll) ? (data | 1) : (data &amp; 1);
+	data = (num) ? (num | 2) : (num &amp; 2);
+	data = (caps) ? (num | 4) : (num &amp; 4);
+ 
+	//! send the command -- update keyboard Light Emetting Diods (LEDs)
+	kybrd_enc_send_cmd (KYBRD_ENC_CMD_SET_LED);
+	kybrd_enc_send_cmd (data);
+}</div></pre>
+            </blockquote>
+
+            <h3 data-dl-uid="388" data-dl-original="true" data-dl-translated="true">
+              コマンド 0xF0 - オルタネートスキャンコードセット(PS/2 のみ)
+            </h3>
+
+            このコマンドは、使用するスキャン・コード・セットを設定します。ポート0x60に書き込まれる次のバイトは、次のフォーマットのバイトでなければなりません。
+
+            <ul>
+              <li><b>Bit 0:</b> Returns current scan code set to port 0x60</li>
+              <li><b>Bit 1:</b> Sets scan code set 1</li>
+              <li><b>Bit 2:</b> Sets scan code set 2</li>
+              <li><b>Bit 3:</b> Sets scan code set 3</li>
+            </ul>
+
+            <h3 data-dl-uid="399" data-dl-original="true" data-dl-translated="true">
+              コマンド 0xF3 - オートリピート・ディレイ・リピート・レート設定
+            </h3>
+
+            このコマンドは、オートリピートディレイとリピートレートを設定します。ポート0x60に書き込まれる次のバイトは、以下のフォーマットである必要があります。
+
+            <ul>
+              <li><b>Bit 0-4:</b> Repeat rate. 0: approx 30 chars/sec to 0x1F: approx 2 chars/sec</li>
+              <li><b>Bit 5-6:</b> Repeat delay. 00: 1/4 sec, 01: 1/2 sec, 10: 3/4 sec, 11: 1 sec</li>
+            </ul>
+
+            <p data-dl-uid="405" data-dl-original="true" data-dl-translated="true">
+              他のビットは全て0を指定。
+            </p>
+            <h3 data-dl-uid="406" data-dl-original="true" data-dl-translated="true">リターンコード</h3>
+
+            ご存知のように、キーボード・エンコーダは、システムのオンボード・キーボード・コントローラと通信しています。返される値のほとんどはスキャンコードですが、時にはエラーが返されることもあります。これらの値は、キーボードデコーダからポート0x60を通じてシステムに送信されます。
+            <p data-dl-uid="407" data-dl-original="true" data-dl-translated="true">
+              戻り値は、以下のいずれかとなります。
+            </p>
+            <p data-dl-uid="408" data-dl-original="true" data-dl-translated="true"></p>
+
+            <center data-dl-uid="409" data-dl-original="true" data-dl-translated="true">
+              <table border="1" data-dl-uid="410" data-dl-original="true" data-dl-translated="true">
+                <tbody data-dl-uid="411" data-dl-original="true" data-dl-translated="true">
+                  <tr data-dl-uid="412" data-dl-original="true" data-dl-translated="true">
+                    <th
+                      bgcolor="#aaaaaa"
+                      colspan="3"
+                      data-dl-uid="413"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      戻り値
+                    </th>
+                  </tr>
+                  <tr
+                    bgcolor="#cccccc"
+                    data-dl-uid="414"
+                    data-dl-original="true"
+                    data-dl-translated="true"
+                  >
+                    <td data-dl-uid="415" data-dl-original="true" data-dl-translated="true">値</td>
+                    <td data-dl-uid="416" data-dl-original="true" data-dl-translated="true">説明</td>
+                  </tr>
+                  <tr data-dl-uid="417" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="#cccccc"
+                      data-dl-uid="418"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      0x0
+                    </td>
+                    <td data-dl-uid="419" data-dl-original="true" data-dl-translated="true">
+                      内部バッファオーバーラン
+                    </td>
+                  </tr>
+                  <tr data-dl-uid="420" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="#cccccc"
+                      data-dl-uid="421"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      0x1-0x58, 0x81-0xD8
+                    </td>
+                    <td data-dl-uid="422" data-dl-original="true" data-dl-translated="true">
+                      キープレススキャンコード
+                    </td>
+                  </tr>
+                  <tr data-dl-uid="423" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="#cccccc"
+                      data-dl-uid="424"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      0x83AB
+                    </td>
+                    <td data-dl-uid="425" data-dl-original="true" data-dl-translated="true">
+                      F2 コマンドから返されたキーボード ID コード
+                    </td>
+                  </tr>
+                  <tr data-dl-uid="426" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="#cccccc"
+                      data-dl-uid="427"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      0xAA
+                    </td>
+                    <td data-dl-uid="428" data-dl-original="true" data-dl-translated="true">
+                      リセット後の<b data-dl-uid="429" data-dl-original="true" data-dl-translated="true"
+                        >BAT（Basic Assurance Test</b
+                      >）中に返されるコード。L.シフトキーメイクコードも
+                    </td>
+                  </tr>
+                  <tr data-dl-uid="430" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="#cccccc"
+                      data-dl-uid="431"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      0xEE
+                    </td>
+                    <td data-dl-uid="432" data-dl-original="true" data-dl-translated="true">
+                      ECHO コマンドから返される
+                    </td>
+                  </tr>
+                  <tr data-dl-uid="433" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="#cccccc"
+                      data-dl-uid="434"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      0xF0
+                    </td>
+                    <td data-dl-uid="435" data-dl-original="true" data-dl-translated="true">
+                      特定のメイクコードのプレフィックス（PS/2には適用されません）
+                    </td>
+                  </tr>
+                  <tr data-dl-uid="436" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="#cccccc"
+                      data-dl-uid="437"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      0xFA
+                    </td>
+                    <td data-dl-uid="438" data-dl-original="true" data-dl-translated="true">
+                      キーボード・コマンドに対するキーボード・アクノレッジ
+                    </td>
+                  </tr>
+                  <tr data-dl-uid="439" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="#cccccc"
+                      data-dl-uid="440"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      0xFC
+                    </td>
+                    <td data-dl-uid="441" data-dl-original="true" data-dl-translated="true">
+                      <b data-dl-uid="442" data-dl-original="true" data-dl-translated="true"
+                        >基本保証テスト（BAT</b
+                      >）失敗（PS/2のみ）
+                    </td>
+                  </tr>
+                  <tr data-dl-uid="443" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="#cccccc"
+                      data-dl-uid="444"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      0xFD
+                    </td>
+                    <td data-dl-uid="445" data-dl-original="true" data-dl-translated="true">
+                      ダイアゴスティックの失敗（PS/2 以外）
+                    </td>
+                  </tr>
+                  <tr data-dl-uid="446" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="#cccccc"
+                      data-dl-uid="447"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      0xFE
+                    </td>
+                    <td data-dl-uid="448" data-dl-original="true" data-dl-translated="true">
+                      キーボードがシステムに対して最後のコマンドの再送を要求した
+                    </td>
+                  </tr>
+                  <tr data-dl-uid="449" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="#cccccc"
+                      data-dl-uid="450"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      0xFF
+                    </td>
+                    <td data-dl-uid="451" data-dl-original="true" data-dl-translated="true">
+                      キーエラー(PS/2のみ)
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </center>
+
+            <h2 data-dl-uid="452" data-dl-original="true" data-dl-translated="true">
+              オンボードキーボードコントローラコマンド
+            </h2>
+
+            これらのコマンドのいくつかは、A20の章ですでに見ています。しかし、ここに挙げたコマンドの多くは新しいもので、中には非常に低レベルのものもあります。つまり、これらのコマンドのいくつかは、コントローラに接続された特定のラインを制御することができます。このため、コントローラのラインとキーボードデバイスとのインターフェイスを取り上げなければならなかったのです。その他のコマンドは、コントローラーの内部RAMの読み書きを行うものです。
+            <p data-dl-uid="453" data-dl-original="true" data-dl-translated="true"></p>
+
+            <center data-dl-uid="454" data-dl-original="true" data-dl-translated="true">
+              <table border="1" data-dl-uid="455" data-dl-original="true" data-dl-translated="true">
+                <tbody data-dl-uid="456" data-dl-original="true" data-dl-translated="true">
+                  <tr data-dl-uid="457" data-dl-original="true" data-dl-translated="true">
+                    <th
+                      bgcolor="#aaaaaa"
+                      colspan="3"
+                      data-dl-uid="458"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      コマンド一覧
+                    </th>
+                  </tr>
+                  <tr
+                    bgcolor="#cccccc"
+                    data-dl-uid="459"
+                    data-dl-original="true"
+                    data-dl-translated="true"
+                  >
+                    <td data-dl-uid="460" data-dl-original="true" data-dl-translated="true">
+                      コマンド名
+                    </td>
+                    <td data-dl-uid="461" data-dl-original="true" data-dl-translated="true">説明</td>
+                  </tr>
+                  <tr
+                    bgcolor="#cccccc"
+                    data-dl-uid="462"
+                    data-dl-original="true"
+                    data-dl-translated="true"
+                  >
+                    <td colspan="3" data-dl-uid="463" data-dl-original="true" data-dl-translated="true">
+                      共通コマンド
+                    </td>
+                  </tr>
+                  <tr data-dl-uid="464" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="#cccccc"
+                      data-dl-uid="465"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      0x20
+                    </td>
+                    <td data-dl-uid="466" data-dl-original="true" data-dl-translated="true">
+                      コマンドバイトの読み出し
+                    </td>
+                  </tr>
+                  <tr data-dl-uid="467" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="#cccccc"
+                      data-dl-uid="468"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      0x60
+                    </td>
+                    <td data-dl-uid="469" data-dl-original="true" data-dl-translated="true">
+                      ライトコマンドバイト
+                    </td>
+                  </tr>
+                  <tr data-dl-uid="470" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="#cccccc"
+                      data-dl-uid="471"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      0xAA
+                    </td>
+                    <td data-dl-uid="472" data-dl-original="true" data-dl-translated="true">
+                      セルフテスト
+                    </td>
+                  </tr>
+                  <tr data-dl-uid="473" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="#cccccc"
+                      data-dl-uid="474"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      0xAB
+                    </td>
+                    <td data-dl-uid="475" data-dl-original="true" data-dl-translated="true">
+                      インターフェーステスト
+                    </td>
+                  </tr>
+                  <tr data-dl-uid="476" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="#cccccc"
+                      data-dl-uid="477"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      0xAD
+                    </td>
+                    <td data-dl-uid="478" data-dl-original="true" data-dl-translated="true">
+                      キーボード無効化
+                    </td>
+                  </tr>
+                  <tr data-dl-uid="479" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="#cccccc"
+                      data-dl-uid="480"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      0xAE
+                    </td>
+                    <td data-dl-uid="481" data-dl-original="true" data-dl-translated="true">
+                      キーボードの有効化
+                    </td>
+                  </tr>
+                  <tr data-dl-uid="482" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="#cccccc"
+                      data-dl-uid="483"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      0xC0
+                    </td>
+                    <td data-dl-uid="484" data-dl-original="true" data-dl-translated="true">
+                      入力ポートの読み出し
+                    </td>
+                  </tr>
+                  <tr data-dl-uid="485" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="#cccccc"
+                      data-dl-uid="486"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      0xD0
+                    </td>
+                    <td data-dl-uid="487" data-dl-original="true" data-dl-translated="true">
+                      出力ポートの読み出し
+                    </td>
+                  </tr>
+                  <tr data-dl-uid="488" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="#cccccc"
+                      data-dl-uid="489"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      0xD1
+                    </td>
+                    <td data-dl-uid="490" data-dl-original="true" data-dl-translated="true">
+                      ライト出力ポート
+                    </td>
+                  </tr>
+                  <tr data-dl-uid="491" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="#cccccc"
+                      data-dl-uid="492"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      0xE0
+                    </td>
+                    <td data-dl-uid="493" data-dl-original="true" data-dl-translated="true">
+                      テスト入力の読み出し
+                    </td>
+                  </tr>
+                  <tr data-dl-uid="494" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="#cccccc"
+                      data-dl-uid="495"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      0xFE
+                    </td>
+                    <td data-dl-uid="496" data-dl-original="true" data-dl-translated="true">
+                      システム・リセット
+                    </td>
+                  </tr>
+                  <tr data-dl-uid="497" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="#cccccc"
+                      data-dl-uid="498"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      0xA7
+                    </td>
+                    <td data-dl-uid="499" data-dl-original="true" data-dl-translated="true">
+                      マウス・ポートの無効化
+                    </td>
+                  </tr>
+                  <tr data-dl-uid="500" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="#cccccc"
+                      data-dl-uid="501"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      0xA8
+                    </td>
+                    <td data-dl-uid="502" data-dl-original="true" data-dl-translated="true">
+                      マウスポートの有効化
+                    </td>
+                  </tr>
+                  <tr data-dl-uid="503" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="#cccccc"
+                      data-dl-uid="504"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      0xA9
+                    </td>
+                    <td data-dl-uid="505" data-dl-original="true" data-dl-translated="true">
+                      マウスポートのテスト
+                    </td>
+                  </tr>
+                  <tr data-dl-uid="506" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="#cccccc"
+                      data-dl-uid="507"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      0xD4
+                    </td>
+                    <td data-dl-uid="508" data-dl-original="true" data-dl-translated="true">
+                      マウスへの書き込み
+                    </td>
+                  </tr>
+                  <tr
+                    bgcolor="#cccccc"
+                    data-dl-uid="509"
+                    data-dl-original="true"
+                    data-dl-translated="true"
+                  >
+                    <td colspan="3" data-dl-uid="510" data-dl-original="true" data-dl-translated="true">
+                      非標準コマンド
+                    </td>
+                  </tr>
+                  <tr data-dl-uid="511" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="#cccccc"
+                      data-dl-uid="512"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      0x00-0x1F
+                    </td>
+                    <td data-dl-uid="513" data-dl-original="true" data-dl-translated="true">
+                      コントローラRAMの読み出し
+                    </td>
+                  </tr>
+                  <tr data-dl-uid="514" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="#cccccc"
+                      data-dl-uid="515"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      0x20-0x3F
+                    </td>
+                    <td data-dl-uid="516" data-dl-original="true" data-dl-translated="true">
+                      コントローラRAMの読み出し
+                    </td>
+                  </tr>
+                  <tr data-dl-uid="517" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="#cccccc"
+                      data-dl-uid="518"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      0x40-0x5F
+                    </td>
+                    <td data-dl-uid="519" data-dl-original="true" data-dl-translated="true">
+                      ライトコントローラRAM
+                    </td>
+                  </tr>
+                  <tr data-dl-uid="520" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="#cccccc"
+                      data-dl-uid="521"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      0x60-0x7F
+                    </td>
+                    <td data-dl-uid="522" data-dl-original="true" data-dl-translated="true">
+                      ライトコントローラRAM
+                    </td>
+                  </tr>
+                  <tr data-dl-uid="523" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="#cccccc"
+                      data-dl-uid="524"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      0x90-0x93
+                    </td>
+                    <td data-dl-uid="525" data-dl-original="true" data-dl-translated="true">
+                      シナプティックス・マルチプレクサ・プレフィックス
+                    </td>
+                  </tr>
+                  <tr data-dl-uid="526" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="#cccccc"
+                      data-dl-uid="527"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      0x90-0x9F
+                    </td>
+                    <td data-dl-uid="528" data-dl-original="true" data-dl-translated="true">
+                      ライトポート13-ポート10
+                    </td>
+                  </tr>
+                  <tr data-dl-uid="529" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="#cccccc"
+                      data-dl-uid="530"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      0xA0
+                    </td>
+                    <td data-dl-uid="531" data-dl-original="true" data-dl-translated="true">
+                      読み取り著作権
+                    </td>
+                  </tr>
+                  <tr data-dl-uid="532" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="#cccccc"
+                      data-dl-uid="533"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      0xA1
+                    </td>
+                    <td data-dl-uid="534" data-dl-original="true" data-dl-translated="true">
+                      ファームウェアバージョンの読み出し
+                    </td>
+                  </tr>
+                  <tr data-dl-uid="535" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="#cccccc"
+                      data-dl-uid="536"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      0xA2
+                    </td>
+                    <td data-dl-uid="537" data-dl-original="true" data-dl-translated="true">速度変更</td>
+                  </tr>
+                  <tr data-dl-uid="538" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="#cccccc"
+                      data-dl-uid="539"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      0xA3
+                    </td>
+                    <td data-dl-uid="540" data-dl-original="true" data-dl-translated="true">速度変更</td>
+                  </tr>
+                  <tr data-dl-uid="541" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="#cccccc"
+                      data-dl-uid="542"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      0xA4
+                    </td>
+                    <td data-dl-uid="543" data-dl-original="true" data-dl-translated="true">
+                      パスワード設定確認
+                    </td>
+                  </tr>
+                  <tr data-dl-uid="544" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="#cccccc"
+                      data-dl-uid="545"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      0xA5
+                    </td>
+                    <td data-dl-uid="546" data-dl-original="true" data-dl-translated="true">
+                      パスワードの読み込み
+                    </td>
+                  </tr>
+                  <tr data-dl-uid="547" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="#cccccc"
+                      data-dl-uid="548"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      0xA6
+                    </td>
+                    <td data-dl-uid="549" data-dl-original="true" data-dl-translated="true">
+                      パスワードの確認
+                    </td>
+                  </tr>
+                  <tr data-dl-uid="550" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="#cccccc"
+                      data-dl-uid="551"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      0xAC
+                    </td>
+                    <td data-dl-uid="552" data-dl-original="true" data-dl-translated="true">
+                      診断ダンプ
+                    </td>
+                  </tr>
+                  <tr data-dl-uid="553" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="#cccccc"
+                      data-dl-uid="554"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      0xAF
+                    </td>
+                    <td data-dl-uid="555" data-dl-original="true" data-dl-translated="true">
+                      キーボードバージョンの読み込み
+                    </td>
+                  </tr>
+                  <tr data-dl-uid="556" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="#cccccc"
+                      data-dl-uid="557"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      0xB0-0xB5
+                    </td>
+                    <td data-dl-uid="558" data-dl-original="true" data-dl-translated="true">
+                      コントローララインリセット
+                    </td>
+                  </tr>
+                  <tr data-dl-uid="559" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="#cccccc"
+                      data-dl-uid="560"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      0xB8-0xBD
+                    </td>
+                    <td data-dl-uid="561" data-dl-original="true" data-dl-translated="true">
+                      コントローラライン設定
+                    </td>
+                  </tr>
+                  <tr data-dl-uid="562" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="#cccccc"
+                      data-dl-uid="563"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      0xC1
+                    </td>
+                    <td data-dl-uid="564" data-dl-original="true" data-dl-translated="true">
+                      連続入力ポート・ポール、Low
+                    </td>
+                  </tr>
+                  <tr data-dl-uid="565" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="#cccccc"
+                      data-dl-uid="566"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      0xC2
+                    </td>
+                    <td data-dl-uid="567" data-dl-original="true" data-dl-translated="true">
+                      連続入力ポートポール、High
+                    </td>
+                  </tr>
+                  <tr data-dl-uid="568" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="#cccccc"
+                      data-dl-uid="569"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      0xC8
+                    </td>
+                    <td data-dl-uid="570" data-dl-original="true" data-dl-translated="true">
+                      コントローララインP22とP23のブロック解除
+                    </td>
+                  </tr>
+                  <tr data-dl-uid="571" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="#cccccc"
+                      data-dl-uid="572"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      0xC9
+                    </td>
+                    <td data-dl-uid="573" data-dl-original="true" data-dl-translated="true">
+                      コントローララインP22とP23をブロック
+                    </td>
+                  </tr>
+                  <tr data-dl-uid="574" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="#cccccc"
+                      data-dl-uid="575"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      0xCA
+                    </td>
+                    <td data-dl-uid="576" data-dl-original="true" data-dl-translated="true">
+                      コントローラモード読み出し
+                    </td>
+                  </tr>
+                  <tr data-dl-uid="577" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="#cccccc"
+                      data-dl-uid="578"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      0xCB
+                    </td>
+                    <td data-dl-uid="579" data-dl-original="true" data-dl-translated="true">
+                      ライトコントローラモード
+                    </td>
+                  </tr>
+                  <tr data-dl-uid="580" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="#cccccc"
+                      data-dl-uid="581"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      0xD2
+                    </td>
+                    <td data-dl-uid="582" data-dl-original="true" data-dl-translated="true">
+                      ライト出力バッファ
+                    </td>
+                  </tr>
+                  <tr data-dl-uid="583" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="#cccccc"
+                      data-dl-uid="584"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      0xD3
+                    </td>
+                    <td data-dl-uid="585" data-dl-original="true" data-dl-translated="true">
+                      ライトマウス出力バッファ
+                    </td>
+                  </tr>
+                  <tr data-dl-uid="586" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="#cccccc"
+                      data-dl-uid="587"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      0xDD
+                    </td>
+                    <td data-dl-uid="588" data-dl-original="true" data-dl-translated="true">
+                      A20アドレスライン無効化
+                    </td>
+                  </tr>
+                  <tr data-dl-uid="589" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="#cccccc"
+                      data-dl-uid="590"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      0xDF
+                    </td>
+                    <td data-dl-uid="591" data-dl-original="true" data-dl-translated="true">
+                      A20アドレスラインの有効化
+                    </td>
+                  </tr>
+                  <tr data-dl-uid="592" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="#cccccc"
+                      data-dl-uid="593"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      0xF0-0xFF
+                    </td>
+                    <td data-dl-uid="594" data-dl-original="true" data-dl-translated="true">
+                      パルス出力ビット
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </center>
+
+            <p data-dl-uid="595" data-dl-original="true" data-dl-translated="true">
+              ずいぶんたくさんのコマンドがありますね。すべてのコマンドを網羅するには、かなりの時間がかかると思いませんか？A20のコマンドは、A20の章ですでに説明しました。このシリーズでは移植性を重視しているため、上記のような一般的なコマンドのみを取り上げますが、興味のある読者はここで取り上げていないコマンドの情報を探してみてください。
+            </p>
+            <p data-dl-uid="596" data-dl-original="true" data-dl-translated="true">
+              次のセクションまで、サンプルコードを取り上げるつもりはありません。ここでは、コマンドそのものを取り上げ、次のセクションから参照することにします。
+            </p>
+            <h3 data-dl-uid="597" data-dl-original="true" data-dl-translated="true">
+              コマンド0x20 - コマンドバイトの読み出しとコントローラRAMの読み出し
+            </h3>
+
+            上の表を見てください。0x20〜0x3Fのコマンドは、コントローラのRAMを読み出すのに使われていることにお気づきでしょうか？それなのに、コマンド0x20は、コマンドバイトの読み出しにも使われています。どうなっているのでしょうか？
+            <p data-dl-uid="598" data-dl-original="true" data-dl-translated="true">
+              実は、この2つのコマンドは同じものを指しています。コマンド・バイトは、コントローラのRAMに格納されています。つまり、コマンドバイトを読むということは、コントローラの内部RAMから読むということです。どうです？
+            </p>
+            <p data-dl-uid="599" data-dl-original="true" data-dl-translated="true">
+              コントローラのRAMから読み出す場合、<b
+                data-dl-uid="600"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >コマンドの最後の6ビットは、RAM内の読み出す</b
+              >場所を参照します。ある種の MCA システムでは、RAM 内の 32
+              のロケーションすべてにアクセスすることができます。他のシステムでは、0、0x13-0x17、0x1D、および
+              0x1F のバイトにのみアクセスできます。
+            </p>
+            <p data-dl-uid="601" data-dl-original="true" data-dl-translated="true">
+              これらの位置は次のとおりです。
+            </p>
+            <p data-dl-uid="602" data-dl-original="true" data-dl-translated="true"></p>
+
+            <ul>
+              <li><b>Offset 0: Command Byte</b></li>
+              <li>Offset 0x13 (MCA): パスワードが有効な場合は非ゼロ</li>
+              <li>Offset 0x14 (MCA): パスワードが一致した場合、非ゼロ</li>
+              <li>
+                Offsets 0x16-0x17 (MCA): パスワード照合時に破棄される2つのメークアップコードを与える
+              </li>
+              <li>Offset 0x1D:</li>
+              <li>Offset 0x1F:</li>
+            </ul>
+
+            <p data-dl-uid="611" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="612" data-dl-original="true" data-dl-translated="true">コマンドバイトは</b
+              >、より重要なバイトである。見た目ほど複雑ではないので、ご安心ください。
+            </p>
+            <p data-dl-uid="613" data-dl-original="true" data-dl-translated="true"></p>
+
+            <ul data-dl-uid="614" data-dl-original="true" data-dl-translated="true">
+              <li data-dl-uid="615" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="616" data-dl-original="true" data-dl-translated="true">ビット0</b
+                >：キーボード割り込みイネーブル
+              </li>
+              <ul data-dl-uid="617" data-dl-original="true" data-dl-translated="true">
+                <li data-dl-uid="618" data-dl-original="true" data-dl-translated="true">
+                  0: 割り込み禁止
+                </li>
+                <li data-dl-uid="619" data-dl-original="true" data-dl-translated="true">
+                  1: キーボード出力バッファが一杯になったらIRQ 1を送る
+                </li>
+              </ul>
+              <li data-dl-uid="620" data-dl-original="true" data-dl-translated="true">
+                ビット<b data-dl-uid="621" data-dl-original="true" data-dl-translated="true">1</b
+                >：マウス割り込みイネーブル
+              </li>
+              <ul data-dl-uid="622" data-dl-original="true" data-dl-translated="true">
+                <li data-dl-uid="623" data-dl-original="true" data-dl-translated="true">
+                  <b data-dl-uid="624" data-dl-original="true" data-dl-translated="true">ISA</b>：未使用
+                </li>
+                <li data-dl-uid="625" data-dl-original="true" data-dl-translated="true">
+                  <b data-dl-uid="626" data-dl-original="true" data-dl-translated="true">EISA / PS2</b>
+                </li>
+                <ul data-dl-uid="627" data-dl-original="true" data-dl-translated="true">
+                  <li data-dl-uid="628" data-dl-original="true" data-dl-translated="true">
+                    0: マウス割り込みを無効にする
+                  </li>
+                  <li data-dl-uid="629" data-dl-original="true" data-dl-translated="true">
+                    1: マウス出力バッファが一杯になった時にIRQ 12を送信する
+                  </li>
+                </ul>
+              </ul>
+              <li data-dl-uid="630" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="631" data-dl-original="true" data-dl-translated="true">ビット2</b
+                >：システムフラグ（ステータスレジスタのビット2も同様）
+              </li>
+              <ul data-dl-uid="632" data-dl-original="true" data-dl-translated="true">
+                <li data-dl-uid="633" data-dl-original="true" data-dl-translated="true">
+                  0: コールドリブート
+                </li>
+                <li data-dl-uid="634" data-dl-original="true" data-dl-translated="true">
+                  1: ウォームリブート(BATは既に終了)
+                </li>
+              </ul>
+              <li data-dl-uid="635" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="636" data-dl-original="true" data-dl-translated="true">第3</b>ビット:
+                キーボードロック無視
+              </li>
+              <ul data-dl-uid="637" data-dl-original="true" data-dl-translated="true">
+                <li data-dl-uid="638" data-dl-original="true" data-dl-translated="true">
+                  <b data-dl-uid="639" data-dl-original="true" data-dl-translated="true">PS/2</b>：未使用
+                </li>
+                <li data-dl-uid="640" data-dl-original="true" data-dl-translated="true">
+                  <b data-dl-uid="641" data-dl-original="true" data-dl-translated="true">AT</b>
+                </li>
+                <ul data-dl-uid="642" data-dl-original="true" data-dl-translated="true">
+                  <li data-dl-uid="643" data-dl-original="true" data-dl-translated="true">
+                    0：動作なし
+                  </li>
+                  <li data-dl-uid="644" data-dl-original="true" data-dl-translated="true">
+                    1: ステータスレジスタのビット4を強制的に1にする(ロックしない)
+                  </li>
+                </ul>
+              </ul>
+              <li data-dl-uid="645" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="646" data-dl-original="true" data-dl-translated="true">第4</b
+                >ビット：キーボードイネーブル
+              </li>
+              <ul data-dl-uid="647" data-dl-original="true" data-dl-translated="true">
+                <li data-dl-uid="648" data-dl-original="true" data-dl-translated="true">
+                  0: キーボードを使用可能にする
+                </li>
+                <li data-dl-uid="649" data-dl-original="true" data-dl-translated="true">
+                  1: クロックラインLow駆動によるキーボード無効化
+                </li>
+              </ul>
+              <li data-dl-uid="650" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="651" data-dl-original="true" data-dl-translated="true">5ビット</b
+                >：マウスイネーブル
+              </li>
+              <ul data-dl-uid="652" data-dl-original="true" data-dl-translated="true">
+                <li data-dl-uid="653" data-dl-original="true" data-dl-translated="true">
+                  <b data-dl-uid="654" data-dl-original="true" data-dl-translated="true"
+                    >EISAまたはPS/2</b
+                  >
+                </li>
+                <ul data-dl-uid="655" data-dl-original="true" data-dl-translated="true">
+                  <li data-dl-uid="656" data-dl-original="true" data-dl-translated="true">
+                    0: マウスを有効にする
+                  </li>
+                  <li data-dl-uid="657" data-dl-original="true" data-dl-translated="true">
+                    1: クロックラインLow駆動によるマウス無効化
+                  </li>
+                </ul>
+                <li data-dl-uid="658" data-dl-original="true" data-dl-translated="true">
+                  <b data-dl-uid="659" data-dl-original="true" data-dl-translated="true">ISA</b>
+                </li>
+                <ul data-dl-uid="660" data-dl-original="true" data-dl-translated="true">
+                  <li data-dl-uid="661" data-dl-original="true" data-dl-translated="true">
+                    0: PCモードで、11ビットコードを使用し、パリティをチェックし、スキャン変換を行う。
+                  </li>
+                  <li data-dl-uid="662" data-dl-original="true" data-dl-translated="true">
+                    1:
+                    PCモードでは、8086コードを使用し、パリティをチェックせず、スキャンコンバージョンも行わない。
+                  </li>
+                </ul>
+              </ul>
+              <li data-dl-uid="663" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="664" data-dl-original="true" data-dl-translated="true">第6ビット</b
+                >：トランスレーション
+              </li>
+              <ul data-dl-uid="665" data-dl-original="true" data-dl-translated="true">
+                <li data-dl-uid="666" data-dl-original="true" data-dl-translated="true">
+                  0: 変換しない
+                </li>
+                <li data-dl-uid="667" data-dl-original="true" data-dl-translated="true">
+                  1: キースキャンコードを変換します。MCAタイプ2のコントローラはこのビットを設定できない。
+                </li>
+              </ul>
+              <li data-dl-uid="668" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="669" data-dl-original="true" data-dl-translated="true">ビット7</b
+                >：未使用、0にすべき
+              </li>
+            </ul>
+
+            <p data-dl-uid="670" data-dl-original="true" data-dl-translated="true">
+              このコマンドは必要ないと思うので、ルーチンは書いていません。
+            </p>
+            <h3 data-dl-uid="671" data-dl-original="true" data-dl-translated="true">
+              コマンド 0x60 - ライトコマンドバイトとコントローラ RAM の書き込み
+            </h3>
+
+            コマンドバイト 0x60 - 0x7F は、上記と非常によく似ており、上記と同じ RAM
+            ロケーションに書き込むことができます。より重要なのは、コントローラ RAM のバイト
+            0（コマンドバイト、覚えていますか）を読むことで、これはコマンドバイト 0x60
+            を送信することで実行可能です。
+            <p data-dl-uid="672" data-dl-original="true" data-dl-translated="true">
+              上記のコマンドと同様に、エンドデモのためにこのコマンドのルーチンは書かれていません。
+            </p>
+            <h3 data-dl-uid="673" data-dl-original="true" data-dl-translated="true">
+              コマンド0xAA - セルフテスト
+            </h3>
+
+            このコマンドにより、コントローラはセルフテストを実行します。このコマンドは、ポート 0x60
+            を通して読むことのできる出力バッファーに結果を返します。テストが成功した場合は0x55、失敗した場合は0xFCが返されます。
+            <p data-dl-uid="674" data-dl-original="true" data-dl-translated="true">
+              以下はルーチンの例です。最初にキーボード・コントローラにKYBRD_CTRL_CMD_SELF_TESTコマンド（コマンド0xAA）を送信していることに注意してください。その後、キーボード・コントローラの出力バッファがデータで満たされるのを待ちます。これにより、テストが完了したかどうかがわかります。テストが完了すると、出力バッファの結果が0x55であれば真（テスト成功）、そうでなければ偽（テスト失敗）を返します。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">//! run self test
+bool kkybrd_self_test () {
+ 
+	//! send command
+	kybrd_ctrl_send_cmd (KYBRD_CTRL_CMD_SELF_TEST);
+ 
+	//! wait for output buffer to be full
+	while (1)
+		if (kybrd_ctrl_read_status () &amp; KYBRD_CTRL_STATS_MASK_OUT_BUF)
+			break;
+ 
+	//! if output buffer == 0x55, test passed
+	return (kybrd_enc_read_buf () == 0x55) ? true : false;
+}</div></pre>
+            </blockquote>
+
+            <h3 data-dl-uid="678" data-dl-original="true" data-dl-translated="true">
+              コマンド 0xAB - インタフェーステスト
+            </h3>
+
+            このコマンドは、コントローラとキーボード間のシリアルインターフェイスをテストします。テストの結果は、ポート0x60で読み取ることができる出力バッファに格納されます。
+            <p data-dl-uid="679" data-dl-original="true" data-dl-translated="true">
+              結果は以下のいずれかになります。
+            </p>
+            <p data-dl-uid="680" data-dl-original="true" data-dl-translated="true"></p>
+            <ul>
+              <li>0: Success, no errors</li>
+              <li>1: Keyboard clock line stuck low</li>
+              <li>2: Keyboard clock line stuck high</li>
+              <li>3: Keyboard data line stuck high</li>
+              <li>0xFF: General error</li>
+            </ul>
+
+            <p data-dl-uid="687" data-dl-original="true" data-dl-translated="true">
+              ご覧のように、これらはすべてハードウェアのエラーです。エラーが発生した場合は、キーボードを無効にし、リセットすることをお勧めします。それでもダメな場合は、キーボードが故障している可能性があります。
+            </p>
+            <h3 data-dl-uid="688" data-dl-original="true" data-dl-translated="true">
+              コマンド 0xAD - キーボードを無効にする
+            </h3>
+
+            このコマンドにより、コントローラはキーボードクロックラインを無効化し、コマンドバイトのビット4（キーボードイネーブル）を設定します。コマンド・バイトのフォーマットについては、<b
+              data-dl-uid="689"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >コマンド・バイトの読み出しの</b
+            >セクションを参照してください。
+            <p data-dl-uid="690" data-dl-original="true" data-dl-translated="true">
+              つまり、このコマンドはキーボードを無効化するものです。
+            </p>
+            <p data-dl-uid="691" data-dl-original="true" data-dl-translated="true">
+              システムがキーボードの現在の状態を把握できるように、キーボードの現在の状態を保存しておくとよいでしょう。これはdemosのキーボードドライバで_kkybrd_disableを通して行われます。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">//! disables the keyboard
+void kkybrd_disable () {
+ 
+	kybrd_ctrl_send_cmd (KYBRD_CTRL_CMD_DISABLE);
+	_kkybrd_disable = true;
+}</div></pre>
+            </blockquote>
+
+            <h3 data-dl-uid="695" data-dl-original="true" data-dl-translated="true">
+              コマンド 0xAE - キーボードの有効化
+            </h3>
+
+            このコマンドを使用すると、コントローラはキーボードクロックラインを有効にし、コマンドバイトのビット4（キーボードイネーブル）をクリアします。コマンド・バイトのフォーマットについては、「<b
+              data-dl-uid="696"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >コマンド・バイトの</b
+            >読み出し」の項を参照してください。
+            <p data-dl-uid="697" data-dl-original="true" data-dl-translated="true">
+              つまり、このコマンドはキーボードを有効にするものです。
+            </p>
+            <p data-dl-uid="698" data-dl-original="true" data-dl-translated="true">
+              以下は、デモのルーチンの例です。このルーチンがいかに簡単であるかに注目してください :)
+            </p>
+
+            <blockquote>
+              <pre><div class="code">//! enables the keyboard
+void kkybrd_enable () {
+ 
+	kybrd_ctrl_send_cmd (KYBRD_CTRL_CMD_ENABLE);
+	_kkybrd_disable = false;
+}</div></pre>
+            </blockquote>
+
+            <h3 data-dl-uid="702" data-dl-original="true" data-dl-translated="true">
+              コマンド 0xC0 - 入力ポートの読み込み
+            </h3>
+
+            このコマンドは、入力ポート（コントローラ上のライン<b
+              data-dl-uid="703"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >P10-P17</b
+            >）を読み取り、バイナリ値をポート0x64を通して読み取ることができる出力バッファにコピーします。このポートが持つラインはまだ見ていませんので、これから見ていきましょう。
+
+            <ul>
+              <li><b>Line P10 / Bit 0:</b> Keyboard data in, Unused in ISA</li>
+              <li><b>Line P11 / Bit 1:</b> Mouse data in, Unused in ISA</li>
+              <li><b>Line P12 / Bit 2:</b> Unused in ISA, EISA, PS/2</li>
+              <li><b>Line P13 / Bit 3:</b> Unused in ISA, EISA, PS/2</li>
+              <li><b>Line P14 / Bit 4:</b> 0: 512 KB motherboard RAM, 1: 256K RAM</li>
+              <li><b>Line P15 / Bit 5:</b> 0: Manufacturing jumper installed, 1: Not installed</li>
+              <li><b>Line P16 / Bit 6:</b> 0: CGA display 1: MDA display</li>
+              <li><b>Line P17 / Bit 7:</b> 0: Keyboard locked 1: Not locked</li>
+            </ul>
+
+            ジャンパーがアクティブの場合、BIOSは無限診断ループを実行することがあります。P13 と P14
+            ラインは、クロック切り替えのために設定されることがあります。
+            <p data-dl-uid="721" data-dl-original="true" data-dl-translated="true">
+              上記を見ると、最近のパソコンではこのコマンドはあまり役に立たないことがわかると思いますので、複雑に見えても気にしないでください。Bit
+              0, 1, 2, 3
+              はもう使われていない。ビット4は、最近のコンピュータは512KB以上のRAMを持っているので、ほとんど役に立ちません。Bit
+              5は、キーボードテストのためにジャンパがインストールされているかどうかをテストするために使用されます（ほとんどのユーザーはそんなことはしませんが）。ビット6はビデオアダプターから情報を得られるので不要です。ビット7はほとんどのユーザーがキーボードのロックを望んでいないので、ほとんど必要ありません。とても便利なコマンドでしょう？ほとんどのコンピュータで使えるわけではありません。
+            </p>
+            <p data-dl-uid="722" data-dl-original="true" data-dl-translated="true">
+              このコマンドは非常に便利なので(あるいはそうでなくても)、私はこのコマンドのルーチンを書かないことにしました。
+            </p>
+            <h3 data-dl-uid="723" data-dl-original="true" data-dl-translated="true">
+              コマンド0xD0 - 出力ポートの読み出し
+            </h3>
+
+            このコマンドは、コントローラの出力ポート（P2）から読み出し、その結果をポート0x64の出力バッファーに格納するよう指示します。このコマンドを発行した後にポート0x64から読み出すことで、コントローラの出力ポートのビットをチェックすることができます。
+            <p data-dl-uid="724" data-dl-original="true" data-dl-translated="true">
+              コントローラの出力ポートは、コントローラの<b
+                data-dl-uid="725"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >P20-P27</b
+              >ラインだけです(このことを前に覚えていますか?)。このコマンドが実行されると、これらのラインのバイナリ値が出力バッファに格納されます。
+            </p>
+            <p data-dl-uid="726" data-dl-original="true" data-dl-translated="true">
+              出力ポートのピンとその役割については、まだ説明していません。(A20の章で説明しましたが、詳細ではありません）そこで、ここで説明します。
+            </p>
+
+            <ul>
+              <li><b>Line P20 / Bit 0:</b> 0: Reset CPU, 1: normal operation</li>
+              <li><b>Line P21 / Bit 1:</b> 0: A20 line is forced, 1: enabled</li>
+              <li><b>Line P22 / Bit 2:</b> Mouse data. Unused in ISA</li>
+              <li><b>Line P23 / Bit 3:</b> Mouse clock. Unused in ISA</li>
+              <li><b>Line P24 / Bit 4:</b> 0: IRQ 1 not active, 1: IRQ 1 active</li>
+              <li><b>Line P25 / Bit 5:</b> 0: IRQ 12 not active, 1: IRQ 12 active</li>
+              <li><b>Line P26 / Bit 6:</b> Keyboard Clock</li>
+              <li><b>Line P27 / Bit 7:</b> Data to Keyboard</li>
+            </ul>
+
+            それがこちら。ビット2と3は、<b
+              data-dl-uid="744"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >ISA（Industry Standard Architecture）</b
+            >コンピュータ（最近のほとんどのコンピュータ）では使われなくなりました。ビット4と5（ラインP24とP25）は、<b
+              data-dl-uid="745"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >PIC</b
+            >ラインIR1とIR12で<b data-dl-uid="745" data-dl-translated="true"
+              >プログラマブル割り込みコントローラ（PIC</b
+            >）に接続されています。したがって、このラインがアクティブであれば、PICの割り込みラインもアクティブです（これは、割り込みが実行中または実行待ちであることも意味します）。6ビットと7ビットは、現在のキーボードクロックとデータ信号（ラインがアクティブかどうかにかかわらず）を含んでいるだけです。
+            <p data-dl-uid="746" data-dl-original="true" data-dl-translated="true">
+              ここまでのビットは、ほとんど意味がありませんね。これらのビットの多くは、現在のコントローラの動作に関する電子機器レベルのもので、私たちのニーズには無用のものです。最初の2行（ビット0と1）を除いては、システムをリセットするかどうか、あるいは20番目のアドレスラインを有効にするかどうかを制御します。ビット0を読んでも意味がありません。この行はアクティブ（1）で<i
+                data-dl-uid="747"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >なければ</i
+              >ならず、通常動作していることを意味します。このビットがないと、システムは再起動します。したがって、ここで唯一の有用なビットはA20ラインです。これは、少なくとも読み出し動作には当てはまります。
+            </p>
+            <p data-dl-uid="748" data-dl-original="true" data-dl-translated="true">
+              このコマンドがポート0x64で発行されると、結果のバイトは出力バッファに置かれ、ポート0x60からバイトを読み出すことで読み出しが可能になります。
+            </p>
+            <p data-dl-uid="749" data-dl-original="true" data-dl-translated="true">
+              A20をすぐにでもディセーブルにしなければならない心配はない。また、キーボードからシステムをリセットする方法もあります。このため、このコマンドは私たちのニーズにはかなり有用であり、私はこのためのルーチンを書かないことにしました。
+            </p>
+            <h3 data-dl-uid="750" data-dl-original="true" data-dl-translated="true">
+              コマンド0xD1 - 出力ポートの書き込み
+            </h3>
+
+            このコマンドは出力バッファ（ポート0x60）からバイトをコピーし、コントローラの出力ポート線にバイトを配置します。これらのラインの説明については、前のセクション（Read
+            Output Port Command）を参照してください。
+            <p data-dl-uid="751" data-dl-original="true" data-dl-translated="true">
+              ほとんどの場合、起こりうる問題を防ぐために、変更したい特定のビットをビットごとにORし、他のすべてを変更しないようにしたいと思うことでしょう。
+            </p>
+            <p data-dl-uid="752" data-dl-original="true" data-dl-translated="true">
+              このコマンドはいくつかの点で有用である。コントローラによって使用されるIRQを有効または無効にしたり、A20ゲートを有効または無効にしたり、あるいはビット0を設定することによってシステムをリセットしたりすることができます。繰り返しになりますが、変更可能なビットのリストについては、前のセクションを参照してください。
+            </p>
+            <h3 data-dl-uid="753" data-dl-original="true" data-dl-translated="true">
+              コマンド 0xE0 - テスト入力の読み出し
+            </h3>
+
+            このコマンドは、コントローラのテストポート線からバイナリ値を取り出し、出力バッファに配置し、ポート0x60を介して読み取ることができるようにコピーします。
+            <p data-dl-uid="754" data-dl-original="true" data-dl-translated="true">
+              テストポートは、マイクロコントローラの<b
+                data-dl-uid="755"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >TEST 0と</b
+              >
+              <b data-dl-uid="756" data-dl-original="true" data-dl-translated="true">TEST 1の</b
+              >ラインです（本章のコントローラピンアウト図を参照してください）。この章では、テストポートを説明しませんので、説明します。
+            </p>
+
+            <ul>
+              <li><b>Line TEST 0 / Bit 0:</b> Keyboard Clock (input)</li>
+              <li><b>Line TEST 1 / Bit 1:</b> AT - Keyboard data (input) PS/2 - Mouse clock (input)</li>
+            </ul>
+
+            その他のビットは未定義とみなし、読まないでください。
+            <p data-dl-uid="762" data-dl-original="true" data-dl-translated="true">
+              このコマンドはあまり役に立たないかもしれませんが、コントローラはテストポートがより有用であるかもしれない他のフィールドで使用されるかもしれないことを思い出してください。結局のところ、それはテスト目的のために存在するのです。
+            </p>
+            <h3 data-dl-uid="763" data-dl-original="true" data-dl-translated="true">
+              コマンド 0xFE - システム・リセット
+            </h3>
+
+            コントローラ出力ポート（ピン P0）のビット 0 をパルスし、CPU をリセットします。
+            これは基本的に、ビット 0 をリセットする<b
+              data-dl-uid="764"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >Write Output Port</b
+            >コマンドを送信するのと同じことを行います。
+            素敵な方法でシステムをリセットしたい場合は、このコマンドを送信してください。
+
+            <blockquote>
+              <pre><div class="code">//! reset the system
+void kkybrd_reset_system () {
+ 
+	//! writes 11111110 to the output port (sets reset system line low)
+	kybrd_ctrl_send_cmd (KYBRD_CTRL_CMD_WRITE_OUT_PORT);
+	kybrd_enc_send_cmd (0xfe);
+}</div></pre>
+            </blockquote>
+
+            <p data-dl-uid="768" data-dl-original="true" data-dl-translated="true">
+              これはすべてのシステムで動作するとは限らないことを覚えておいてください。動作するかどうかを確認する簡単な方法は、上記のルーチンの後、プログラムがまだ実行されているかどうかを確認することです
+              :)
+            </p>
+
+            <h2 data-dl-uid="782" data-dl-original="true" data-dl-translated="true">
+              キーボード。繋ぎ合わせる
+            </h2>
+
+            我々は、すでにこのデモのキーボードドライバからルーチンのいくつかを見てきました。キーボード・エンコーダやコントローラとの通信、そして、有効化、無効化、テスト、LED更新、システムリセットなど、いくつかの重要な機能のルーチンを見てきました。これは素晴らしいことですが、すべてを結びつけるいくつかの重要な詳細が欠落しています。では、見ていきましょう。
+            <h3 data-dl-uid="783" data-dl-original="true" data-dl-translated="true">
+              キーボード現在の状態を保存する
+            </h3>
+
+            ご存知のように、キーボードのどのキーもいつでも押すことができます。そのため、それぞれのキーが押されているかどうかをスキャンする方法が必要です。ここで良いことは、キーボード・エンコーダがすでにこれを実現していることです!もっと簡単に言うと、キーボードエンコーダはスキャンコードを直接オンボードのキーボードコントローラに送り、IRQ
+            1を起動します。
+            <p data-dl-uid="784" data-dl-original="true" data-dl-translated="true">
+              IRQ 1がマスクされていない限り、IRQ
+              1に独自の割り込みハンドラをインストールし、キーボードエンコーダからスキャンコードが送信されるたびに通知を受けることができます。これはどういうことでしょうか。キーボードコントローラにスキャンコードが送信されると、いつでも<b
+                data-dl-uid="785"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >割り込みハンドラが起動</b
+              >されます。これはいつでも起こりうることです。
+            </p>
+            <p data-dl-uid="786" data-dl-original="true" data-dl-translated="true">
+              このため、ハンドラの内部でキーボードコントローラをポーリングしてスキャンコードが何であるかを何とか判断する必要があります。しかし、あるキー（caps
+              lockキーやnum
+              lockキーなど）が押されているときに、別の処理を行いたい場合がある。これらのキーは、押されたときにオンまたはオフになるはずだ。では、shiftなどのキーはどうでしょう？これらのキーは、押したままにしておき、キーを離したときに解放する必要があります。
+            </p>
+            <p data-dl-uid="787" data-dl-original="true" data-dl-translated="true">
+              このため、これらのキーの現在の状態と最後に読み取ったスキャンコードを保存しておき、IRQが復帰した後で再び読み取ることができる方法を考え出す必要があります。これは、いくつかのグローバル変数または構造体に現在の状態を格納し、単にそれらを使用することによって行うことができます。
+            </p>
+            <h3 data-dl-uid="788" data-dl-original="true" data-dl-translated="true">
+              キーボード割り込みハンドリング
+            </h3>
+
+            これは重要です。キーストロークとキーリリースごとに、数バイト（スキャンコード）がキーボードコントローラに送信されることを覚えていますか？このとき、キーボードコントローラは<b
+              data-dl-uid="789"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >プログラマブル割り込みコントローラ（PIC</b
+            >）に信号を送り、<b data-dl-uid="790" data-dl-original="true" data-dl-translated="true"
+              >IRQ 1を</b
+            >発生させるのです。そうです、この信号によりPICはキーボード割り込みハンドラを実行するのです。
+            <p data-dl-uid="791" data-dl-original="true" data-dl-translated="true">
+              割り込みハンドラの目的は、ドライバの現在の状態を更新し、ドライバとシステムで使用できる形式に変換することによってスキャンコードを解読することです。そう、それがすべてです;)
+            </p>
+            <p data-dl-uid="792" data-dl-original="true" data-dl-translated="true">
+              割り込みハンドラは、すべてを結びつけるものです。少し大きいのでこの文章には書きませんが、ぜひ皆さんもご覧になって、どのように動作しているかを確認してください。
+            </p>
+            <h3 data-dl-uid="793" data-dl-original="true" data-dl-translated="true">キーボード初期化</h3>
+
+            キーボードコントローラは、プログラマブル割り込みのIRQ
+            1ラインに間接的に接続されていることを思い出してください。PICでIRQを割り込みベクター32（IRQ
+            0）から始まるようにマッピングしたため、IRQ
+            1は割り込みベクター33にあります。このため、割り込みベクター33を使用するために、<b
+              data-dl-uid="794"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >setvect</b
+            >ルーチンを使用して割り込みハンドラをインストールする必要があります。
+            <p data-dl-uid="795" data-dl-original="true" data-dl-translated="true">
+              他のすべてはとてもシンプルです。現在のドライバの状態（グローバルとして保存されている）をクリアして、<b
+                data-dl-uid="796"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >kkybrd_set_leds</b
+              >ルーチンを使ってLEDをクリアするだけです。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">//! prepares driver for use
+void kkybrd_install (int irq) {
+ 
+	//! Install our interrupt handler (irq 1 uses interrupt 33)
+	setvect (irq, i86_kybrd_irq);
+ 
+	//! assume Basic Assurance test (BAT) test is good
+	_kkybrd_bat_res = true;
+	_scancode = 0;
+ 
+	//! set lock keys and led lights
+	_numlock = _scrolllock = _capslock = false;
+	kkybrd_set_leds (false, false, false);
+ 
+	//! shift, ctrl, and alt keys
+	_shift = _alt = _ctrl = false;
+}</div></pre>
+            </blockquote>
+
+            <h1 data-dl-uid="800" data-dl-original="true" data-dl-translated="true">まとめ</h1>
+
+            この章はこれで終わりです。このデモを発展させて、実際に使えるようにすることは可能です。
+            しかし、現在できることはかなり限られています。他のプログラムを動かして仕事をさせることができたら便利だと思いませんか？ファイルシステム全体の構造を抽象化することは非常に複雑なテーマですが、1つのディスクからファイルをロードすることに焦点を当てることは可能です。
+            <p data-dl-uid="801" data-dl-original="true" data-dl-translated="true">
+              しかし、問題が発生しました。最低限、ディスクからファイルをロードできるようにするためには、まず<b
+                data-dl-uid="802"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >フロッピーディスクコントローラ（FDC</b
+              >）をプログラムしなければならないのです。これは次の章のトピックです。<i
+                data-dl-uid="803"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >そこでお会いできるのを楽しみにしています。:)</i
+              >
+            </p>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </body>
+</html>
