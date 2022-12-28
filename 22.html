@@ -1,0 +1,2699 @@
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Cache-Control" content="no-cache" />
+    <title></title>
+    <link href="css/reference.css" rel="stylesheet" />
+  </head>
+  <body>
+    <table cellspacing="0" cellpadding="3" width="80%" border="0">
+      <tbody>
+        <tr>
+          <td class="tblhdr">Operating Systems Development Series</td>
+        </tr>
+        <tr>
+          <td align="middle" colspan="2"></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h1 class="western" data-dl-uid="32" data-dl-original="true" data-dl-translated="true">はじめに</h1>
+    <p class="western" data-dl-uid="33" data-dl-original="true" data-dl-translated="true">
+      この章では、プロセス管理とマルチタスクのトピックについて詳しく説明します。これまでの章では、タスクをサポートする基本的なモノリシックなOSを構築してきました。OSの開発においてこの時点までになされた多くの決定は、複雑さを犠牲にして単純にすることでした。この章でもこの傾向を引き継ぎます。最後に紹介するデモは、決してOSを開発する唯一の方法というわけではありません。この章では、次のようなトピックを取り上げます。
+    </p>
+    <ol>
+      <li>
+        <p class="western" data-dl-uid="34" data-dl-original="true" data-dl-translated="true">
+          プロセス
+        </p>
+      </li>
+      <li>
+        <p class="western" data-dl-uid="35" data-dl-original="true" data-dl-translated="true">
+          スレッドとタスク
+        </p>
+      </li>
+      <li>
+        <p class="western" data-dl-uid="36" data-dl-original="true" data-dl-translated="true">
+          プロセスの内側を見る
+        </p>
+      </li>
+      <li>
+        <p class="western" data-dl-uid="37" data-dl-original="true" data-dl-translated="true">
+          プロセス管理
+        </p>
+      </li>
+      <li>
+        <p class="western" data-dl-uid="38" data-dl-original="true" data-dl-translated="true">
+          スケジューリング
+        </p>
+      </li>
+      <li>
+        <p class="western" data-dl-uid="39" data-dl-original="true" data-dl-translated="true">リンク</p>
+      </li>
+    </ol>
+    <h2 class="western" data-dl-uid="40" data-dl-original="true" data-dl-translated="true">
+      プロセス管理
+    </h2>
+    <p class="western" data-dl-uid="41" data-dl-original="true" data-dl-translated="true">
+      プロセス管理とは、オペレーティングシステムがプロセスやスレッドを管理し、プロセスが情報を共有できるようにし、プロセス資源を保護し、要求してきたプロセスにシステム資源を安全に割り当てるためのプロセスです。これは、オペレーティングシステムの開発者にとって大変な作業であり、設計が非常に複雑になる可能性があります。では、それぞれについて詳しく見ていきましょう。
+    </p>
+    <h3 class="western" data-dl-uid="42" data-dl-original="true" data-dl-translated="true">
+      プロセスおよびスレッド
+    </h3>
+    <p class="western" data-dl-uid="43" data-dl-original="true" data-dl-translated="true">
+      本章の残りの部分では、主にプロセスとスレッドについて説明します。プロセスの作成は、実行可能なイメージをロードし、それを実行するための少なくとも1つの実行パス（スレッド）を作成することを意味します。
+    </p>
+    <h3 class="western" data-dl-uid="44" data-dl-original="true" data-dl-translated="true">
+      プロセス間通信
+    </h3>
+    <p class="western" data-dl-uid="45" data-dl-original="true" data-dl-translated="true">
+      プロセス間通信 (IPC)
+      は、プロセス間の通信を可能にするために多くのオペレーティングシステムで採用されている技術です。これは通常、メッセージパッシングによって行われます。プロセスは、他のプロセスにメッセージを送信するようオペレーティングシステムに要求し、オペレーティングシステムは、それが可能であれば、他のプロセスへのメッセージを送信してキューに入れるでしょう。IPCは、ファイル、パイプ、ソケット、メッセージパッシング、シグナル、セマフォ、共有メモリ、メモリマップドファイルなど、さまざまな方法で実装できます。
+      オペレーティングシステムは、これらのIPCの方法のいずれかまたはすべてを実装できます。
+      IPCはハイブリッドおよびモノリシックカーネル設計で多用されていますが、間違いなくマイクロカーネル設計で最も顕著に見られます。
+    </p>
+    <p class="western" data-dl-uid="46" data-dl-original="true" data-dl-translated="true">
+      この章では、主にプロセスとスレッドの作成に焦点を当て、IPCについては触れないことにします。IPC
+      については後で少し議論するかもしれませんが、おそらくこの章への追加として議論します。
+    </p>
+    <h3 class="western" data-dl-uid="47" data-dl-original="true" data-dl-translated="true">
+      プロセス保護
+    </h3>
+    <p class="western" data-dl-uid="48" data-dl-original="true" data-dl-translated="true">
+      複数のプロセスを同じアドレス空間にロードすると、両方のプロセスが互いに読み書きができるという根本的な問題が発生します。この問題を解決するには、プロセスをそれぞれの仮想アドレス空間にロードし、物理アドレス空間内の別々の場所にマッピングするのが簡単です。プロセスはより多くのスレッドを作成するように要求することができます。これはプロセスごとに行われるので、すぐにわかるように、すべてのスレッドはプロセスと同じアドレス空間を共有します。
+    </p>
+    <p class="western" data-dl-uid="49" data-dl-original="true" data-dl-translated="true">
+      例えば、カーネルランドにいなければならないプロセスはカーネルスペースに、カーネルランドにいる必要のないプロセスはユーザースペースにというように、プロセスが必要とする最小限の制御を行うマッピングもプロセス保護が採用されている。
+    </p>
+    <p class="western" data-dl-uid="50" data-dl-original="true" data-dl-translated="true">
+      この章では、プロセスを作成する際に、この両方を利用します。プロセスはユーザー空間にマッピングされ、独自の仮想アドレス空間に置かれます。つまり、プロセスはカーネルページにアクセスすることはできませんし（したがってカーネルスタックや構造体をゴミ箱に入れることはできません）、別のプロセスは別のアドレス空間にあるのでゴミ箱に入れることもできません。
+    </p>
+    <h3 class="western" data-dl-uid="51" data-dl-original="true" data-dl-translated="true">
+      リソース配分
+    </h3>
+    <p class="western" data-dl-uid="52" data-dl-original="true" data-dl-translated="true">
+      リソース割り当てとは、システムリソース（ファイルやデバイスハンドルなど）を要求するプロセスに安全に渡す方法のことです。シリーズOSの初期状態であるため、現時点では心配するような資源はありません。なぜシステム資源の割り当てを管理する必要があるかというと、マルチタスク環境で2つのプロセスが同時に同じファイルを開いて書き込みをしようとした場合を考えてみてください。
+    </p>
+    <p class="western" data-dl-uid="54" data-dl-original="true" data-dl-translated="true">
+      このことを念頭に置いて、以下のセクションでは、プロセスとスレッドの作成に焦点を当てます。まず、これらが何であり、何がプロセスを構成するのかについて明確な定義を提供することから始めます。
+    </p>
+    <h2 class="western" data-dl-uid="55" data-dl-original="true" data-dl-translated="true">プロセス</h2>
+    <p class="western" data-dl-uid="56" data-dl-original="true" data-dl-translated="true">
+      <b data-dl-uid="57" data-dl-original="true" data-dl-translated="true">プロセスとは</b>、<span
+        style="font-weight: normal"
+        data-dl-uid="58"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >メモリ上にあるプログラムのインスタンス、またはプログラムの</span
+      >一部のことです。<span data-dl-uid="58" data-dl-translated="true"
+        >プロセスは、映画やビデオの再生、ゲームのプレイ、あるいはこの文章を書くのに使用したエディタの実行など、複雑なタスクを実行するために、オペレーティングシステムまたはエグゼクティブによって実行されます。要するに、プロセスはプログラムであると言えますが、1つのプログラムは複数のプロセスを含むことができます。例えば、文字列を表示する基本的なプログラムは、それ自身のプログラムファイルの中に組み込まれているかもしれません。このプログラムをロードすると、オペレーティングシステムやエグゼクティブは他のプログラムファイルをロード</span
+      >することになります。つまり、<span
+        style="font-weight: normal"
+        data-dl-uid="62"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >プロセスが呼び出して使用する実行可能コードを含む</span
+      ><b data-dl-uid="61" data-dl-original="true" data-dl-translated="true">共有ライブラリの</b
+      ><b data-dl-uid="59" data-dl-original="true" data-dl-translated="true">ダイナミックロード</b
+      >です。<span data-dl-uid="62" data-dl-translated="true"
+        >これらのプログラムファイルはすべて同じプロセスの一部です。そのため、1つのプロセスは複数のプログラムファイルのインスタンスを持つことができ、さらに複数のインスタンスを持つこともできます。</span
+      >
+    </p>
+    <p class="western" data-dl-uid="63" data-dl-original="true" data-dl-translated="true">
+      <span
+        style="font-weight: normal"
+        data-dl-uid="64"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >プロセスは </span
+      >、<b data-dl-uid="65" data-dl-original="true" data-dl-translated="true">中央処理装置（CPU）</b>
+      <span
+        style="font-weight: normal"
+        data-dl-uid="66"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >または複数のCPUやCPUコアによって </span
+      ><span data-dl-uid="64" data-dl-translated="true"
+        >、エミュレートされた環境またはハードウェア環境で実行されることがあります </span
+      >。<span
+        style="font-weight: normal"
+        data-dl-uid="68"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >ハイパースレッディングや </span
+      ><b data-dl-uid="69" data-dl-original="true" data-dl-translated="true">パラレルパイピングを</b>
+      <span data-dl-uid="66" data-dl-translated="true">サポートするCPUは </span>、<span
+        style="font-weight: normal"
+        data-dl-uid="70"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >異なるプロセスからの複数の命令を同時に実行することも</span
+      >できる。<span data-dl-uid="70" data-dl-translated="true"
+        >つまり、プロセスは逐次実行（1命令ずつ実行）されるのではなく、環境やハードウェア構成に応じて、さまざまな方法で実行される可能性があります。IA32
+        CPUファミリーのデフォルトでは、これらの機能は無効になっています。つまり、コンピュータの起動時に、CPUはすべての命令を1つずつ実行</span
+      >します（<b data-dl-uid="71" data-dl-original="true" data-dl-translated="true"
+        >命令キャッシュバッファ</b
+      >
+      <span data-dl-uid="70" data-dl-translated="true">にキャッシュ</span>することはあります<span
+        style="font-weight: normal"
+        data-dl-uid="72"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >）。
+        しかし、オペレーティングシステムやエグゼクティブがプロセスに対してこれらの機能を有効にした場合、プロセスと </span
+      >システムは<b data-dl-uid="73" data-dl-original="true" data-dl-translated="true"
+        >マルチプロセッサに安全</b
+      >であるように<span data-dl-uid="72" data-dl-translated="true">設計しなければ </span>なりません<span
+        style="font-weight: normal"
+        data-dl-uid="74"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >。 この1つはしかし高度なトピックであり、非常にエラーが発生しやすいため、上級の章で説明 </span
+      >されます。いくつかのプロセスを<span
+        style="font-weight: normal"
+        data-dl-uid="76"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >スレッドと</span
+      ><b data-dl-uid="77" data-dl-original="true" data-dl-translated="true">タスクに</b
+      >分割することができます<span
+        style="font-weight: normal"
+        data-dl-uid="78"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >。次にこれらについて見ていきます。</span
+      >
+    </p>
+    <h2 class="western" data-dl-uid="79" data-dl-original="true" data-dl-translated="true">
+      スレッドとタスク
+    </h2>
+    <p class="western" data-dl-uid="80" data-dl-original="true" data-dl-translated="true">
+      例えば、<span
+        style="font-weight: normal"
+        data-dl-uid="84"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >最も基本的な例として、メッセージを表示して</span
+      >戻るだけの<b data-dl-uid="81" data-dl-original="true" data-dl-translated="true">プログラムが</b>
+      <span
+        style="font-weight: normal"
+        data-dl-uid="82"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >あると </span
+      >します<b data-dl-uid="83" data-dl-original="true" data-dl-translated="true">。</b>
+    </p>
+
+    <pre class="code">#include &lt;stdio.h&gt;
+int main (int argc, char** argv) {
+   printf ("Hello, world!");
+   return 0;
+<font face="Lucida Console, monospace"><font size="2" style="font-size: 9pt">}</font></font></pre>
+
+    <p
+      class="western"
+      style="font-weight: normal"
+      data-dl-uid="88"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      この例では、プロセスは1つのスレッドを持っています：それはmain()で始まり、プロセスが終了するとスレッドは終了します。(ただし、実際にはそうでないかもしれないことに注意してください。main()を呼び出すランタイムライブラリにスレッドが含まれている可能性があるからです)。マルチスレッドの例を見てみましょう。
+    </p>
+
+    <pre class="code">#include &lt;stdio.h&gt;
+static int _notExit = 0;
+
+int thread (void* data) {
+   while (_notExit) {
+      <font color="#008000"><b>/* do something useful */</b></font>
+   }
+   return 0; <font color="#008000"><b>/* thread terminates (returns to runtime which calls TerminateThread */</b></font>
+}
+
+int main (int argc, char** argv) {
+   CreateThread (thread);
+   printf ("Hello, world!");
+   return 0;
+<font face="Lucida Console, monospace"><font size="2" style="font-size: 9pt">}</font></font></pre>
+
+    <p class="western" data-dl-uid="96" data-dl-original="true" data-dl-translated="true">
+      <span
+        style="font-weight: normal"
+        data-dl-uid="97"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >この例 </span
+      >では、<b data-dl-uid="98" data-dl-original="true" data-dl-translated="true">CreateThreadが</b
+      ><span
+        style="font-weight: normal"
+        data-dl-uid="99"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >オペレーティングシステムを呼び出して、</span
+      >
+      <span
+        style="font-weight: normal"
+        data-dl-uid="101"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >新しい</span
+      ><b data-dl-uid="102" data-dl-original="true" data-dl-translated="true">実行フローとして</b
+      ><b data-dl-uid="100" data-dl-original="true" data-dl-translated="true">thread()</b>を<span
+        data-dl-uid="99"
+        data-dl-translated="true"
+        >設定</span
+      >します。<b data-dl-uid="104" data-dl-original="true" data-dl-translated="true">CreateThread()</b
+      >が<span
+        style="font-weight: normal"
+        data-dl-uid="105"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >呼び出さ </span
+      >れた<span
+        style="font-weight: normal"
+        data-dl-uid="103"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >後
+      </span>
+      <span data-dl-uid="105" data-dl-translated="true">、 </span>
+      <span
+        style="font-weight: normal"
+        data-dl-uid="107"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >オペレーティングシステムまたは実行プログラムから </span
+      ><b data-dl-uid="106" data-dl-original="true" data-dl-translated="true">thread()</b>が呼び出さ<span
+        data-dl-uid="107"
+        data-dl-translated="true"
+        >れ、 </span
+      >どちら<span
+        style="font-weight: normal"
+        data-dl-uid="109"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >かが終了するまで </span
+      ><b data-dl-uid="108" data-dl-original="true" data-dl-translated="true"
+        >thread()と main() の両方で同時に実行</b
+      >されます。<span data-dl-uid="109" data-dl-translated="true"
+        >すべてのプロセスはスレッドであるがスレッドはプロセスではないことに注意してください。
+        プロセスには1つのスレッドを含むことも多くのスレッドを </span
+      >含むことも可能です。プロセス<span data-dl-uid="109" data-dl-translated="true"
+        >内のスレッドは同じグローバル変数にアクセスし、共有することができます。ただし </span
+      >、<b data-dl-uid="110" data-dl-original="true" data-dl-translated="true">スレッドローカル変数を</b
+      ><span data-dl-uid="109" data-dl-translated="true">サポートするコンパイラも </span>あります<span
+        style="font-weight: normal"
+        data-dl-uid="111"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >。</span
+      >
+    </p>
+    <p class="western" data-dl-uid="112" data-dl-original="true" data-dl-translated="true">
+      <span
+        style="font-weight: normal"
+        data-dl-uid="113"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >スレッドをサポートするオペレーティングシステムは </span
+      >、<b data-dl-uid="114" data-dl-original="true" data-dl-translated="true"
+        >マルチスレッドに対応して</b
+      >いると<span data-dl-uid="113" data-dl-translated="true">言われて </span>います<span
+        style="font-weight: normal"
+        data-dl-uid="115"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >。このようなオペレーティングシステムの例としては、Windows、Linux、およびMac OSがあります。 </span
+      ><b data-dl-uid="116" data-dl-original="true" data-dl-translated="true">タスクは</b>、<span
+        style="font-weight: normal"
+        data-dl-uid="117"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >スレッドと同義 </span
+      >です。このように、<b data-dl-uid="118" data-dl-original="true" data-dl-translated="true"
+        >マルチスレッドを</b
+      ><span data-dl-uid="117" data-dl-translated="true">サポート </span>するOSは、<b
+        data-dl-uid="120"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >マルチタスクを</b
+      ><span
+        style="font-weight: normal"
+        data-dl-uid="119"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >効果的にサポート </span
+      >します<span
+        style="font-weight: normal"
+        data-dl-uid="121"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >。 しかし、すべてのマルチタスクOSがマルチスレッドをサポートして</span
+      >いるわけではないことに注意することが重要です。
+    </p>
+    <p
+      class="western"
+      style="font-weight: normal"
+      data-dl-uid="122"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      プロセスとは何か？ここでは、プロセスを「プログラムのインスタンス」または「プログラムの一部」と定義しましたが、この定義をより詳しく説明するために、プロセスの内部をより詳しく見てみましょう。
+    </p>
+
+    <h2 class="western" data-dl-uid="123" data-dl-original="true" data-dl-translated="true">
+      プロセスの内側を見る
+    </h2>
+    <p class="western" data-dl-uid="124" data-dl-original="true" data-dl-translated="true">
+      <span
+        style="font-weight: normal"
+        data-dl-uid="125"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >プロセスを分解してみると、最も基本的なレベルでは、コードとデータしか見えてこない。プログラミングの経験がある人なら、これは理にかなっている。すべてのプログラムは、CPUに動作を指示したり、データを操作したりする命令に過ぎないからだ。プログラマーがプログラムの開発を容易にするために、プログラムの「データ」部分を「コード」部分と分ける傾向があるのは理解できる。 </span
+      ><b data-dl-uid="126" data-dl-original="true" data-dl-translated="true">.</b>
+      <span
+        style="font-weight: normal"
+        data-dl-uid="127"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >dataと</span
+      ><b data-dl-uid="128" data-dl-original="true" data-dl-translated="true">.text</b>
+      <span
+        style="font-weight: normal"
+        data-dl-uid="129"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >（プログラムコード用 </span
+      >）は、後に<span
+        style="font-weight: normal"
+        data-dl-uid="131"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >プログラムバイナリ内の</span
+      >
+      <span data-dl-uid="129" data-dl-translated="true">さまざまなタイプの </span
+      ><b data-dl-uid="130" data-dl-original="true" data-dl-translated="true">セクションの</b>
+      <span data-dl-uid="129" data-dl-translated="true">うちの2 </span>つです。<span
+        data-dl-uid="131"
+        data-dl-translated="true"
+        >セクションは、プログラム開発に役立つだけでなく、プログラムバイナリにさまざまな種類のものを格納する方法の標準化を促進する。</span
+      >
+    </p>
+    <p class="western" data-dl-uid="132" data-dl-original="true" data-dl-translated="true">
+      <span
+        style="font-weight: normal"
+        data-dl-uid="133"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >まず、プログラムセクションと、それらが </span
+      ><b data-dl-uid="134" data-dl-original="true" data-dl-translated="true">プロセスアドレス空間</b
+      ><span data-dl-uid="133" data-dl-translated="true">内にどのように配置 </span
+      >されるかについて説明します<span
+        style="font-weight: normal"
+        data-dl-uid="135"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >。 </span
+      >次に、<b data-dl-uid="136" data-dl-original="true" data-dl-translated="true">シンボル情報</b
+      ><span
+        style="font-weight: normal"
+        data-dl-uid="137"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >、</span
+      ><b data-dl-uid="138" data-dl-original="true" data-dl-translated="true"
+        >デバッグ情報、エクスポートおよび</b
+      >
+      <span
+        style="font-weight: normal"
+        data-dl-uid="139"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >インポートテーブルと、それらの使用</span
+      >方法について<span data-dl-uid="135" data-dl-translated="true">説明 </span>します。
+    </p>
+    <h3 class="western" data-dl-uid="140" data-dl-original="true" data-dl-translated="true">
+      プログラムセクション
+    </h3>
+    <p class="western" data-dl-uid="141" data-dl-original="true" data-dl-translated="true">
+      <span
+        style="font-weight: normal"
+        data-dl-uid="147"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >プログラムファイルには、これらのセクションとその他のセクションが含まれて </span
+      ><span
+        style="font-weight: normal"
+        data-dl-uid="143"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >います </span
+      >。<span data-dl-uid="147" data-dl-translated="true"
+        >オペレーティングシステムやエグゼクティブは、プロセスが正しく実行されるように、各セクションをアドレス空間にロードすることができます。 </span
+      >また、<span
+        style="font-weight: normal"
+        data-dl-uid="149"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >ロード時に </span
+      ><b data-dl-uid="148" data-dl-original="true" data-dl-translated="true">セクションを再配置</b
+      >することも可能です。 これにより、オペレーティングシステムまたはエグゼクティブは、<span
+        data-dl-uid="149"
+        data-dl-translated="true"
+        >必要に応じて各セクションの最適な場所を見つけ、それに応じてプロセスを更新 </span
+      >することができます。<span data-dl-uid="149" data-dl-translated="true">ただし </span>、<b
+        data-dl-uid="150"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >プログラムファイル形式によって</b
+      ><b data-dl-uid="151" data-dl-original="true" data-dl-translated="true">サポートする</b
+      >ものが異なる<span
+        style="font-weight: normal"
+        data-dl-uid="152"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >ため、すべてのプログラムファイル形式がセクションの再配置をサポートして</span
+      >いるわけではありません。
+    </p>
+
+    <p class="western">
+      <img
+        src="./22_files/osdev24_html_3f0ec2da.gif"
+        name="graphics2"
+        align="LEFT"
+        width="181"
+        height="309"
+        border="0"
+      /><br clear="LEFT" />
+
+      <span
+        style="font-weight: normal"
+        data-dl-uid="153"
+        data-dl-original="true"
+        data-dl-translated="true"
+      ></span
+      ><b data-dl-uid="154" data-dl-original="true" data-dl-translated="true"
+        >ポータブルエグゼクティブ（PE）</b
+      >
+      <span
+        style="font-weight: normal"
+        data-dl-uid="155"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >ファイル形式は、Windows
+        オペレーティングシステムで使用される主要なプログラムファイル形式です。PEファイルフォーマットは、コード、データ、リソースデータ、シンボリック情報、マニフェストデータなどのための多くの異なるセクションをサポートしています。各セクションは、リンカーやコンパイラーによって書き込まれたバイナリファイル内に格納されています。どのようにファイルに格納されるかを見るために、PEファイル形式のフォーマットを見てみる必要があります。</span
+      >
+    </p>
+    <p
+      class="western"
+      style="font-weight: normal"
+      data-dl-uid="156"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      上記は、PE実行ファイルの中身をイメージしたものです。イメージをメモリにロードし、セクションを再配置する必要がない限り、他のタイプのバイナリファイルと同じようにファイルの内容を解析することができます。このようにして、シリーズのブートローダは私たちのカーネルイメージをロードすることができるのです。シリーズのカーネルはセクションの再配置を必要としないので、ブートローダは単にファイルをロードし、ヘッダでエントリポイントを見つけて、それを直接呼び出すことができるのです。これは簡単なことです。
+    </p>
+
+    <pre class="code"><font color="#008000"><b>/* Get entry point from PE headers */</b></font>
+IMAGE_DOS_HEADER dosHeader = (IMAGE_DOS_HEADER*) imageBase;
+IMAGE_NT_HEADERS ntHeaders = dosHeader-&gt;<font color="#000000"><span style="font-style: normal">e_lfanew;</span></font>
+IMAGE_OPTIONAL_HEADER optHeader = &amp;ntHeaders-&gt;OptionalHeader;
+void (*EntryPoint) (void) = (void (*EntryPoint) (void) ) optHeader-&gt;AddressOfEntryPoint + optHeader-&gt;ImageBase;
+
+<font color="#008000"><b>/* Call program entry point */</b></font>
+EntryPoint ();</pre>
+
+    <p
+      class="western"
+      style="font-weight: normal"
+      data-dl-uid="164"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      同様に、他のヘッダも解析し、セクション情報、デバッグ情報、シンボリック情報など、ファイルから必要な情報を抽出することができます。<b
+        data-dl-uid="165"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >カーネルデバッガや</b
+      >
+      <b data-dl-uid="166" data-dl-original="true" data-dl-translated="true">ユーザモードデバッガは</b
+      >通常、デバッグを容易にするためにシンボリック情報やデバッギング情報を使用します。言い換えれば、PE
+      イメージをデバッグ情報付き（またはなし）でビルドすることができます。デバッグ情報付きでビルドした場合、デバッガをリモートでアタッチしてソースレベルデバッグを実行することができます。
+    </p>
+    <p
+      class="western"
+      style="font-weight: normal"
+      data-dl-uid="167"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      実行ファイル内に異なるセクションを持つことで、実行ファイルのパースや書き込みが容易になります。それらはデータを格納する一貫した場所と方法を提供し、ヘッダからそれらを参照します。例えば、PEファイルには、実際のリソース（文字列テーブル、ビットマップ画像、プログラム情報、カーソルなど）を格納する<b
+        data-dl-uid="168"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >.rscs</b
+      >セクションがあります。リソースを見つけるには、<b
+        data-dl-uid="169"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >OptionalHeader-&gt;DirectoryEnteries [</b
+      ><font color="#000000" data-dl-uid="170" data-dl-original="true" data-dl-translated="true"
+        ><font
+          size="2"
+          style="font-size: 9pt"
+          data-dl-uid="171"
+          data-dl-original="true"
+          data-dl-translated="true"
+          ><span
+            style="font-style: normal"
+            data-dl-uid="172"
+            data-dl-original="true"
+            data-dl-translated="true"
+            ><b data-dl-uid="173" data-dl-original="true" data-dl-translated="true"
+              >IMAGE_DIRECTORY_ENTRY_RESOURCE</b
+            ></span
+          ></font
+        ></font
+      ><b data-dl-uid="174" data-dl-original="true" data-dl-translated="true">]</b
+      >でそのディレクトリエントリーをパースすればよく、これにより .rscs.section
+      内のリソースデータを指すリソースツリーの構造へのRVA（相対ポインタ）が得られます。ポイントは、実行形式が<i
+        data-dl-uid="175"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >PEファイル仕様</i
+      >で定義された特定の形式を持っていることです。特定の形式があるからこそ、ファイルから情報を取得するための標準的な方法があるのです。
+    </p>
+    <p class="western" data-dl-uid="176" data-dl-original="true" data-dl-translated="true">
+      <span
+        style="font-weight: normal"
+        data-dl-uid="177"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >GCCやCL（Microsoftのコンパイラ）のような多くのコンパイラは</span
+      >、<b data-dl-uid="178" data-dl-original="true" data-dl-translated="true"
+        >プログラマ定義のセクションも</b
+      >可能です。 つまり、<span
+        style="font-weight: normal"
+        data-dl-uid="179"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >プログラマは自分自身でセクション名を定義して、そのセクションに必要なものを </span
+      >入れることもできます。<span data-dl-uid="179" data-dl-translated="true"
+        >オペレーティングシステムのカーネルやエグゼクティブは、通常、異なる目的のために特別なセクションを定義する。 </span
+      >例えば<span data-dl-uid="179" data-dl-translated="true">、LinuxとWindowsの両方は </span>、<span
+        style="font-weight: normal"
+        data-dl-uid="181"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >1回限りの初期化コードとデータを含む</span
+      ><span data-dl-uid="179" data-dl-translated="true">特別な </span
+      ><b data-dl-uid="180" data-dl-original="true" data-dl-translated="true">.INIT</b>
+      <span data-dl-uid="181" data-dl-translated="true">セクションを</span
+      ><span data-dl-uid="179" data-dl-translated="true">定義して </span>います。<span
+        data-dl-uid="181"
+        data-dl-translated="true"
+        >初期化が完了すると、オペレーティング・システム・カーネルはそのセクションを解放し、他のことに再利用することができる。</span
+      >
+    </p>
+
+    <h3 class="western" data-dl-uid="182" data-dl-original="true" data-dl-translated="true">
+      <b data-dl-uid="183" data-dl-original="true" data-dl-translated="true">共通部分</b>
+    </h3>
+
+    <p
+      class="western"
+      style="font-weight: normal"
+      data-dl-uid="184"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      異なるオブジェクトファイルやアーキテクチャにさえ共通するセクション名とタイプのセットがあります。これらのセクションとその用途を認識できるようにすることが重要です。それらは以下の通りです。
+    </p>
+    <ol>
+      <li>
+        <p
+          class="western"
+          align="LEFT"
+          style="font-weight: normal"
+          data-dl-uid="185"
+          data-dl-original="true"
+          data-dl-translated="true"
+        >
+          .text
+        </p>
+      </li>
+      <li>
+        <p
+          class="western"
+          align="LEFT"
+          style="font-weight: normal"
+          data-dl-uid="186"
+          data-dl-original="true"
+          data-dl-translated="true"
+        >
+          .data
+        </p>
+      </li>
+      <li>
+        <p
+          class="western"
+          align="LEFT"
+          style="font-weight: normal"
+          data-dl-uid="187"
+          data-dl-original="true"
+          data-dl-translated="true"
+        >
+          .bss
+        </p>
+      </li>
+      <li>
+        <p
+          class="western"
+          align="LEFT"
+          style="font-weight: normal"
+          data-dl-uid="188"
+          data-dl-original="true"
+          data-dl-translated="true"
+        >
+          .rodata
+        </p>
+      </li>
+    </ol>
+    <p class="western" data-dl-uid="189" data-dl-original="true" data-dl-translated="true">
+      <b data-dl-uid="191" data-dl-original="true" data-dl-translated="true">.text</b
+      ><span
+        style="font-weight: normal"
+        data-dl-uid="192"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >セクションは、プログラムコードを含むセクションに付けられる一般的なセクション名で </span
+      >、コードセグメントとも呼ばれます。<span
+        style="font-weight: normal"
+        data-dl-uid="194"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >システムによっては、このセクションへの書き込みを防ぐために読み取り専用にすることもありますが、これはコードの自己改変を防ぐためです（通常、これは推奨されません）</span
+      >。
+    </p>
+    <p class="western" data-dl-uid="195" data-dl-original="true" data-dl-translated="true">
+      <b data-dl-uid="197" data-dl-original="true" data-dl-translated="true">.data</b
+      ><span
+        style="font-weight: normal"
+        data-dl-uid="198"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >セクションは、その名前が示すように </span
+      >、<span
+        style="font-weight: normal"
+        data-dl-uid="202"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >プログラムで使用さ</span
+      >れる<b data-dl-uid="199" data-dl-original="true" data-dl-translated="true">静的</b>
+      <span
+        style="font-weight: normal"
+        data-dl-uid="200"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >および</span
+      ><b data-dl-uid="201" data-dl-original="true" data-dl-translated="true">グローバルな</b
+      >データを含みます。<span data-dl-uid="202" data-dl-translated="true"
+        >これは常に書き込み可能です。</span
+      >
+    </p>
+    <p class="western" data-dl-uid="203" data-dl-original="true" data-dl-translated="true">
+      <b data-dl-uid="205" data-dl-original="true" data-dl-translated="true">.bss</b
+      ><span
+        style="font-weight: normal"
+        data-dl-uid="206"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >セクションは.dataセクションの一部で、通常、ゼロに初期化される静的割り当てデータに使用さ</span
+      >れます。<span data-dl-uid="206" data-dl-translated="true"
+        >.bssセクションは、オペレーティングシステムのローダーによって常にクリアされるので、その中のデータはすべてゼロに設定されます。Wikipediaによると、「.bss」という名前は当初、United
+        Aircraft Symbolic Assembly ProgramのBlock Started by
+        Symbolを意味していた。.bssセクションはすべてのNULL変数を含むため、オブジェクトファイル内でスペースを取りません。</span
+      >
+    </p>
+    <p class="western" data-dl-uid="207" data-dl-original="true" data-dl-translated="true">
+      <b data-dl-uid="209" data-dl-original="true" data-dl-translated="true">.rodata</b
+      ><span
+        style="font-weight: normal"
+        data-dl-uid="210"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >セクションは、読み取り専用に静的に割り当てられたデータを含んで</span
+      >います。<span data-dl-uid="210" data-dl-translated="true"
+        >これは、通常、LinuxやUnix環境でよく見られます。</span
+      >
+    </p>
+    <p
+      class="western"
+      style="font-weight: normal"
+      data-dl-uid="211"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      一時データ用のセクションがないことに注意してください。一時変数はスタックに格納されるので、プログラムファイルに格納する必要はないことを思い出してください。
+    </p>
+
+    <h3 class="western" data-dl-uid="212" data-dl-original="true" data-dl-translated="true">
+      <b data-dl-uid="213" data-dl-original="true" data-dl-translated="true"
+        >Microsoft Visual Cのカスタムセクション</b
+      >
+    </h3>
+    <p
+      class="western"
+      style="font-weight: normal"
+      data-dl-uid="214"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      マイクロソフトのコンパイラは、プログラマが特定のセクションのどこにデータやコードを配置するかを制御したり、カスタムセクションを作成するために使用できるいくつかのpragmaディレクティブを提供しています。これらは
+    </p>
+
+    <ol>
+      <li><p class="western" style="font-weight: normal">alloc_text</p></li>
+      <li><p class="western" style="font-weight: normal">code_seg</p></li>
+      <li><p class="western" style="font-weight: normal">const_seg</p></li>
+      <li><p class="western" style="font-weight: normal">data_seg</p></li>
+      <li><p class="western" style="font-weight: normal">bss_seg</p></li>
+      <li><p class="western" style="font-weight: normal">init_seg</p></li>
+      <li><p class="western" style="font-weight: normal">section</p></li>
+    </ol>
+
+    <p
+      class="western"
+      style="font-weight: normal"
+      data-dl-uid="222"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      プログラムローダーは、プログラムが持つ特別なセクションを気にする必要はなく、メモリにロードすることだけを考えればよい。
+      その責任はプログラム（ひいてはプログラマー）が負う。
+    </p>
+
+    <p
+      class="western"
+      style="font-weight: normal"
+      data-dl-uid="223"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      以下は、alloc_text を使って、特別なセクションに機能を追加する例である。
+    </p>
+
+    <pre class="code" style="font-weight: normal">error_t DECL mmInitialize (SystemBoot* mb) {
+   <span style="font-weight: normal">return SUCCESS;</span>
+}
+#pragma alloc_text (".init", mmInitialize);</pre>
+
+    <p class="western" data-dl-uid="226" data-dl-original="true" data-dl-translated="true">
+      <span
+        style="font-weight: normal"
+        data-dl-uid="227"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >上記の例では </span
+      >、<b data-dl-uid="228" data-dl-original="true" data-dl-translated="true">mmInitializeが</b
+      ><span
+        style="font-weight: normal"
+        data-dl-uid="229"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >セクション </span
+      ><b data-dl-uid="230" data-dl-original="true" data-dl-translated="true">.initに</b
+      ><span data-dl-uid="229" data-dl-translated="true">追加 </span>されます<span
+        style="font-weight: normal"
+        data-dl-uid="231"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >。これは、いくつかのオペレーティングシステムのカーネルとエグゼクティブによって使用される便利な戦術</span
+      >です。<span data-dl-uid="231" data-dl-translated="true"
+        >例えば、オペレーティングシステムのカーネルやエグゼクティブは、特別な.initセクションに初期化コードやデータを追加することができます。初期化が完了すると、オペレーティングシステムはそのセクションを解放して、メモリの一部を取り戻すことができます。</span
+      >
+    </p>
+
+    <h3 class="western" data-dl-uid="232" data-dl-original="true" data-dl-translated="true">
+      シンボリック情報
+    </h3>
+    <p class="western" data-dl-uid="233" data-dl-original="true" data-dl-translated="true">
+      <b data-dl-uid="234" data-dl-original="true" data-dl-translated="true">記号</b>
+      <span
+        style="font-weight: normal"
+        data-dl-uid="235"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >情報とは </span
+      >、<span
+        style="font-weight: normal"
+        data-dl-uid="237"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >プログラマがアドレスの名前として </span
+      >与える<b data-dl-uid="236" data-dl-original="true" data-dl-translated="true">記号の</b
+      >ことである。例えば、<b data-dl-uid="238" data-dl-original="true" data-dl-translated="true"
+        >printf()</b
+      >の<span data-dl-uid="237" data-dl-translated="true">ような関数を呼び </span>出すとき、<span
+        style="font-weight: normal"
+        data-dl-uid="239"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >コンパイラやリンカはどの</span
+      >ようにして何をすべきかを知ることができるのだろうか。<span
+        data-dl-uid="239"
+        data-dl-translated="true"
+        >もう少し詳しく見てみよう。</span
+      >
+    </p>
+    <p class="western" data-dl-uid="240" data-dl-original="true" data-dl-translated="true">
+      "<b data-dl-uid="241" data-dl-original="true" data-dl-translated="true">printf "</b>は、<span
+        style="font-weight: normal"
+        data-dl-uid="242"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >ライブラリで定義されている関数のシンボル </span
+      >です。<span data-dl-uid="242" data-dl-translated="true"
+        >printf()」を呼び出すと、コンパイラが </span
+      ><span
+        style="font-weight: normal"
+        data-dl-uid="246"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >ビルド時に管理する </span
+      ><b data-dl-uid="245" data-dl-original="true" data-dl-translated="true">シンボル</b
+      ><span
+        style="font-weight: normal"
+        data-dl-uid="244"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >テーブルに </span
+      >「<b data-dl-uid="243" data-dl-original="true" data-dl-translated="true">printf</b>」という<span
+        data-dl-uid="242"
+        data-dl-translated="true"
+        >シンボルが追加 </span
+      >されます。<b data-dl-uid="247" data-dl-original="true" data-dl-translated="true"
+        >関数の名前がシンボル</b
+      >であることに<span data-dl-uid="246" data-dl-translated="true">注意して </span>ください。<span
+        style="font-weight: normal"
+        data-dl-uid="248"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >同様に</span
+      >、<b data-dl-uid="249" data-dl-original="true" data-dl-translated="true"
+        >静的変数やグローバル変数も</b
+      >シンボルです。<span
+        style="font-weight: normal"
+        data-dl-uid="250"
+        data-dl-original="true"
+        data-dl-translated="true"
+      >
+        アドレスにつける名前（ </span
+      ><span
+        style="font-weight: normal"
+        data-dl-uid="252"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >アセンブリ言語の</span
+      ><b data-dl-uid="251" data-dl-original="true" data-dl-translated="true">ラベルの</b
+      ><span data-dl-uid="250" data-dl-translated="true">ようなもの </span>）も<span
+        data-dl-uid="252"
+        data-dl-translated="true"
+        >シンボルであると言えます。 このように、シンボルには2つの</span
+      >ものがあるのです。<span data-dl-uid="252" data-dl-translated="true">名前とアドレスです。</span>
+    </p>
+    <p
+      class="western"
+      style="font-weight: normal"
+      data-dl-uid="253"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      printfのコードを含むライブラリをリンクせずに構築すると、コンパイラはコード全体を機械語に翻訳することができないため、最終的な実行ファイルを出力することができません。つまり、アセンブラのように、関数が何であるかがわからないと、次のようなコードでは何もできないのである。
+    </p>
+
+    <pre class="code" style="margin-bottom: 0.2in">call _printf</pre>
+
+    <p class="western" data-dl-uid="255" data-dl-original="true" data-dl-translated="true">
+      <span
+        style="font-weight: normal"
+        data-dl-uid="256"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >アセンブラは、シンボル</span
+      ><b data-dl-uid="257" data-dl-original="true" data-dl-translated="true">_printfの</b
+      ><span data-dl-uid="256" data-dl-translated="true"
+        >アドレスを知らない限り、この命令を完全にアセンブル</span
+      >することはできません<span
+        style="font-weight: normal"
+        data-dl-uid="258"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >。シンボルについて何も知らなければ、アセンブラはそのアドレスを知ることができません。 </span
+      >これを解決するために、シンボルは<b
+        data-dl-uid="259"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >外部で</b
+      >あると<span data-dl-uid="258" data-dl-translated="true">宣言 </span
+      ><span
+        style="font-weight: normal"
+        data-dl-uid="260"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >し、アセンブラまたはコンパイラは
+      </span>
+      <span
+        style="font-weight: normal"
+        data-dl-uid="262"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >実行ファイルの代わりに</span
+      ><b data-dl-uid="261" data-dl-original="true" data-dl-translated="true">オブジェクト</b
+      >ファイルを<span data-dl-uid="260" data-dl-translated="true">出力 </span>します。<span
+        data-dl-uid="262"
+        data-dl-translated="true"
+        >部分的に機械語に翻訳しているが、次のような形になっている。</span
+      >
+    </p>
+
+    <p class="western" style="font-style: normal; font-weight: normal">
+      <font color="#000000"
+        ><font face="Lucida Console, monospace"
+          ><font size="2" style="font-size: 9pt">0xe8 _printf</font></font
+        ></font
+      >
+    </p>
+
+    <p class="western" data-dl-uid="267" data-dl-original="true" data-dl-translated="true">
+      <span
+        style="font-weight: normal"
+        data-dl-uid="268"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >このため </span
+      >、<i data-dl-uid="269" data-dl-original="true" data-dl-translated="true"
+        ><span
+          style="font-weight: normal"
+          data-dl-uid="270"
+          data-dl-original="true"
+          data-dl-translated="true"
+          >リンカーという</span
+        ></i
+      ><span data-dl-uid="268" data-dl-translated="true">別のプログラムを使って </span>、<span
+        style="font-style: normal"
+        data-dl-uid="271"
+        data-dl-original="true"
+        data-dl-translated="true"
+        ><span
+          style="font-weight: normal"
+          data-dl-uid="272"
+          data-dl-original="true"
+          data-dl-translated="true"
+          >これらのシンボルを</span
+        ></span
+      >解決することができます。<span data-dl-uid="271" data-dl-translated="true"
+        ><span data-dl-uid="272" data-dl-translated="true"
+          >リンカはオブジェクトファイルやライブラリのエクスポートシンボルテーブルを調べて、"_printf
+          "というシンボルを探します。
+          もし見つかったら、リンカは関数コードのアドレスを取得して、そのアドレスでマシンコードを更新し、最終的に実行プログラムを正しくリンクして出力することができるのです。もしシンボルが見つからなければ</span
+        ></span
+      ><i data-dl-uid="273" data-dl-original="true" data-dl-translated="true"
+        ><span
+          style="font-weight: normal"
+          data-dl-uid="274"
+          data-dl-original="true"
+          data-dl-translated="true"
+          >未解決と</span
+        ></i
+      ><span
+        style="font-style: normal"
+        data-dl-uid="275"
+        data-dl-original="true"
+        data-dl-translated="true"
+        ><span
+          style="font-weight: normal"
+          data-dl-uid="276"
+          data-dl-original="true"
+          data-dl-translated="true"
+          >なり、リンカーは有名な "unresolved external symbol "というエラーを</span
+        ></span
+      >出します。
+    </p>
+    <p
+      class="western"
+      style="font-style: normal; font-weight: normal"
+      data-dl-uid="277"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      実行イメージのシンボリック情報は、デバッガが人間が読める情報（関数や変数）名を表示するために使用できますが、その代償としてプログラムのファイルサイズが大きくなります。
+    </p>
+    <p class="western" data-dl-uid="278" data-dl-original="true" data-dl-translated="true">
+      <span
+        style="font-style: normal"
+        data-dl-uid="279"
+        data-dl-original="true"
+        data-dl-translated="true"
+        ><span
+          style="font-weight: normal"
+          data-dl-uid="280"
+          data-dl-original="true"
+          data-dl-translated="true"
+          >シンボルに関する追加情報をシンボル名自体に「格納」する方法は、ビルド環境や呼び出し方法によって異なります。</span
+        ></span
+      ><span
+        style="font-style: normal"
+        data-dl-uid="287"
+        data-dl-original="true"
+        data-dl-translated="true"
+        ><span
+          style="font-weight: normal"
+          data-dl-uid="288"
+          data-dl-original="true"
+          data-dl-translated="true"
+          >C言語の標準的な呼び出し規約はCDECLで、すべての名前の前にアンダースコアを付ける
+        </span></span
+      >だけです。<span data-dl-uid="287" data-dl-translated="true"
+        ><span data-dl-uid="288" data-dl-translated="true"
+          >例えば、"printf() "を呼び出す場合、CDECLのシンボル名は"_printf
+          "となります。C++のシンボル名はコンパイラによって異なり、名前以外にも多くの情報（戻り値のデータ型やオペランド型、名前空間、クラス、テンプレート名など）を格納しています。このため、C++のシンボル
+        </span></span
+      >名は<span
+        style="font-style: normal"
+        data-dl-uid="289"
+        data-dl-original="true"
+        data-dl-translated="true"
+        ><b data-dl-uid="290" data-dl-original="true" data-dl-translated="true"
+          >ネームマングリングを</b
+        ></span
+      >受けると言われています。例えば、<font
+        color="#000000"
+        data-dl-uid="299"
+        data-dl-original="true"
+        data-dl-translated="true"
+        ><font
+          face="Times New Roman, serif"
+          data-dl-uid="300"
+          data-dl-original="true"
+          data-dl-translated="true"
+          ><font size="2" data-dl-uid="301" data-dl-original="true" data-dl-translated="true"
+            ><span
+              style="font-style: normal"
+              data-dl-uid="302"
+              data-dl-original="true"
+              data-dl-translated="true"
+              ><span
+                style="font-weight: normal"
+                data-dl-uid="303"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >CL（Microsoftのコンパイラ</span
+              ></span
+            ></font
+          ></font
+        ></font
+      >）の<span
+        style="font-style: normal"
+        data-dl-uid="291"
+        data-dl-original="true"
+        data-dl-translated="true"
+        ><span
+          style="font-weight: normal"
+          data-dl-uid="292"
+          data-dl-original="true"
+          data-dl-translated="true"
+          >関数「</span
+        ></span
+      ><font color="#000000" data-dl-uid="293" data-dl-original="true" data-dl-translated="true"
+        ><font
+          face="Lucida Console, monospace"
+          data-dl-uid="294"
+          data-dl-original="true"
+          data-dl-translated="true"
+          ><font
+            size="2"
+            style="font-size: 9pt"
+            data-dl-uid="295"
+            data-dl-original="true"
+            data-dl-translated="true"
+            ><span
+              style="font-style: normal"
+              data-dl-uid="296"
+              data-dl-original="true"
+              data-dl-translated="true"
+              ><b data-dl-uid="297" data-dl-original="true" data-dl-translated="true"
+                >void h（void</b
+              ></span
+            ></font
+          ></font
+        ></font
+      ><font color="#000000" data-dl-uid="298" data-dl-original="true" data-dl-translated="true">）</font
+      >」は<font data-dl-uid="299" data-dl-translated="true"
+        ><font data-dl-uid="300" data-dl-translated="true"
+          ><font data-dl-uid="301" data-dl-translated="true"
+            ><span data-dl-uid="302" data-dl-translated="true"
+              ><span data-dl-uid="303" data-dl-translated="true">シンボル名</span></span
+            ></font
+          ></font
+        ></font
+      ><font color="#000000" data-dl-uid="304" data-dl-original="true" data-dl-translated="true"> </font
+      ><font color="#000000" data-dl-uid="305" data-dl-original="true" data-dl-translated="true"
+        ><font
+          face="monospace, Courier"
+          data-dl-uid="306"
+          data-dl-original="true"
+          data-dl-translated="true"
+          ><font
+            size="2"
+            style="font-size: 9pt"
+            data-dl-uid="307"
+            data-dl-original="true"
+            data-dl-translated="true"
+            ><span
+              style="font-style: normal"
+              data-dl-uid="308"
+              data-dl-original="true"
+              data-dl-translated="true"
+              ><b data-dl-uid="309" data-dl-original="true" data-dl-translated="true">?h@YAXXZ</b></span
+            ></font
+          ></font
+        ></font
+      >と<font data-dl-uid="299" data-dl-translated="true"
+        ><font data-dl-uid="300" data-dl-translated="true"
+          ><font data-dl-uid="301" data-dl-translated="true"
+            ><span data-dl-uid="302" data-dl-translated="true"
+              ><span data-dl-uid="303" data-dl-translated="true">変換</span></span
+            ></font
+          ></font
+        ></font
+      >します<font color="#000000" data-dl-uid="310" data-dl-original="true" data-dl-translated="true"
+        ><font
+          face="Lucida Console, monospace"
+          data-dl-uid="311"
+          data-dl-original="true"
+          data-dl-translated="true"
+          ><font
+            size="2"
+            style="font-size: 9pt"
+            data-dl-uid="312"
+            data-dl-original="true"
+            data-dl-translated="true"
+            ><span
+              style="font-style: normal"
+              data-dl-uid="313"
+              data-dl-original="true"
+              data-dl-translated="true"
+              ><span
+                style="font-weight: normal"
+                data-dl-uid="314"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >。</span
+              ></span
+            ></font
+          ></font
+        ></font
+      ><font color="#000000" data-dl-uid="315" data-dl-original="true" data-dl-translated="true"
+        ><font
+          face="Times New Roman, serif"
+          data-dl-uid="316"
+          data-dl-original="true"
+          data-dl-translated="true"
+          ><font size="2" data-dl-uid="317" data-dl-original="true" data-dl-translated="true"
+            ><span
+              style="font-style: normal"
+              data-dl-uid="318"
+              data-dl-original="true"
+              data-dl-translated="true"
+              ><span
+                style="font-weight: normal"
+                data-dl-uid="319"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ここでネームマングリングの形式の詳細について</span
+              ></span
+            ></font
+          ></font
+        ></font
+      >触れるのはやめておきましょう。
+    </p>
+    <p
+      class="western"
+      style="font-style: normal; font-weight: normal"
+      data-dl-uid="320"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      <font color="#000000" data-dl-uid="321" data-dl-original="true" data-dl-translated="true"
+        ><font
+          face="Times New Roman, serif"
+          data-dl-uid="322"
+          data-dl-original="true"
+          data-dl-translated="true"
+          ><font size="2" data-dl-uid="323" data-dl-original="true" data-dl-translated="true"
+            >ここで面白いことに気がついた。Cのシンボル名は戻り値のデータ型やオペランドについて何も保存しませんが、C++のシンボル名には名前のマングリングによるものがあります。これは理解できることですが、言語間の多くの違いの1つを示しています。Cコンパイラでは、オペランド型やオペランド数が異なる関数を、エラーなしに（検出された場合は警告が出るかもしれませんが）呼び出すことができますが、C++コンパイラでは、それが可能です。</font
+          ></font
+        ></font
+      >
+    </p>
+
+    <h3 class="western" data-dl-uid="324" data-dl-original="true" data-dl-translated="true">
+      テーブルのエクスポートとインポート
+    </h3>
+    <p class="western" data-dl-uid="325" data-dl-original="true" data-dl-translated="true">
+      <span
+        style="font-weight: normal"
+        data-dl-uid="326"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >プログラムライブラリやオブジェクトファイル内のシンボルは </span
+      >、<span
+        style="font-weight: normal"
+        data-dl-uid="328"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >他のライブラリや </span
+      >プログラムで使用するために<b data-dl-uid="327" data-dl-original="true" data-dl-translated="true"
+        >エクスポート</b
+      >することができます。<b data-dl-uid="329" data-dl-original="true" data-dl-translated="true"
+        >エクスポートされたシンボルは</b
+      >、<span
+        style="font-weight: normal"
+        data-dl-uid="330"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >コンパイラとリンカにそれぞれのシンボルを </span
+      ><b data-dl-uid="331" data-dl-original="true" data-dl-translated="true">エクスポートテーブルに</b
+      ><span data-dl-uid="330" data-dl-translated="true">追加 </span>するように指示するだけです<span
+        style="font-weight: normal"
+        data-dl-uid="332"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >。 プログラムファイルと共有ライブラリ（Windows
+        DLL）は、他のプログラムやデバッガが使用するためにシンボルをエクスポート </span
+      >することができます。同様に、プログラムファイルは<span
+        style="font-weight: normal"
+        data-dl-uid="334"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >シンボルを</span
+      ><b data-dl-uid="333" data-dl-original="true" data-dl-translated="true">インポートして</b
+      >使用するように<span data-dl-uid="332" data-dl-translated="true">要求 </span>できます。<span
+        data-dl-uid="334"
+        data-dl-translated="true"
+        >ここで、上記のprintf()の例を完成させることができます。</span
+      >
+    </p>
+    <p class="western" data-dl-uid="335" data-dl-original="true" data-dl-translated="true">
+      <span
+        style="font-weight: normal"
+        data-dl-uid="336"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >Microsoft C Runtime Libraryは、プログラムファイルと一緒にロードされる共有ライブラリです。 </span
+      >オペレーティングシステム<span data-dl-uid="336" data-dl-translated="true">または </span
+      >エグゼクティブは、プログラムの<b
+        data-dl-uid="337"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >インポートテーブルを</b
+      >見ることによって、<span data-dl-uid="336" data-dl-translated="true"
+        >プログラムファイルが動作するためにどのDLLが必要かを知ることが </span
+      >できます。<span
+        style="font-weight: normal"
+        data-dl-uid="338"
+        data-dl-original="true"
+        data-dl-translated="true"
+      >
+        デフォルトでは、CL（Microsoftのコンパイラ）は、インポートテーブルを含むMicrosoft C Runtime
+        Libraryインポートスタティックライブラリとリンクするので、シンボルが追加されて各DLLはテーブルに含まれて </span
+      >います。<span data-dl-uid="338" data-dl-translated="true"
+        >オペレーティングシステムまたはエグゼクティブは、プログラムが必要とする共有ライブラリファイルをすべてメモリにロードし、プログラムファイルの </span
+      ><b data-dl-uid="339" data-dl-original="true" data-dl-translated="true"
+        >IAT（Import Address Table</b
+      >）を<span
+        style="font-weight: normal"
+        data-dl-uid="340"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >これらの他のDLL内の関数のアドレスで</span
+      ><span data-dl-uid="338" data-dl-translated="true">更新する必要が </span>あります。<span
+        data-dl-uid="340"
+        data-dl-translated="true"
+        >ロードされるMicrosoft C Runtime Library
+        DLLは_printfのコードを含むだけでなく、シンボル_printfをエクスポートするので、オペレーティングシステムはランタイム中にこれらをリンクします（これについては後で詳しく説明します）。</span
+      >
+    </p>
+    <p
+      class="western"
+      style="font-weight: normal"
+      data-dl-uid="341"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      したがって、プログラムファイルから「printf()」を呼び出すと、これはCランタイムライブラリDLL内の関数「_printf」を呼び出す更新されたIATアドレスを呼び出すジャンプテーブルを呼び出すことになるのです。
+    </p>
+    <p
+      class="western"
+      style="font-weight: normal"
+      data-dl-uid="342"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      これまで、プロセス、スレッド、タスクについて説明し、プログラムファイルとは何か、どのように動作するかについて見てきました。この章の目標は、複数のプロセスやタスクをロードし、実行し、管理できるようになることです。次にそれを見てみましょう。
+    </p>
+    <h2 class="western" data-dl-uid="343" data-dl-original="true" data-dl-translated="true">
+      プロセスマネジメント
+    </h2>
+    <p class="western" data-dl-uid="344" data-dl-original="true" data-dl-translated="true">
+      <b data-dl-uid="345" data-dl-original="true" data-dl-translated="true">プロセス管理とは</b>、<span
+        style="font-weight: normal"
+        data-dl-uid="348"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >ソフトウェアシステムにおける</span
+      ><b data-dl-uid="347" data-dl-original="true" data-dl-translated="true">プロセスを</b>
+      <span
+        style="font-weight: normal"
+        data-dl-uid="346"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >管理する </span
+      >ことである。<span data-dl-uid="348" data-dl-translated="true"
+        >先ほど、プロセスとはメモリ上のプログラムまたはその一部と定義した。つまり、プロセスを管理するということは、メモリ上のプログラムの複数のインスタンスを協調して管理することを意味する。これは、最近のオペレーティングシステムでは典型的な要件であり、カーネルまたはエグゼクティブに実装されています。</span
+      >プロセス管理を<span data-dl-uid="348" data-dl-translated="true"
+        >サポートするオペレーティングシステムは</span
+      >、<b data-dl-uid="349" data-dl-original="true" data-dl-translated="true"
+        >マルチタスクオペレーティングシステムと</b
+      >みなされる。
+    </p>
+
+    <h3 class="western" data-dl-uid="350" data-dl-original="true" data-dl-translated="true">表現方法</h3>
+    <p
+      class="western"
+      style="font-weight: normal"
+      data-dl-uid="351"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      OSの設計者は、プロセスを管理するために、OSの設計条件と必要なシステム資源から、どのようにプロセスを表現するのが最適かを決定する必要がある。プロセスは次のような構成になっています。
+    </p>
+    <ul>
+      <li>
+        <p
+          class="western"
+          style="font-weight: normal"
+          data-dl-uid="352"
+          data-dl-original="true"
+          data-dl-translated="true"
+        >
+          メモリ上の実行形式（マシンコードとデータ）のイメージ。
+        </p>
+      </li>
+      <li>
+        <p
+          class="western"
+          style="font-weight: normal"
+          data-dl-uid="353"
+          data-dl-original="true"
+          data-dl-translated="true"
+        >
+          プロセスが使用しているメモリとその仮想アドレス空間
+        </p>
+      </li>
+      <li>
+        <p
+          class="western"
+          style="font-weight: normal"
+          data-dl-uid="354"
+          data-dl-original="true"
+          data-dl-translated="true"
+        >
+          プロセスを表現するために使用される記述子
+        </p>
+      </li>
+      <li>
+        <p
+          class="western"
+          style="font-weight: normal"
+          data-dl-uid="355"
+          data-dl-original="true"
+          data-dl-translated="true"
+        >
+          プロセス状態情報（レジスタ、スタック、アトリビュートなど
+        </p>
+      </li>
+    </ul>
+    <p
+      class="western"
+      style="font-weight: normal"
+      data-dl-uid="356"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      オペレーティングシステムは、プロセスを管理し、要求したプロセスに対して公平にシステムリソースを割り当てることが要求されます。それぞれについて詳しく見ていきましょう。
+    </p>
+
+    <h3 class="western" data-dl-uid="357" data-dl-original="true" data-dl-translated="true">
+      メモリ上の実行ファイルのイメージ
+    </h3>
+    <p class="western" data-dl-uid="358" data-dl-original="true" data-dl-translated="true">
+      実行可能なプログラムは、プログラムのロードと管理を容易にするために、ディスク上にファイルとして保存されます。<b
+        data-dl-uid="359"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >プログラムをロードするには、オペレーティングシステムのローダーがファイルをメモリにロード</b
+      >します。ローダーは、ファイルの種類（オペレーティングシステムが扱うことができる実行可能ファイルであること）を理解し、場合によってはこれらのファイルタイプの機能（リソースやデバッグ情報など）をサポートすることもできる必要があります。
+    </p>
+    <p class="western" data-dl-uid="360" data-dl-original="true" data-dl-translated="true">
+      メモリ上の実行ファイルのイメージは、そのイメージのマシンコードとデータの現在の表現であり、任意の時点でメモリ上にどのように表示されるかを示しています。ここでいう「イメージ」とは、メモリ上のものの「スナップショット」を表します。例えば、カメラで大きなバイトの配列を見て、写真を撮るようなものです。バイトの配列は、マシンコードでもデータでも、どちらでもないものでも、私たちにはわかりませんし、気になりません。プログラム命令だけが知っている。
+    </p>
+    <p class="western" data-dl-uid="361" data-dl-original="true" data-dl-translated="true">
+      プログラムイメージの中には、他のプログラムやオペレーティングシステムにとって有用なデータもあります。例えば、プログラムファイルにはデバッギング情報が含まれていることがあります。例えば、プログラムファイルにはデバッグ情報が含まれています。
+    </p>
+    <p class="western" data-dl-uid="362" data-dl-original="true" data-dl-translated="true">
+      つまり、オペレーティングシステムは、ファイルを実行するために、ディスクからどこかのメモリにロードできる必要があります。
+      これは、単にファイルをメモリに「そのまま」ロードするようなものです。
+      オペレーティングシステムまたは他のプログラムは、プログラムファイルから必要な有用なデータを取得することができます。
+    </p>
+    <h3 class="western" data-dl-uid="363" data-dl-original="true" data-dl-translated="true">
+      プロセスが使用しているメモリとその仮想アドレス空間
+    </h3>
+    <p class="western" data-dl-uid="364" data-dl-original="true" data-dl-translated="true">
+      プロセスは通常、オペレーティングシステムと同様に、動的にメモリを割り当てたり、スタック領域を使用するための呼び出しを行います。<b
+        data-dl-uid="365"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >オペレーティングシステムは、プロセスが使用するプロセススタックとヒープメモリのためのスペースを割り当てる必要が</b
+      >あります。例えば、オペレーティングシステムは通常、すべてのプロセスに対してデフォルトのスタックサイズを割り当てます。<b
+        data-dl-uid="366"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >しかし、プロセスの実行ファイルは、プロセスが必要とする場合、より大きなスタックスペースを割り当てるようにオペレーティングシステムに</b
+      >指示することができます。
+    </p>
+    <p class="western" data-dl-uid="367" data-dl-original="true" data-dl-translated="true">
+      プロセスヒープは違います。スタックはプロセスを実行する前にオペレーティングシステムによって割り当てられますが、ヒープはそうではありません。その代わり、各プロセスはユーザモードで独自のヒープアロケータを持ちます。CRTとリンクしているプログラムは、これらの関数を呼び出してメモリを確保することができます。しかし、CRTにリンクされていないプログラムは、独自のヒープアロケーターを実装するか、実装している他のライブラリとリンクする必要があります。
+    </p>
+    <p class="western" data-dl-uid="368" data-dl-original="true" data-dl-translated="true">
+      CRTランタイムはユーザモードのヒープアロケータ（通常はフリーリスト）を実装しています。C の関数
+      malloc は、System API を使用して OS を呼び出す brk
+      を呼び出すことがあります。C関数brkは、必要なときにヒープを拡張するためにさらに仮想メモリを割り当てるために、OSを呼び出します。
+    </p>
+    <p class="western" data-dl-uid="369" data-dl-original="true" data-dl-translated="true">
+      要するに、ユーザーモードのヒープは次のように動作する。プログラムは malloc を呼び出し、brk
+      を呼び出すかもしれません。brk はシステム API を使って OS
+      を呼び出し、ヒープに仮想メモリを割り当てます。malloc と free
+      ファミリーの関数は、独自のユーザモードヒープアロケータを実装しています。これらの関数は、OSを呼び出して、仮想アドレス空間からメモリを確保したり解放したりするだけです。
+    </p>
+    <p class="western" data-dl-uid="370" data-dl-original="true" data-dl-translated="true">
+      <b data-dl-uid="371" data-dl-original="true" data-dl-translated="true"
+        >プリエンプティブマルチタスクでは</b
+      >、すべてのプロセスが独自の仮想アドレス空間を持ちます。これは、すべてのプロセスが独自のページディレクトリと関連するページテーブルを持つ必要があることを意味します。プロセス固有の情報を管理するために、<b
+        data-dl-uid="372"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >プロセスコントロールブロック (PCB)</b
+      >
+      を使用します。次にそれを見てみましょう。
+    </p>
+    <h3 class="western" data-dl-uid="373" data-dl-original="true" data-dl-translated="true">
+      プロセスを表現するために使用される記述子
+    </h3>
+    <p class="western" data-dl-uid="374" data-dl-original="true" data-dl-translated="true">
+      <b data-dl-uid="376" data-dl-original="true" data-dl-translated="true"
+        >プロセスコントロールブロック（PCB</b
+      >
+      <span
+        style="font-weight: normal"
+        data-dl-uid="377"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >）は、プロセスまたはタスクに関する情報を格納するために使用されるデータ構造</span
+      >です。<span data-dl-uid="377" data-dl-translated="true"
+        >PCBは、割り込みディスクリプタのポインタ、ページディレクトリベースレジスタ（PDBR）などの情報を含んでいます。保護レベル、実行時間、プロセス状態、プロセスフラグ、VM86
+        フラグ、プライオリティ、プロセス ID (PID) などの情報が含まれます。PCB には、さらに多くの情報（OS
+        固有の情報）が含まれることがあります。</span
+      >
+    </p>
+    <p class="western" data-dl-uid="378" data-dl-original="true" data-dl-translated="true">
+      オペレーティングシステムはプロセスを管理するために PCB
+      のリンクリストを使用することがあります。新しいプロセスを作成するとき、オペレーティングシステムは新しい仮想アドレス空間を割り当て、イメージをロードしてマップし、リストに新しい
+      PCB
+      構造をアタッチする必要があります。スケジューラは、実行するプロセスを決定し、現在の状態を保存するために
+      PCB リストを使用します。
+    </p>
+    <h3 class="western" data-dl-uid="379" data-dl-original="true" data-dl-translated="true">
+      プロセス状態情報
+    </h3>
+    <p class="western" data-dl-uid="380" data-dl-original="true" data-dl-translated="true">
+      プロセス状態情報には、ある時点のプロセスの全レジスタ状態、インメモリ状態、入出力要求状態などが含まれます。プロセスの状態は、タスクを切り替えるときにPCBに保存されます。これは、マルチタスクOSの心臓部であるスケジューラによって行われます。さらに、プロセスの現在の実行状態は、オペレーティングシステムによるプロセスの実行を制御するために使用されます。
+    </p>
+    <p class="western" data-dl-uid="381" data-dl-original="true" data-dl-translated="true">
+      最も単純なケースでは、状態はRUNNINGかNOT
+      RUNNINGのどちらかである。このモデルでは、作成されたばかりのプロセスはNOT
+      RUNNINGキューに格納され、実行中のときだけRUNNINGとラベル付けされます。NOT
+      RUNNINGのプロセスは、RUNNINGのプロセスが終了するか、スケジューラ内のプロセスディスパッチャによって中断されるまで、メモリ内にまだ存在しますが、待機状態にあります。
+    </p>
+    <p class="western" data-dl-uid="382" data-dl-original="true" data-dl-translated="true">
+      3状態のプロセス管理モデルでは、プロセスはRUNNING、READY、またはBLOCKEDのいずれかになります。RUNNINGプロセスが待機を必要とするアクセス（I/O要求など）を要求すると、オペレーティングシステムはそのプロセスをRUNNINGからBLOCKEDに変更することができる。要求が実行できるようになると、プロセスはRUNNING状態またはREADY状態のいずれかに移行することができる。READY状態のプロセスは、プロセスディスパッチャによる実行の準備が整ったことを意味するだけです。RUNNING状態のプロセスは、すでに実行されています。
+    </p>
+    <p class="western" data-dl-uid="383" data-dl-original="true" data-dl-translated="true">
+      最後のモデルは、「5状態プロセス管理モデル」である。このモデルは5つの状態を利用する。SUSPEND
+      BLOCKED、BLOCKED、SUSPEND READY、READY、SUSPENDEDの5つの状態を利用します。
+    </p>
+    <h3 class="western" data-dl-uid="384" data-dl-original="true" data-dl-translated="true">
+      スケジューリング
+    </h3>
+    <p
+      class="western"
+      style="font-weight: normal"
+      data-dl-uid="385"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      <b data-dl-uid="386" data-dl-original="true" data-dl-translated="true">スケジューラとは </b
+      >、オペレーティングシステムのカーネルやエグゼクティブのコンポーネントで、タスクの切り替えやCPUの使用量の割り当てを行うものである。オペレーティングシステムは、次にどのタスクを実行するかを決定するために、スケジューリングアルゴリズムを採用している。一般的なスケジューリングアルゴリズムには、先入れ先出し、最短残時間、固定優先順位プリエンプティブ、ラウンドロビン、マルチレベルキューなどがあるが、これらに限定されるものではない。WindowsとLinuxの両方で使用されている最も一般的なアルゴリズムは、おそらく<b
+        data-dl-uid="387"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >マルチレベル・フィードバック・キュー</b
+      >でしょう。
+    </p>
+
+    <h1 class="western" data-dl-uid="388" data-dl-original="true" data-dl-translated="true">
+      基本的なプロセス管理支援
+    </h1>
+    <p class="western" data-dl-uid="389" data-dl-original="true" data-dl-translated="true">
+      これで、基本的なプロセス管理のサポートを実装することができます。目標はシンプルであることなので、vm86タスクのサポートやI/Oリソースの割り当てなど、高度なマルチレベルフィードバックシステムを実装するのではなく、よりシンプルでありながら効率的なスケジューラーに焦点を当てることにします。
+    </p>
+    <p class="western" data-dl-uid="390" data-dl-original="true" data-dl-translated="true">
+      そのためには、何をすればいいのか、その目標を考えてみましょう。
+    </p>
+    <ol>
+      <li>
+        <p class="western" data-dl-uid="391" data-dl-original="true" data-dl-translated="true">
+          実行イメージをメモリにロードし、パースする。
+        </p>
+      </li>
+      <li>
+        <p class="western" data-dl-uid="392" data-dl-original="true" data-dl-translated="true">
+          プロセス用PCBのリストを管理します。
+        </p>
+      </li>
+      <li>
+        <p class="western" data-dl-uid="393" data-dl-original="true" data-dl-translated="true">
+          ユーザーモードタスクをサポートします。
+        </p>
+      </li>
+      <li>
+        <p class="western" data-dl-uid="394" data-dl-original="true" data-dl-translated="true">
+          複数の仮想アドレス空間をサポート
+        </p>
+      </li>
+      <li>
+        <p class="western" data-dl-uid="395" data-dl-original="true" data-dl-translated="true">
+          各プロセスにスタック領域を割り当てる。デフォルトのサイズは4k。
+        </p>
+      </li>
+      <li>
+        <p class="western" data-dl-uid="396" data-dl-original="true" data-dl-translated="true">
+          スケジューリングアルゴリズムの選択とタスクスイッチの実装
+        </p>
+      </li>
+    </ol>
+    <p
+      class="western"
+      style="font-weight: normal"
+      data-dl-uid="397"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      これらは、マルチタスクに対応するための目標です。プロセスは、ユーザーモードプロセスとなる。しかし、マルチタスクは、<b
+        data-dl-uid="398"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >プロセス</b
+      >管理と<b data-dl-uid="399" data-dl-original="true" data-dl-translated="true">スケジューリングの</b
+      >両方に依存しています。このため、本章では、マルチタスクをサポートするフレームワークの構築に焦点を当てますが、1プロセス1スレッドのみを許可することにします。このことは、次章でスケジューラを実装することにより、拡張していきます。
+    </p>
+    <h2 class="western" data-dl-uid="400" data-dl-original="true" data-dl-translated="true">
+      プロセス制御ブロック
+    </h2>
+    <p
+      class="western"
+      style="font-weight: normal"
+      data-dl-uid="401"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      私たちのシステムの基板構成は、シンプルなものになります。
+    </p>
+
+    <pre class="code">#define PROCESS_STATE_SLEEP  0
+#define PROCESS_STATE_ACTIVE 1
+
+#define MAX_THREAD 5
+
+typedef struct _process {
+   int            id;
+   int            priority;
+   pdirectory*    pageDirectory;
+   int            state;
+<font color="#008000"><b>/* typedef struct _process* next; */</b></font>
+<font color="#008000"><b>/* thread* threadList; */</b></font>
+   thread  threads[MAX_THREAD];
+<font color="#008000">   <b>/*</b></font>
+<font color="#008000">     <b>note: we can add more information, such as the following:</b></font>
+<font color="#008000">       <b>-LDT descriptor [if used]</b></font>
+<font color="#008000">       <b>-Processor count being used</b></font>
+<font color="#008000">       <b>-User and kernel times</b></font>
+<font color="#008000">       <b>-Execution options, etc</b></font>
+<font color="#008000">   <b>*/</b></font>
+}process;</pre>
+
+    <p
+      class="western"
+      style="font-weight: normal"
+      data-dl-uid="421"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      この構造体にさらに追加することもできますが、本当に必要なのは上記のものだけです。プロセスID（PID）、優先度、仮想アドレス空間が格納されていることに注意してください。コメントされた2つのエントリは、完全性のためだけに提供されています。典型的なOSでは、それらはプロセスとスレッドのリンクリストであるべきです。しかし、これにはカーネルのヒープアロケータが必要であり、我々はそれを書いていない。簡単のために、プロセス内の5つのスレッドオブジェクトを配列として格納します。
+    </p>
+    <p
+      class="western"
+      style="font-weight: normal"
+      data-dl-uid="422"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      最後に必要なのは、スレッドを処理する方法である。すべてのプロセスは、エントリポイントで実行を開始する最大1つのスレッドを持っています。
+    </p>
+
+    <pre class="code" style="font-weight: normal">typedef struct _thread {
+   <span style="font-weight: normal">process*  parent;</span>
+   <span style="font-weight: normal">void*     initialStack;</span>
+   <span style="font-weight: normal">void*     stackLimit;</span>
+   <span style="font-weight: normal">void*     kernelStack;</span>
+   <span style="font-weight: normal">uint32_t  priority;</span>
+   <span style="font-weight: normal">int       state;</span>
+   <span style="font-weight: normal">trapFrame frame;</span>
+}thread;</pre>
+
+    <p class="western" data-dl-uid="431" data-dl-original="true" data-dl-translated="true">
+      スレッド構造体は、プロセス内のスレッドに関する一般的な情報を格納します。この構造体は、親プロセスへのポインタと、スレッドスタック、優先度、状態（実行中かどうか）、およびトラップフレームに関する情報を格納することに注意してください。トラップフレームは、実行中のスレッドの現在のレジスタの状態を格納します。
+    </p>
+
+    <pre class="code">typedef struct _trapFrame {
+   uint32_t esp;
+   uint32_t ebp;
+   uint32_t eip;
+   uint32_t edi;
+   uint32_t esi;
+   uint32_t eax;
+   uint32_t ebx;
+   uint32_t ecx;
+   uint32_t edx;
+   uint32_t flags;
+<font color="#008000">   <b>/*</b></font>
+<font color="#008000">      <b>note: we can add more registers to this.</b></font>
+<font color="#008000">      <b>For a complete trap frame, you should add:</b></font>
+<font color="#008000">        <b>-Debug registers</b></font>
+<font color="#008000">        <b>-Segment registers</b></font>
+<font color="#008000">        <b>-Error condition [if any]</b></font>
+<font color="#008000">        <b>-v86 mode segment registers [if used]</b></font>
+<font color="#008000">   <b>*/</b></font>
+}trapFrame;</pre>
+
+    <p class="western" data-dl-uid="449" data-dl-original="true" data-dl-translated="true">
+      この章では、まだマルチタスクを実装していないので、トラップフレーム構造体をあまり使用しません。しかし、次の章では、各スレッドの現在の状態を保存するスケジューラを開発するため、トラップフレーム構造体をより多く使用する予定です。
+    </p>
+    <h2 class="western" data-dl-uid="450" data-dl-original="true" data-dl-translated="true">
+      仮想アドレス空間
+    </h2>
+    <p class="western" data-dl-uid="451" data-dl-original="true" data-dl-translated="true">
+      <span
+        style="font-weight: normal"
+        data-dl-uid="452"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >複数の仮想アドレス空間をサポートする場合、複雑な問題が発生します。 </span
+      ><b data-dl-uid="453" data-dl-original="true" data-dl-translated="true"
+        >各プロセスのアドレス空間は、カーネルコードとデータが2GBに配置された4GBのアドレス空間全体から構成されています。</b
+      >
+      <span
+        style="font-weight: normal"
+        data-dl-uid="454"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >プロセスを切り替える際には、アドレス空間を切り替えられるようにする必要があるが、アドレス空間の下位2GB（「ユーザーランド」）だけは切り替えられるようにしなければならない。つまり、ユーザーモードプロセスが動作しているとします。そこで、カーネル内のスケジューラを呼び出して、タスクを切り替えられるようにする必要があります。しかし、そのためには、カーネルのコードも同じアドレス空間になければなりません。そうでないと、即座にクラッシュしてしまう。</span
+      >
+    </p>
+    <p class="western" data-dl-uid="455" data-dl-original="true" data-dl-translated="true">
+      <b data-dl-uid="456" data-dl-original="true" data-dl-translated="true"
+        >この問題を解決するためには、カーネルコードを各プロセスのアドレス空間にマッピングする必要があります。</b
+      ><span
+        style="font-weight: normal"
+        data-dl-uid="457"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >どう</span
+      >やったらそんなことができるのかと思われるかもしれません。<span
+        data-dl-uid="457"
+        data-dl-translated="true"
+        >しかし</span
+      >、<b data-dl-uid="458" data-dl-original="true" data-dl-translated="true"
+        >複数の仮想アドレスがメモリ内の同じ物理フレームを参照できる</b
+      >ことを考えると、<span data-dl-uid="457" data-dl-translated="true">より明確になるかも</span
+      >しれません<span
+        style="font-weight: normal"
+        data-dl-uid="459"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >。言い換えれば、カーネルスタックとコードを両方のアドレス空間にマップすることができます。次の画像をご覧ください。</span
+      >
+    </p>
+
+    <p class="western" style="font-weight: normal">
+      <img
+        src="./22_files/osdev24_html_27b37f61.gif"
+        name="graphics3"
+        align="LEFT"
+        width="412"
+        height="307"
+        border="0"
+      /><br clear="LEFT" />
+
+      上の画像では、2つの仮想アドレス空間と物理アドレス空間が表示されています。プロセススタックとコードの位置が、物理メモリ内の異なる場所を共有していることに注目してください。つまり、仮想メモリマネージャを使って、同じ基本的な仮想アドレスの場所を異なる物理アドレスフレームにマッピングしているのです。カーネルを少し考えてみましょう。カーネルは、単一のアドレス空間を持つ環境で起動します。カーネルは初期化プロセスで自分自身のアドレス空間にマッピングします。問題を防ぐために、カーネル空間を他のプロセスのアドレス空間にもマッピングできるようにする必要があります。カーネルはすでに自分のアドレス空間にマッピングされ、物理メモリのある場所に位置しています。つまり、カーネルは他のプロセスのアドレス空間にも再マップすることができるのです。
+    </p>
+    <p class="western" data-dl-uid="463" data-dl-original="true" data-dl-translated="true">
+      <span
+        style="font-weight: normal"
+        data-dl-uid="464"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >シリーズカーネルでは、カーネル自身が1MBの物理領域から3GBの仮想領域にマッピングする。カーネルは、自分自身を各プロセスのアドレス空間にマップするために、次に、すべてのプロセスの3GBの領域を1MBの物理にマップする必要があります。</span
+      >
+      <b data-dl-uid="465" data-dl-original="true" data-dl-translated="true"
+        >カーネルとカーネルスタックは、すべてのプロセスのアドレス空間の同じ場所にマッピングされなければ</b
+      >なりません<span
+        style="font-weight: normal"
+        data-dl-uid="466"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >。</span
+      >
+    </p>
+    <p
+      class="western"
+      style="font-weight: normal"
+      data-dl-uid="467"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      オペレーティングシステムは、カーネル全体ではなく、カーネルの一部をプロセスアドレス空間にマッピングすることもできます。これは大規模なシステムでよく見られます。
+    </p>
+
+    <h3 class="western" data-dl-uid="468" data-dl-original="true" data-dl-translated="true">
+      アドレス空間管理
+    </h3>
+    <p
+      class="western"
+      style="font-weight: normal"
+      data-dl-uid="469"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      異なるアドレス空間から仮想ページをマッピングできるようにする必要があります。具体的には、次のようなことができるようにする必要があります。
+    </p>
+    <ol>
+      <li>
+        <p
+          class="western"
+          style="font-weight: normal"
+          data-dl-uid="470"
+          data-dl-original="true"
+          data-dl-translated="true"
+        >
+          任意のページディレクトリからページテーブルを作成
+        </p>
+      </li>
+      <li>
+        <p
+          class="western"
+          style="font-weight: normal"
+          data-dl-uid="471"
+          data-dl-original="true"
+          data-dl-translated="true"
+        >
+          任意のページディレクトリから任意の物理アドレスを仮想アドレスにマップする
+        </p>
+      </li>
+      <li>
+        <p
+          class="western"
+          style="font-weight: normal"
+          data-dl-uid="472"
+          data-dl-original="true"
+          data-dl-translated="true"
+        >
+          任意のページディレクトリから任意の仮想マッピングの物理アドレスを取得する
+        </p>
+      </li>
+      <li>
+        <p
+          class="western"
+          style="font-weight: normal"
+          data-dl-uid="473"
+          data-dl-original="true"
+          data-dl-translated="true"
+        >
+          新しいアドレス空間の作成
+        </p>
+      </li>
+    </ol>
+
+    <p
+      class="western"
+      style="font-weight: normal"
+      data-dl-uid="474"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      本シリーズのVirtual Memory Managerは、現在この機能をサポートしていません。
+      しかし、すぐに実装することができますので、今すぐ実装してしまいましょう。
+    </p>
+
+    <h3 class="western" data-dl-uid="475" data-dl-original="true" data-dl-translated="true">
+      <b data-dl-uid="476" data-dl-original="true" data-dl-translated="true">ページテーブルの作成</b>
+    </h3>
+    <p class="western" data-dl-uid="477" data-dl-original="true" data-dl-translated="true">
+      <span
+        style="font-weight: normal"
+        data-dl-uid="478"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >ページテーブルを作成するには、空きフレーム（ページテーブルは1024個のPTEで構成され、1ページのサイズは4096バイトであることを思い出してください）を確保し、ページディレクトリのPDEのフレームに追加するだけです。</span
+      ><b data-dl-uid="479" data-dl-original="true" data-dl-translated="true">Virt &gt;&gt; 22は</b
+      >、<span
+        style="font-weight: normal"
+        data-dl-uid="480"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >仮想アドレスからディレクトリのインデックスを取得</span
+      >することができます。<span data-dl-uid="480" data-dl-translated="true"
+        >pagedir
+        [directory_index]のPDEが0であれば、このページテーブルは存在しないことがわかるので、物理メモリマネージャを使用して割り当てます。存在する場合は、割り当てる必要はありません。最後に、ページテーブルをクリアして、その</span
+      ><font size="2" data-dl-uid="481" data-dl-original="true" data-dl-translated="true"
+        ><span
+          style="font-weight: normal"
+          data-dl-uid="482"
+          data-dl-original="true"
+          data-dl-translated="true"
+          >存在ビットを</span
+        ></font
+      >
+      <span data-dl-uid="480" data-dl-translated="true">効果的に</span
+      ><font data-dl-uid="481" data-dl-translated="true"
+        ><span data-dl-uid="482" data-dl-translated="true">0（存在しない</span></font
+      >）に<span data-dl-uid="480" data-dl-translated="true">セット</span>します。
+    </p>
+
+    <pre
+      class="code"
+    ><font face="Courier New, monospace"><font size="2"><font color="#0000ff"><span lang=""><span style="font-weight: normal">int</span></span></font><font color="#000000"><span lang=""><span style="font-weight: normal"> vmmngr_createPageTable (pdirectory* dir, uint32_t virt, uint32_t flags) {</span></span></font></font></font>
+
+        <font face="Courier New, monospace"><font size="2">pd_entry* pagedir = dir-&gt;m_entries;</font></font>
+<font color="#000000">        </font><font face="Courier New, monospace"><font size="2"><font color="#0000ff"><span lang="">if</span></font><font color="#000000"><span lang=""> (pagedir [virt &gt;&gt; 22] == 0) {</span></font></font></font>
+<font face="Courier New, monospace"><font size="2"><font color="#000000"><span lang="">	</span></font><font color="#0000ff"><span lang="">void</span></font><font color="#000000"><span lang="">* block = pmmngr_alloc_block();</span></font></font></font>
+<font face="Courier New, monospace"><font size="2"><font color="#000000"><span lang="">	</span></font><font color="#0000ff"><span lang="">if</span></font><font color="#000000"><span lang=""> (!block)</span></font></font></font>
+<font face="Courier New, monospace"><font size="2"><font color="#000000"><span lang="">	   </span></font><font color="#0000ff"><span lang="">return</span></font><font color="#000000"><span lang=""> 0; </span></font><font color="#008000"><span lang="">/* Should call debugger */</span></font></font></font>
+          <font face="Courier New, monospace"><font size="2">pagedir [virt &gt;&gt; 22] = ((uint32_t) block) | flags;</font></font>
+          <font face="Courier New, monospace"><font size="2">memset ((uint32_t*) pagedir[virt &gt;&gt; 22], 0, 4096);</font></font>
+
+<font face="Courier New, monospace"><font size="2"><font color="#000000"><span lang="">	</span></font><font color="#008000"><span lang="">/* map page table into directory */</span></font></font></font>
+<font face="Courier New, monospace"><font size="2">	vmmngr_mapPhysicalAddress (dir, (uint32_t) block, (uint32_t) block, flags);</font></font>
+        <font face="Courier New, monospace"><font size="2">}</font></font>
+<font face="Courier New, monospace"><font size="2"><font color="#000000"><span lang="">	</span></font><font color="#0000ff"><span lang="">return</span></font><font color="#000000"><span lang=""> 1; </span></font><font color="#008000"><span lang="">/* success */</span></font></font></font>
+<font face="Courier New, monospace"><font size="2"><font color="#000000"><span lang="">}</span></font></font></font></pre>
+
+    <p class="western">
+      <span style="font-weight: normal"
+        >This function allows us to create page tables for any page directory.</span
+      >
+    </p>
+
+    <p class="western" data-dl-uid="555" data-dl-original="true" data-dl-translated="true">
+      <span
+        style="font-weight: normal"
+        data-dl-uid="556"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >この機能により、任意のページディレクトリのページテーブルを作成することができる。</span
+      >
+    </p>
+    <h3 class="western" data-dl-uid="557" data-dl-original="true" data-dl-translated="true">
+      物理アドレスのマッピング
+    </h3>
+    <p
+      class="western"
+      style="font-weight: normal"
+      data-dl-uid="558"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      次に足りない機能は、異なるページディレクトリに対して、物理アドレスと仮想アドレスを対応付けることです。これは簡単です。
+    </p>
+
+    <pre
+      class="code"
+    ><font color="#0000ff"><font face="Courier New, monospace"><font size="2" style="font-size: 9pt">void</font></font></font><font color="#000000"> </font><font color="#000000"><font face="Courier New, monospace"><font size="2" style="font-size: 9pt">mapPhysicalAddress (pdirectory* dir, uint32_t virt, uint32_t phys, uint32_t flags) {</font></font></font>
+
+        pd_entry* pagedir = dir-&gt;m_entries;
+<font color="#000000">        </font><font color="#0000ff"><font face="Courier New, monospace"><font size="2" style="font-size: 9pt">if</font></font></font><font color="#000000"> </font><font color="#000000"><font face="Courier New, monospace"><font size="2" style="font-size: 9pt">(pagedir [virt &gt;&gt; 22] == 0)</font></font></font>
+                createPageTable (dir, virt, flags);
+        ((uint32_t*) (pagedir[virt &gt;&gt; 22] &amp; ~0xfff))[virt &lt;&lt; 10 &gt;&gt; 10 &gt;&gt; 12] = phys | flags;
+}</pre>
+
+    <p class="western" data-dl-uid="575" data-dl-original="true" data-dl-translated="true">
+      この関数は、以前、仮想メモリマネージャで実装した基本的な機能を踏襲しています。有効なページテーブルがあるかどうかをテストし、存在しないことが示された場合は作成します。最後の行はマッピングを実行します。
+    </p>
+    <p
+      class="western"
+      style="font-weight: normal"
+      data-dl-uid="576"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      この機能により、任意の仮想アドレス空間の物理アドレスと仮想アドレスを対応付けることができる。
+    </p>
+    <h3 class="western" data-dl-uid="577" data-dl-original="true" data-dl-translated="true">
+      物理アドレスの取得
+    </h3>
+    <p class="western" data-dl-uid="578" data-dl-original="true" data-dl-translated="true">
+      次に足りない機能は、上記と逆で、特定のアドレス空間から任意の仮想アドレスの物理アドレスを取得することです。
+    </p>
+
+    <pre
+      class="code"
+    ><font color="#0000ff"><font face="Courier New, monospace"><font size="2" style="font-size: 9pt">void</font></font></font><font color="#000000"><font face="Courier New, monospace"><font size="2" style="font-size: 9pt">* getPhysicalAddress (pdirectory* dir, uint32_t virt) {</font></font></font>
+
+        pd_entry* pagedir = dir-&gt;m_entries;
+<font color="#000000">        </font><font color="#0000ff"><font face="Courier New, monospace"><font size="2" style="font-size: 9pt">if</font></font></font><font color="#000000"> </font><font color="#000000"><font face="Courier New, monospace"><font size="2" style="font-size: 9pt">(pagedir [virt &gt;&gt; 22] == 0)</font></font></font>
+<font color="#000000">                </font><font color="#0000ff"><font face="Courier New, monospace"><font size="2" style="font-size: 9pt">return</font></font></font><font color="#000000"> </font><font color="#000000"><font face="Courier New, monospace"><font size="2" style="font-size: 9pt">0;</font></font></font>
+        return (void*) ((uint32_t*) (pagedir[virt &gt;&gt; 22] &amp; ~0xfff))[virt &lt;&lt; 10 &gt;&gt; 10 &gt;&gt; 12];
+}</pre>
+
+    <p class="western" data-dl-uid="602" data-dl-original="true" data-dl-translated="true">
+      この関数は、その仮想アドレスに有効なページテーブルがあるかどうかをテストし（存在するかどうかをチェックすることによって）、PDEとPTEをデリファレンスして物理フレームを返します。
+    </p>
+    <h3 class="western" data-dl-uid="603" data-dl-original="true" data-dl-translated="true">
+      新しいアドレス空間の作成
+    </h3>
+    <p class="western" data-dl-uid="604" data-dl-original="true" data-dl-translated="true">
+      各プロセスは、それぞれ独自の仮想アドレス空間で実行される。これを実現するためには、複数のアドレス空間を作れるようにしなければならない。
+    </p>
+
+    <pre class="code">pdirectory* createAddressSpace () {
+        pdirectory* dir = 0;
+
+        <font color="#008000"><font face="Courier New, monospace"><font size="2" style="font-size: 9pt">/* allocate page directory */</font></font></font>
+        dir = (pdirectory*) pmmngr_alloc_block ();
+<font color="#000000">        </font><font color="#0000ff"><font face="Courier New, monospace"><font size="2" style="font-size: 9pt">if</font></font></font><font color="#000000"> </font><font color="#000000"><font face="Courier New, monospace"><font size="2" style="font-size: 9pt">(!dir)</font></font></font>
+<font color="#000000">                </font><font color="#0000ff"><font face="Courier New, monospace"><font size="2" style="font-size: 9pt">return</font></font></font><font color="#000000"> </font><font color="#000000"><font face="Courier New, monospace"><font size="2" style="font-size: 9pt">0;</font></font></font>
+
+<font color="#000000">        </font><font color="#008000"><font face="Courier New, monospace"><font size="2" style="font-size: 9pt">/* clear memory (marks all page tables as not present) */</font></font></font>
+<font color="#000000">        </font><font color="#000000"><font face="Courier New, monospace"><font size="2" style="font-size: 9pt">memset (dir, 0, </font></font></font><font color="#0000ff"><font face="Courier New, monospace"><font size="2" style="font-size: 9pt">sizeof</font></font></font><font color="#000000"> </font><font color="#000000"><font face="Courier New, monospace"><font size="2" style="font-size: 9pt">(pdirectory));</font></font></font>
+<font color="#000000">        </font><font color="#0000ff"><font face="Courier New, monospace"><font size="2" style="font-size: 9pt">return</font></font></font><font color="#000000"> </font><font color="#000000"><font face="Courier New, monospace"><font size="2" style="font-size: 9pt">dir;</font></font></font>
+}</pre>
+
+    <p class="western" data-dl-uid="648" data-dl-original="true" data-dl-translated="true">
+      この関数は、ブロックを確保してクリアするだけというシンプルなものです。ページディレクトリはアドレス空間を表し、1ページディレクトリは4096バイトなので、これは理にかなっています。クリアすることで、すべてのPDEの現在ビットを事実上0に設定しているのです。
+    </p>
+    <p class="western" data-dl-uid="649" data-dl-original="true" data-dl-translated="true">
+      プロセスを実行するときには、先ほど作成した新しいアドレス空間に切り替えられるようにしなければなりません。言い換えれば、この新しいページディレクトリをPDBRにロードできるようにする必要があるのです。この機能はすでにPMMに実装されています。しかし、空のページディレクトリをPDBRにロードするだけでは、必ずその直後にトリプルフォールトが発生します。この原因は単純で、カーネルコードやスタックのどれもがこの新しいアドレス空間にマッピングされていないためです。
+    </p>
+    <p class="western" data-dl-uid="650" data-dl-original="true" data-dl-translated="true">
+      興味深いことに、次のようにカレントページディレクトリ（PDBRに格納）を新しいアドレス空間にコピーするだけで、これを解決することができます。
+    </p>
+
+    <pre
+      class="code"
+      style="margin-bottom: 0.2in"
+    ><font color="#000000">        </font><font color="#000000"><font face="Courier New, monospace"><font size="2" style="font-size: 9pt">memcpy (dst-&gt;m_entries, cur-&gt;m_entries, </font></font></font><font color="#0000ff"><font face="Courier New, monospace"><font size="2" style="font-size: 9pt">sizeof</font></font></font><font color="#000000"><font face="Courier New, monospace"><font size="2" style="font-size: 9pt">(uint32_t)*1024);</font></font></font></pre>
+
+    <p class="western" data-dl-uid="662" data-dl-original="true" data-dl-translated="true">
+      必要なのはこれだけです。ページテーブルはすでにオリジナルのページディレクトリにマップされているので、ページテーブルのコピーについて心配する必要はありません。上記は効果的にアドレス空間のコピーを作成します
+      - カーネルページテーブルは、我々が望む両方のアドレス空間にマッピングされます。
+    </p>
+    <h2 class="western" data-dl-uid="663" data-dl-original="true" data-dl-translated="true">
+      <b data-dl-uid="664" data-dl-original="true" data-dl-translated="true">スレッドの作成</b>
+    </h2>
+    <p
+      class="western"
+      style="font-weight: normal"
+      data-dl-uid="665"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      スレッドを作成するためには、まず createThread
+      関数が何を必要とし、スレッドの作成が実際に何を意味するのかを決める必要があります。スレッドを単一の実行経路として定義したことを思い出してください。これを知っていれば、必要なのはエントリポイント関数だけです。この関数が完成したら、オペレーティングシステムを呼び出してスレッドを終了させます。これは通常、スレッドの作成と終了を単純化するためにシステムAPI（Win32
+      APIなど）によって行われます。
+    </p>
+    <p class="western" data-dl-uid="666" data-dl-original="true" data-dl-translated="true">
+      <span
+        style="font-weight: normal"
+        data-dl-uid="667"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >スレッドを作成するために必要なことは、スレッド構造を割り当てて、それをプロセスに追加することです。当初はこのデモのためにこの機能を実装する予定でしたが、マルチスレッドについて見る第25章に残すことにしました。</span
+      >
+    </p>
+    <h2 class="western" data-dl-uid="668" data-dl-original="true" data-dl-translated="true">
+      プロセス作成
+    </h2>
+    <p class="western" data-dl-uid="669" data-dl-original="true" data-dl-translated="true">
+      プロセスを作成するためには、OS専用のローダー・コンポーネントをすでに用意しておく必要があります。ローダーコンポーネントは、実行ファイルのロードと解析、BSSセクションのクリア、セクションのアライメント、その他、ダイナミックリンクライブラリのダイナミックロードなど、必要なことを担当します。
+      ローダーの作成は、特にPEと同じくらい複雑なファイル形式の場合、複雑な作業になることがあります。このため、本章の目標であるプロセス管理に集中できるよう、このシリーズではよりシンプルなソリューションを選択しました。
+    </p>
+    <p class="western" data-dl-uid="670" data-dl-original="true" data-dl-translated="true">
+      プロセスを作成するためには、プロセスとは何か、スレッドとどう違うのかを明確に理解する必要があります。具体的に言うと
+    </p>
+    <ol>
+      <li>
+        <p class="western" data-dl-uid="671" data-dl-original="true" data-dl-translated="true">
+          スレッドはそれぞれ専用のスタックを持ち、プロセス自体はスタックを持ちません。
+        </p>
+      </li>
+      <li>
+        <p class="western" data-dl-uid="672" data-dl-original="true" data-dl-translated="true">
+          各プロセスは少なくとも1つのスレッドを持たなければならない。
+          これはプロセスのエントリポイントから始まる。
+        </p>
+      </li>
+      <li>
+        <p class="western" data-dl-uid="673" data-dl-original="true" data-dl-translated="true">
+          各プロセスは、独自の仮想アドレス空間を持つ必要があります。プロセス内のスレッドは、プロセスと同じアドレス空間を共有します。
+        </p>
+      </li>
+      <li>
+        <p class="western" data-dl-uid="674" data-dl-original="true" data-dl-translated="true">
+          各プロセスは、実行可能なイメージとしてディスクからロードされる必要があります。これは通常、別のローダーコンポーネントを使用して行われます。
+        </p>
+      </li>
+    </ol>
+    <p class="western" data-dl-uid="675" data-dl-original="true" data-dl-translated="true">
+      このシリーズには専用の画像ローダーコンポーネントがないため、簡単のために、これらの手順をすべて<b
+        data-dl-uid="676"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >createProcessという</b
+      >一つの関数で実行します<span
+        style="font-weight: normal"
+        data-dl-uid="677"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >。 この関数は次の</span
+      >ような手順で実行します。
+    </p>
+    <ol>
+      <li>
+        <p
+          class="western"
+          style="font-weight: normal"
+          data-dl-uid="678"
+          data-dl-original="true"
+          data-dl-translated="true"
+        >
+          実行ファイルを読み込む。
+        </p>
+      </li>
+      <li>
+        <p
+          class="western"
+          style="font-weight: normal"
+          data-dl-uid="679"
+          data-dl-original="true"
+          data-dl-translated="true"
+        >
+          プロセスのアドレス空間を作成する。
+        </p>
+      </li>
+      <li>
+        <p
+          class="western"
+          style="font-weight: normal"
+          data-dl-uid="680"
+          data-dl-original="true"
+          data-dl-translated="true"
+        >
+          プロセス制御ブロック（PCB）を作成します。
+        </p>
+      </li>
+      <li>
+        <p
+          class="western"
+          style="font-weight: normal"
+          data-dl-uid="681"
+          data-dl-original="true"
+          data-dl-translated="true"
+        >
+          メインスレッドを作成します。
+        </p>
+      </li>
+      <li>
+        <p
+          class="western"
+          style="font-weight: normal"
+          data-dl-uid="682"
+          data-dl-original="true"
+          data-dl-translated="true"
+        >
+          イメージをプロセスの仮想アドレス空間にマップする。
+        </p>
+      </li>
+    </ol>
+    <p
+      class="western"
+      style="font-weight: normal"
+      data-dl-uid="683"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      これは一つの機能としては非常に大きなものです。しかし、ローダーをプロセス作成から分離した方が良いことを忘れないでください。後で、実行ファイルのロードを専用のローダーに移行することができます。簡単のために、このルーチンはブートローダと同じ基準を想定しています。つまり、ロードするイメージはセクタアラインされたセクションを持ち（/align:512フラグを使用）、Microsoft
+      Windowsランタイムライブラリとリンクされていないことが必要です。将来、この機能をデモに追加することになるかもしれませんが、これはロードコードを複雑にしますし、前述のように、通常はローダーコンポーネントによって処理されます。
+    </p>
+    <h3 class="western" data-dl-uid="684" data-dl-original="true" data-dl-translated="true">
+      プロセスアドレス空間構造
+    </h3>
+    <p
+      class="western"
+      style="font-weight: normal"
+      data-dl-uid="685"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      現時点では、シリーズOSのカーネルは、IDマップドメモリの1MB以下に多くのカーネル構造をロードしています。これには、カーネルスタック、初期ページディレクトリテーブル、ページテーブルが含まれます。また、DMAC（Direct
+      Memory Access
+      Controller）のメモリ領域もこの領域にある可能性がある。また、カーネルは、このアイデンティティマップド領域にある他のメモリ領域（ディスプレイメモリなど）も利用することを考慮しなければならない。
+    </p>
+    <p
+      class="western"
+      style="font-weight: normal"
+      data-dl-uid="686"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      これはすべて単純化するためだけに行われました。典型的なカーネルは、カーネルスタックとカーネルメモリの初期ページテーブルを、PIC(Position
+      Independent
+      Code)を使って最初に初期化します。PICはまた、他の物理的なベースアドレスでロードされたときに、より高いハーフカーネルを開始することを可能にするものです。しかし、その結果、1MB以下のカーネル構造がいくつか存在するようになり、混乱が生じました。
+    </p>
+    <p
+      class="western"
+      style="font-weight: normal"
+      data-dl-uid="687"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      移動させるよりも、0〜4MBをカーネルモードだけに確保するのがベストな選択と判断したのです。これにより、カーネルは全く手を加えることなく機能を継続し、ディスプレイ出力などの基本的なもののためにメモリをリマップしても問題はない。つまり、アドレス空間は次のようになる。
+    </p>
+
+    <pre>
+0x00000000-0x00400000  Kernel reserved
+0x00400000-0x80000000  User land
+0x80000000-0xffffffff  Kernel reserved</pre
+    >
+
+    <p
+      class="western"
+      style="font-weight: normal"
+      data-dl-uid="689"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      つまり、すべてのプロセスは4MBから2GBの領域内にイメージベースを持つ必要があります。私はすべてのユーザーモードプロセスのベースアドレスとして4MBを使用することにします。最初の4MBはカーネルモードページとしてマッピングされたまま（これはすでに行われています）、カーネル自体は3GBにマッピングされたままです。つまり、<b
+        data-dl-uid="690"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >プロセスのすべてのページは、4MBと2GBの間のユーザーモードページとしてマップ</b
+      >されます。
+    </p>
+    <h3 class="western" data-dl-uid="691" data-dl-original="true" data-dl-translated="true">
+      プロセスの作成
+    </h3>
+    <p class="western" data-dl-uid="692" data-dl-original="true" data-dl-translated="true">
+      このことを念頭に置いて、この関数を見てみましょう。これはかなり長いルーチンで、通常ローダーで行われるいくつかのソフトウェアが含まれています。このデモでは、画像をロードして現在のアドレス空間にマッピングし、新しいものを作成するようにしています。これは、このソフトウェアが一度に1つのプロセスしか実行できないように設計されているためです。第25章でマルチタスクを取り上げる際には、この点を変更する予定です。
+    </p>
+    <p class="western" data-dl-uid="693" data-dl-original="true" data-dl-translated="true">
+      <font size="2" data-dl-uid="694" data-dl-original="true" data-dl-translated="true"
+        ><b data-dl-uid="695" data-dl-original="true" data-dl-translated="true">vmmngr_</b></font
+      ><font size="2" data-dl-uid="696" data-dl-original="true" data-dl-translated="true"
+        ><span
+          style="font-weight: normal"
+          data-dl-uid="697"
+          data-dl-original="true"
+          data-dl-translated="true"
+          >createAddressSpaceと
+        </span></font
+      ><font size="2" data-dl-uid="698" data-dl-original="true" data-dl-translated="true"
+        ><b data-dl-uid="699" data-dl-original="true" data-dl-translated="true"
+          >mapKernelSpaceという</b
+        ></font
+      >2つの新しい関数に注目してください<font
+        size="2"
+        data-dl-uid="700"
+        data-dl-original="true"
+        data-dl-translated="true"
+        ><span
+          style="font-weight: normal"
+          data-dl-uid="701"
+          data-dl-original="true"
+          data-dl-translated="true"
+          >; これらは現在デモでは使用</span
+        ></font
+      >されていません。<font data-dl-uid="700" data-dl-translated="true"
+        ><span data-dl-uid="701" data-dl-translated="true"
+          >最初の関数は新しいアドレス空間を割り当て、2番目の関数はカーネル空間を仮想アドレス空間にマップします。
+          つまり、カーネルメモリ、スタック、ページディレクトリ、およびディスプレイメモリを新しいアドレス空間にマップします。これらの関数は使用されませんが、次章で使用されるでしょう。</span
+        ></font
+      >
+    </p>
+    <p class="western" data-dl-uid="702" data-dl-original="true" data-dl-translated="true">
+      <font size="2" data-dl-uid="705" data-dl-original="true" data-dl-translated="true"
+        ><b data-dl-uid="706" data-dl-original="true" data-dl-translated="true">validateImage</b></font
+      ><font size="2" data-dl-uid="707" data-dl-original="true" data-dl-translated="true"
+        ><span
+          style="font-weight: normal"
+          data-dl-uid="708"
+          data-dl-original="true"
+          data-dl-translated="true"
+          >関数は、画像ヘッダを解析し、サポートされているかどうかを確認するだけ</span
+        ></font
+      >です。<font data-dl-uid="707" data-dl-translated="true"
+        ><span data-dl-uid="708" data-dl-translated="true"
+          >最後に、初期スレッド構造を作成しますが、マルチスレッドをサポートしません。1プロセスあたり1スレッドを想定しており、1プロセスあたり1スレッドしか実行できません。</span
+        ></font
+      >
+    </p>
+
+    <pre
+      class="code"
+    ><font size="2"><font color="#0000ff"><span lang="">int</span></font><font color="#000000"><span lang=""> createProcess (</span></font><font color="#0000ff"><span lang="">char</span></font><font color="#000000"><span lang="">* appname) {</span></font></font>
+
+        <font size="2">IMAGE_DOS_HEADER* dosHeader;</font>
+        <font size="2">IMAGE_NT_HEADERS* ntHeaders;</font>
+        <font size="2">FILE              file;</font>
+        <font size="2">pdirectory*       addressSpace;</font>
+        <font size="2">process*          proc;</font>
+        <font size="2">thread*           mainThread;</font>
+<font color="#000000">        </font><font size="2"><font color="#0000ff"><span lang="">unsigned</span></font><font color="#000000"><span lang=""> </span></font><font color="#0000ff"><span lang="">char</span></font><font color="#000000"><span lang="">*    memory;</span></font></font>
+        <font size="2">uint32_t          i;</font>
+<font color="#000000">        </font><font size="2"><font color="#0000ff"><span lang="">unsigned</span></font><font color="#000000"><span lang=""> </span></font><font color="#0000ff"><span lang="">char</span></font><font color="#000000"><span lang="">     buf[512];</span></font></font>
+<font color="#000000"> </font>
+<font color="#000000">       </font><font size="2"><font color="#008000"><span lang=""><b>/* open file */</b></span></font></font>
+        <font size="2">file = volOpenFile (appname);</font>
+<font color="#000000">        </font><font size="2"><font color="#0000ff"><span lang="">if</span></font><font color="#000000"><span lang=""> (file.flags == FS_INVALID)</span></font></font>
+<font color="#000000">                </font><font size="2"><font color="#0000ff"><span lang="">return</span></font><font color="#000000"><span lang=""> 0;</span></font></font>
+<font color="#000000">        </font><font size="2"><font color="#0000ff"><span lang="">if</span></font><font color="#000000"><span lang=""> (( file.flags &amp; FS_DIRECTORY ) == FS_DIRECTORY)</span></font></font>
+<font color="#000000">                </font><font size="2"><font color="#0000ff"><span lang="">return</span></font><font color="#000000"><span lang=""> 0;</span></font></font>
+
+<font color="#000000">        </font><font size="2"><font color="#008000"><span lang=""><b>/* read 512 bytes into buffer */</b></span></font></font>
+        <font size="2">volReadFile ( &amp;file, buf, 512);</font>
+<font color="#0000ff">        <font size="2"><span lang="">if</span></font><font color="#000000"><span lang=""> (! validateImage (buf)) {</span></font></font>
+            <font size="2">volCloseFile ( &amp;file );</font>
+<font color="#000000">            </font><font size="2"><font color="#0000ff"><span lang="">return</span></font><font color="#000000"><span lang=""> 0;</span></font></font>
+        <font size="2">}</font>
+        <font size="2">dosHeader = (IMAGE_DOS_HEADER*)buf;</font>
+        <font size="2">ntHeaders = (IMAGE_NT_HEADERS*)(dosHeader-&gt;e_lfanew + (uint32_t)buf);</font>
+
+<font color="#000000">        </font><font size="2"><font color="#008000"><span lang=""><b>/* get process virtual address space */</b></span></font></font>
+        <font size="2"><span style="font-weight: normal">//addressSpace = vmmngr_createAddressSpace ();</span></font>
+        <font size="2">addressSpace = vmmngr_get_directory ();</font>
+<font color="#000000">        </font><font size="2"><font color="#0000ff"><span lang="">if</span></font><font color="#000000"><span lang=""> (!addressSpace) {</span></font></font>
+            <font size="2">volCloseFile (&amp;file);</font>
+<font color="#000000">            </font><font size="2"><font color="#0000ff"><span lang="">return</span></font><font color="#000000"><span lang=""> 0;</span></font></font>
+        <font size="2">}</font>
+<font color="#008000">        <font size="2"><b><span lang="">/*</span></b></font></font>
+<font color="#008000">           <font size="2"><b>map kernel space into process address space.</b></font></font>
+<font color="#008000">           <font size="2"><b>Only needed if creating new address space</b></font></font>
+<font color="#008000">        <font size="2"><b>*/</b></font></font>
+<font color="#008000">        <font size="2"><span lang="">//mapKernelSpace (addressSpace);</span></font></font>
+
+<font color="#000000">        </font><font size="2"><font color="#008000"><span lang=""><b>/* create PCB */</b></span></font></font>
+        <font size="2">proc = getCurrentProcess();</font>
+        <font size="2">proc-&gt;id            = 1;</font>
+        <font size="2">proc-&gt;pageDirectory = addressSpace;</font>
+        <font size="2">proc-&gt;priority      = 1;</font>
+        <font size="2">proc-&gt;state         = PROCESS_STATE_ACTIVE;</font>
+        <font size="2">proc-&gt;threadCount   = 1;</font>
+
+<font color="#000000">        </font><font size="2"><font color="#008000"><span lang=""><b>/* create thread descriptor */</b></span></font></font>
+        <font size="2">mainThread               = &amp;proc-&gt;threads[0];</font>
+        <font size="2">mainThread-&gt;kernelStack  = 0;</font>
+        <font size="2">mainThread-&gt;parent       = proc;</font>
+        <font size="2">mainThread-&gt;priority     = 1;</font>
+        <font size="2">mainThread-&gt;state        = PROCESS_STATE_ACTIVE;</font>
+        <font size="2">mainThread-&gt;initialStack = 0;</font>
+<font color="#000000">        <font size="2"><span lang="">mainThread-&gt;stackLimit   = (</span></font><font color="#0000ff"><span lang="">void</span></font><font color="#000000"><span lang="">*) ((uint32_t) mainThread-&gt;initialStack + 4096);</span></font></font>
+        <font size="2">mainThread-&gt;imageBase    = ntHeaders-&gt;OptionalHeader.ImageBase;</font>
+        <font size="2">mainThread-&gt;imageSize    = ntHeaders-&gt;OptionalHeader.SizeOfImage;</font>
+<font color="#000000">        <font size="2"><span lang="">memset (&amp;mainThread-&gt;frame, 0, </span></font><font color="#0000ff"><span lang="">sizeof</span></font><font color="#000000"><span lang=""> (trapFrame));</span></font></font>
+        <font size="2">mainThread-&gt;frame.eip    = ntHeaders-&gt;OptionalHeader.AddressOfEntryPoint</font>
+                <font size="2">+ ntHeaders-&gt;OptionalHeader.ImageBase;</font>
+        <font size="2">mainThread-&gt;frame.flags  = 0x200;</font>
+
+<font color="#000000">        </font><font size="2"><font color="#008000"><span lang=""><b>/* copy our 512 block read above and rest of 4k block */</b></span></font></font>
+<font color="#000000">        <font size="2"><span lang="">memory = (</span></font><font color="#0000ff"><span lang="">unsigned</span></font><font color="#000000"><span lang=""> </span></font><font color="#0000ff"><span lang="">char</span></font><font color="#000000"><span lang="">*)pmmngr_alloc_block();</span></font></font>
+        <font size="2">memset (memory, 0, 4096);</font>
+        <font size="2">memcpy (memory, buf, 512);</font>
+
+<font color="#000000">        </font><font size="2"><font color="#008000"><span lang=""><b>/* load image into memory */</b></span></font></font>
+<font color="#000000">        </font><font size="2"><font color="#0000ff"><span lang="">for</span></font><font color="#000000"><span lang=""> (i=1; i &lt;= mainThread-&gt;imageSize/512; i++) {</span></font></font>
+<font color="#000000">           </font><font size="2"><font color="#0000ff"><span lang="">if</span></font><font color="#000000"><span lang=""> (file.eof == 1)</span></font></font>
+<font color="#000000">              </font><font size="2"><font color="#0000ff"><span lang="">break</span></font><font color="#000000"><span lang="">;</span></font></font>
+           <font size="2">volReadFile ( &amp;file, memory+512*i, 512);</font>
+        <font size="2">}</font>
+
+<font color="#000000">        </font><font size="2"><font color="#008000"><span lang=""><b>/* map page into address space */</b></span></font></font>
+        <font size="2">vmmngr_mapPhysicalAddress (proc-&gt;pageDirectory,</font>
+                <font size="2">ntHeaders-&gt;OptionalHeader.ImageBase,</font>
+                <font size="2">(uint32_t) memory,</font>
+                <font size="2">I86_PTE_PRESENT|I86_PTE_WRITABLE|I86_PTE_USER);</font>
+
+<font color="#000000">        </font><font size="2"><font color="#008000"><span lang=""><b>/* load and map rest of image */</b></span></font></font>
+        <font size="2">i = 1;</font>
+<font color="#000000">        </font><font size="2"><font color="#0000ff"><span lang="">while</span></font><font color="#000000"><span lang=""> (file.eof != 1) {</span></font></font>
+<font color="#000000">                </font><font size="2"><font color="#008000"><span lang="">/</span></font><font color="#008000"><span lang=""><b>* allocate new frame */</b></span></font></font>
+<font color="#000000">                </font><font size="2"><font color="#0000ff"><span lang="">unsigned</span></font><font color="#000000"><span lang=""> </span></font><font color="#0000ff"><span lang="">char</span></font><font color="#000000"><span lang="">* cur = (</span></font><font color="#0000ff"><span lang="">unsigned</span></font><font color="#000000"><span lang=""> </span></font><font color="#0000ff"><span lang="">char</span></font><font color="#000000"><span lang="">*)pmmngr_alloc_block();</span></font></font>
+<font color="#000000">                </font><font size="2"><font color="#008000"><span lang=""><b>/* read block */</b></span></font></font>
+<font color="#000000">                </font><font size="2"><font color="#0000ff"><span lang="">int</span></font><font color="#000000"><span lang=""> curBlock = 0;</span></font></font>
+<font color="#000000">                </font><font size="2"><font color="#0000ff"><span lang="">for</span></font><font color="#000000"><span lang=""> (curBlock = 0; curBlock &lt; 8; curBlock++) {</span></font></font>
+<font color="#000000">                        </font><font size="2"><font color="#0000ff"><span lang="">if</span></font><font color="#000000"><span lang=""> (file.eof == 1)</span></font></font>
+<font color="#000000">                                </font><font size="2"><font color="#0000ff"><span lang="">break</span></font><font color="#000000"><span lang="">;</span></font></font>
+                        <font size="2">volReadFile ( &amp;file, cur+512*curBlock, 512);</font>
+                <font size="2">}</font>
+<font color="#000000">                </font><font size="2"><font color="#008000"><span lang=""><b>/* map page into process address space */</b></span></font></font>
+                <font size="2">vmmngr_mapPhysicalAddress (proc-&gt;pageDirectory,</font>
+                        <font size="2">ntHeaders-&gt;OptionalHeader.ImageBase + i*4096,</font>
+                        <font size="2">(uint32_t) cur,</font>
+                        <font size="2">I86_PTE_PRESENT|I86_PTE_WRITABLE|I86_PTE_USER);</font>
+                <font size="2">i++;</font>
+        <font size="2">}</font>
+
+<font color="#000000">         </font><font size="2"><font color="#008000"><span lang=""><b>/* Create userspace stack (process esp=0x100000) */</b></span></font></font>
+<font color="#000000">         </font><font size="2"><font color="#0000ff"><span lang="">void</span></font><font color="#000000"><span lang="">* stack =</span></font></font>
+<font color="#000000">            <font size="2"><span lang="">(</span></font><font color="#0000ff"><span lang="">void</span></font><font color="#000000"><span lang="">*) (ntHeaders-&gt;OptionalHeader.ImageBase</span></font></font>
+             <font size="2">+ ntHeaders-&gt;OptionalHeader.SizeOfImage + PAGE_SIZE);</font>
+<font color="#000000">         </font><font size="2"><font color="#0000ff"><span lang="">void</span></font><font color="#000000"><span lang="">* stackPhys = (</span></font><font color="#0000ff"><span lang="">void</span></font><font color="#000000"><span lang="">*) pmmngr_alloc_block ();</span></font></font>
+
+<font color="#000000">         </font><font size="2"><font color="#008000"><span lang=""><b>/* map user process stack space */</b></span></font></font>
+         <font size="2">vmmngr_mapPhysicalAddress (addressSpace, (uint32_t) stack, (uint32_t) stackPhys,</font>
+<font size="2">		I86_PTE_PRESENT|I86_PTE_WRITABLE|I86_PTE_USER);</font>
+
+<font color="#000000">         </font><font size="2"><font color="#008000"><span lang=""><b>/* final initialization */</b></span></font></font>
+         <font size="2">mainThread-&gt;initialStack = stack;</font>
+         <font size="2">mainThread-&gt;frame.esp    = (uint32_t)mainThread-&gt;initialStack;</font>
+         <font size="2">mainThread-&gt;frame.ebp    = mainThread-&gt;frame.esp;</font>
+
+<font color="#000000">         </font><font size="2"><font color="#008000"><span lang=""><b>/* close file and return process ID */</b></span></font></font>
+         <font size="2">volCloseFile(&amp;file);</font>
+<font color="#000000">         </font><font size="2"><font color="#0000ff"><span lang="">return</span></font><font color="#000000"><span lang=""> proc-&gt;id;</span></font></font>
+<font size="2"><font color="#000000"><span lang="">}</span></font></font></pre>
+
+    <h2 class="western" data-dl-uid="1067" data-dl-original="true" data-dl-translated="true">
+      プロセス実行
+    </h2>
+    <p class="western" data-dl-uid="1068" data-dl-original="true" data-dl-translated="true">
+      プロセスを実行するには、そのプロセスのメインスレッドからEIPとESPを取得し、ユーザーモードに落として実行すればよいのです。しかし、どのプロセスを実行すればいいのかがわからないという問題があります。スケジューラがまだないため、一度に実行できるのは1つのプロセスだけです。<b
+        data-dl-uid="1069"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >GetCurrentProcess()</b
+      >は、この<span
+        style="font-weight: normal"
+        data-dl-uid="1070"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >オブジェクトへのポインタを返します</span
+      >。<span data-dl-uid="1070" data-dl-translated="true"
+        >そのメインスレッドからESPとEIPを取得し、プロセスアドレス空間に切り替えて、ユーザモードに落として実行します。</span
+      >
+    </p>
+    <p class="western" data-dl-uid="1071" data-dl-original="true" data-dl-translated="true">
+      <b data-dl-uid="1075" data-dl-original="true" data-dl-translated="true">enter_usermodeを</b>
+      <span
+        style="font-weight: normal"
+        data-dl-uid="1074"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >呼んで</span
+      ><b data-dl-uid="1073" data-dl-original="true" data-dl-translated="true">いない</b>ことに<span
+        style="font-weight: normal"
+        data-dl-uid="1072"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >注意して </span
+      >ください<span
+        style="font-weight: normal"
+        data-dl-uid="1076"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >。これは、ユーザーモードソフトウェアがカーネル専用ページにアクセスできないためです。もしこれを呼び出すと、ページフォルトが発生します。代わりに、ユーザモードにドロップして、IRETDを使用して直接プログラムを実行します。</span
+      >
+    </p>
+
+    <pre
+      class="code"
+    ><font face="Courier New, monospace"><font size="2"><font color="#0000ff"><span lang="">void</span></font><font color="#000000"><span lang=""> executeProcess () {</span></font></font></font>
+        <font face="Courier New, monospace"><font size="2">process* proc = 0;</font></font>
+<font color="#000000">        </font><font face="Courier New, monospace"><font size="2"><font color="#0000ff"><span lang="">int</span></font><font color="#000000"><span lang=""> entryPoint = 0;</span></font></font></font>
+<font color="#000000">        </font><font face="Courier New, monospace"><font size="2"><font color="#0000ff"><span lang="">unsigned</span></font><font color="#000000"><span lang=""> </span></font><font color="#0000ff"><span lang="">int</span></font><font color="#000000"><span lang=""> procStack = 0;</span></font></font></font>
+
+<font color="#000000">        </font><font face="Courier New, monospace"><font size="2"><font color="#008000"><span lang=""><b>/* get running process */</b></span></font></font></font>
+        <font face="Courier New, monospace"><font size="2">proc = getCurrentProcess();</font></font>
+<font face="Courier New, monospace"><font size="2"><font color="#000000"><span lang="">		</span></font><font color="#0000ff"><span lang="">if</span></font><font color="#000000"><span lang=""> (proc-&gt;id==PROC_INVALID_ID)</span></font></font></font>
+<font face="Courier New, monospace"><font size="2"><font color="#000000"><span lang="">			</span></font><font color="#0000ff"><span lang="">return</span></font><font color="#000000"><span lang="">;</span></font></font></font>
+<font color="#000000">        </font><font face="Courier New, monospace"><font size="2"><font color="#0000ff"><span lang="">if</span></font><font color="#000000"><span lang=""> (!proc-&gt;pageDirectory)</span></font></font></font>
+<font face="Courier New, monospace"><font size="2"><font color="#000000"><span lang="">			</span></font><font color="#0000ff"><span lang="">return</span></font><font color="#000000"><span lang="">;</span></font></font></font>
+
+<font color="#000000">        </font><font face="Courier New, monospace"><font size="2"><font color="#008000"><span lang=""><b>/* get esp and eip of main thread */</b></span></font></font></font>
+        <font face="Courier New, monospace"><font size="2">entryPoint = proc-&gt;threads[0].frame.eip;</font></font>
+        <font face="Courier New, monospace"><font size="2">procStack  = proc-&gt;threads[0].frame.esp;</font></font>
+
+<font color="#000000">        </font><font face="Courier New, monospace"><font size="2"><font color="#008000"><span lang=""><b>/* switch to process address space */</b></span></font></font></font>
+<font color="#000000">        </font><font face="Courier New, monospace"><font size="2"><font color="#0000ff"><span lang="">__asm</span></font><font color="#000000"><span lang=""> cli</span></font></font></font>
+        <font face="Courier New, monospace"><font size="2">pmmngr_load_PDBR ((physical_addr)proc-&gt;pageDirectory);</font></font>
+
+<font color="#000000">        </font><font face="Courier New, monospace"><font size="2"><font color="#008000"><span lang=""><b>/* execute process in user mode */</b></span></font></font></font>
+<font color="#000000">        </font><font face="Courier New, monospace"><font size="2"><font color="#0000ff"><span lang="">__asm</span></font><font color="#000000"><span lang=""> {</span></font></font></font>
+                <font face="Courier New, monospace"><font size="2">mov     ax, 0x23		; user mode data selector is 0x20 (GDT entry 3). Also sets RPL to 3</font></font>
+                <font face="Courier New, monospace"><font size="2">mov     ds, ax</font></font>
+                <font face="Courier New, monospace"><font size="2">mov     es, ax</font></font>
+                <font face="Courier New, monospace"><font size="2">mov     fs, ax</font></font>
+                <font face="Courier New, monospace"><font size="2">mov     gs, ax</font></font>
+                <font face="Courier New, monospace"><font size="2">;</font></font>
+                <font face="Courier New, monospace"><font size="2">; create stack frame</font></font>
+                <font face="Courier New, monospace"><font size="2">;</font></font>
+                <font face="Courier New, monospace"><font size="2">push   0x23			; SS, notice it uses same selector as above</font></font>
+                <font face="Courier New, monospace"><font size="2">push   [procStack]		; stack</font></font>
+                <font face="Courier New, monospace"><font size="2">push    0x200			; EFLAGS</font></font>
+<font color="#000000">                <font face="Courier New, monospace"><font size="2"><span lang="">push    0x1b			; CS, user mode code selector is 0x18. With RPL 3 </span></font><font color="#0000ff"><span lang="">this</span></font><font color="#000000"><span lang=""> is 0x1b</span></font></font></font>
+                <font face="Courier New, monospace"><font size="2">push    [entryPoint]	; EIP</font></font>
+                <font face="Courier New, monospace"><font size="2">iretd</font></font>
+        <font face="Courier New, monospace"><font size="2">}</font></font>
+<font face="Courier New, monospace"><font size="2"><font color="#000000"><span lang="">}</span></font></font></font></pre>
+
+    <h2 class="western" data-dl-uid="1240" data-dl-original="true" data-dl-translated="true">
+      プロジェクト "proc"
+    </h2>
+    <p class="western" data-dl-uid="1241" data-dl-original="true" data-dl-translated="true">
+      使用したusermodeプロセスは<b data-dl-uid="1242" data-dl-original="true" data-dl-translated="true"
+        >procと</b
+      >呼ばれ、<span
+        style="font-weight: normal"
+        data-dl-uid="1243"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >32ビットPE実行イメージ、イメージベースは4MB、512バイトセクションアライメントでビルド</span
+      >されています。<span data-dl-uid="1243" data-dl-translated="true"
+        >以下、参考までにプロジェクトのソースを示します。</span
+      >
+    </p>
+
+    <pre
+      class="code"
+    ><font size="2"><font color="#0000ff"><span lang=""><span style="font-weight: normal">void</span></span></font><font color="#000000"><span lang=""><span style="font-weight: normal"> processEntry () {</span></span></font></font>
+
+<font size="2"><font color="#000000"><span lang="">	</span></font><font color="#0000ff"><span lang="">char</span></font><font color="#000000"><span lang="">* str=</span></font><font color="#800000"><span lang="">"\n\rHello world!"</span></font><font color="#000000"><span lang="">;</span></font></font>
+
+<font size="2"><font color="#000000"><span lang="">	</span></font><font color="#0000ff"><span lang="">__asm</span></font><font color="#000000"><span lang=""> {</span></font></font>
+
+<font size="2"><font color="#000000"><span lang="">		</span></font><font color="#008000"><span lang=""><b>/* display message through kernel terminal */</b></span></font></font>
+<font size="2">		mov ebx, str</font>
+<font size="2">		mov eax, 0</font>
+<font size="2"><font color="#000000"><span lang="">		</span></font><font color="#0000ff"><span lang="">int</span></font><font color="#000000"><span lang=""> 0x80</span></font></font>
+
+<font size="2"><font color="#000000"><span lang="">		</span></font><font color="#008000"><span lang=""><b>/* terminate */</b></span></font></font>
+<font size="2">		mov eax, 1</font>
+<font size="2"><font color="#000000"><span lang="">		</span></font><font color="#0000ff"><span lang="">int</span></font><font color="#000000"><span lang=""> 0x80</span></font></font>
+<font size="2">	}</font>
+<font size="2"><font color="#000000"><span lang="">	</span></font><font color="#0000ff"><span lang="">for</span></font><font color="#000000"><span lang=""> (;;);</span></font></font>
+<font size="2">}</font></pre>
+
+    <p class="western" data-dl-uid="1308" data-dl-original="true" data-dl-translated="true">
+      <span
+        style="font-weight: normal"
+        data-dl-uid="1309"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >このプロセスでは、メッセージの表示と終了にシステムコールを使用していることに注意してください。これらのシステムコールは、以前の章で実装したシステムAPIに追加されたものです。 </span
+      ><b data-dl-uid="1310" data-dl-original="true" data-dl-translated="true"
+        >Int 0x80 関数 0 は DebugPrintf</b
+      >を呼び出し<span
+        style="font-weight: normal"
+        data-dl-uid="1311"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >、 </span
+      ><b data-dl-uid="1312" data-dl-original="true" data-dl-translated="true">Int 0x80 関数 1</b
+      ><span
+        style="font-weight: normal"
+        data-dl-uid="1313"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >は新しい関数 </span
+      ><b data-dl-uid="1314" data-dl-original="true" data-dl-translated="true">TerminateProcess</b>です。
+      この<span
+        style="font-weight: normal"
+        data-dl-uid="1315"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >デモの機能を向上させるために、さらにシステムサービスを</span
+      >追加することができます。
+    </p>
+    <p class="western" data-dl-uid="1316" data-dl-original="true" data-dl-translated="true">
+      <b data-dl-uid="1317" data-dl-original="true" data-dl-translated="true">TerminateProcessは</b
+      >、<span
+        style="font-weight: normal"
+        data-dl-uid="1318"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >プロセスリソースをクリーンアップし、カーネルコマンドシェルに実行を戻す役割を </span
+      >担っています。<b data-dl-uid="1319" data-dl-original="true" data-dl-translated="true"
+        >int 0x80が</b
+      ><span
+        style="font-weight: normal"
+        data-dl-uid="1320"
+        data-dl-original="true"
+        data-dl-translated="true"
+      >
+        実行されると、CPUはカーネルモードに移行し、CS、SS、ESPをTSSからそれぞれの値に復元</span
+      >する<span data-dl-uid="1318" data-dl-translated="true">ことを思い出して </span>ください。<span
+        data-dl-uid="1320"
+        data-dl-translated="true"
+      >
+        これにより</span
+      >、<span
+        style="font-weight: normal"
+        data-dl-uid="1323"
+        data-dl-original="true"
+        data-dl-translated="true"
+        ><b data-dl-uid="1324" data-dl-original="true" data-dl-translated="true"
+          >TerminateProcessから</b
+        ></span
+      ><span
+        style="font-weight: normal"
+        data-dl-uid="1321"
+        data-dl-original="true"
+        data-dl-translated="true"
+        ><span
+          style="font-weight: normal"
+          data-dl-uid="1322"
+          data-dl-original="true"
+          data-dl-translated="true"
+          >直接カーネル関数を</span
+        ></span
+      ><span
+        style="font-weight: normal"
+        data-dl-uid="1325"
+        data-dl-original="true"
+        data-dl-translated="true"
+        ><span
+          style="font-weight: normal"
+          data-dl-uid="1326"
+          data-dl-original="true"
+          data-dl-translated="true"
+          >呼び出したり、カーネルコマンドシェルを</span
+        ></span
+      >呼び出したりすることができるようになります。
+    </p>
+
+    <pre
+      class="code"
+    ><font size="2"><font color="#0000ff"><span lang="">extern</span></font><font color="#000000"><span lang=""> </span></font><font color="#800000"><span lang="">"C"</span></font><font color="#000000"><span lang=""> {</span></font></font>
+<font size="2"><font color="#0000ff"><span lang="">void</span></font><font color="#000000"><span lang=""> TerminateProcess () {</span></font></font>
+<font size="2">	process* cur = &amp;_proc;</font>
+<font size="2"><font color="#000000"><span lang="">	</span></font><font color="#0000ff"><span lang="">if</span></font><font color="#000000"><span lang=""> (cur-&gt;id==PROC_INVALID_ID)</span></font></font>
+<font size="2"><font color="#000000"><span lang="">		</span></font><font color="#0000ff"><span lang="">return</span></font><font color="#000000"><span lang="">;</span></font></font>
+
+<font size="2"><font color="#000000"><span lang="">	</span></font><font color="#008000"><span lang=""><b>/* release threads */</b></span></font></font>
+<font size="2"><font color="#000000"><span lang="">	</span></font><font color="#0000ff"><span lang="">int</span></font><font color="#000000"><span lang=""> i=0;</span></font></font>
+<font size="2">	thread* pThread = &amp;cur-&gt;threads[i];</font>
+
+<font size="2"><font color="#000000"><span lang="">	</span></font><font color="#008000"><span lang=""><b>/* get physical address of stack */</b></span></font></font>
+<font size="2"><font color="#000000"><span lang="">	</span></font><font color="#0000ff"><span lang="">void</span></font><font color="#000000"><span lang="">* stackFrame = vmmngr_getPhysicalAddress (cur-&gt;pageDirectory,</span></font></font>
+<font size="2">		(uint32_t) pThread-&gt;initialStack); </font>
+
+<font size="2"><font color="#000000"><span lang="">	</span></font><font color="#008000"><span lang=""><b>/* unmap and release stack memory */</b></span></font></font>
+<font size="2">	vmmngr_unmapPhysicalAddress (cur-&gt;pageDirectory, (uint32_t) pThread-&gt;initialStack);</font>
+<font size="2">	pmmngr_free_block (stackFrame);</font>
+
+<font size="2"><font color="#000000"><span lang="">	</span></font><font color="#008000"><span lang=""><b>/* unmap and release image memory */</b></span></font></font>
+<font size="2"><font color="#000000"><span lang="">	</span></font><font color="#0000ff"><span lang="">for</span></font><font color="#000000"><span lang=""> (uint32_t page = 0; page &lt; pThread-&gt;imageSize/PAGE_SIZE; page++) {</span></font></font>
+<font size="2">		uint32_t phys = 0;</font>
+<font size="2">		uint32_t virt = 0;</font>
+
+<font size="2"><font color="#000000"><span lang="">		</span></font><font color="#008000"><span lang=""><b>/* get virtual address of page */</b></span></font></font>
+<font size="2">		virt = pThread-&gt;imageBase + (page * PAGE_SIZE);</font>
+
+<font size="2"><font color="#000000"><span lang="">		</span></font><font color="#008000"><span lang=""><b>/* get physical address of page */</b></span></font></font>
+<font size="2">		phys = (uint32_t) vmmngr_getPhysicalAddress (cur-&gt;pageDirectory, virt);</font>
+
+<font size="2"><font color="#000000"><span lang="">		</span></font><font color="#008000"><span lang=""><b>/* unmap and release page */</b></span></font></font>
+<font size="2">		vmmngr_unmapPhysicalAddress (cur-&gt;pageDirectory, virt);</font>
+<font size="2"><font color="#000000"><span lang="">		pmmngr_free_block ((</span></font><font color="#0000ff"><span lang="">void</span></font><font color="#000000"><span lang="">*)phys);</span></font></font>
+<font size="2">	}</font>
+
+<font size="2"><font color="#000000"><span lang="">	</span></font><font color="#008000"><span lang=""><b>/* restore kernel selectors */</b></span></font></font>
+<font size="2"><font color="#000000"><span lang="">	</span></font><font color="#0000ff"><span lang="">__asm</span></font><font color="#000000"><span lang=""> {</span></font></font>
+<font size="2">		cli</font>
+<font size="2">		mov eax, 0x10</font>
+<font size="2">		mov ds, ax</font>
+<font size="2">		mov es, ax</font>
+<font size="2">		mov fs, ax</font>
+<font size="2">		mov gs, ax</font>
+<font size="2">		sti</font>
+<font size="2">	}</font>
+
+<font size="2"><font color="#000000"><span lang="">	</span></font><font color="#008000"><span lang=""><b>/* return to kernel command shell */</b></span></font></font>
+<font size="2">	run ();</font>
+
+<font size="2"><font color="#000000"><span lang="">	DebugPrintf (</span></font><font color="#800000"><span lang="">"\nExit command recieved; demo halted"</span></font><font color="#000000"><span lang="">);</span></font></font>
+<font size="2"><font color="#000000"><span lang="">	</span></font><font color="#0000ff"><span lang="">for</span></font><font color="#000000"><span lang=""> (;;);</span></font></font>
+<font size="2">}</font>
+<font size="2"><font color="#000000"><span lang="">} </span></font><font color="#008000"><span lang="">// extern "C"</span></font></font></pre>
+
+    <h1 class="western" data-dl-uid="1526" data-dl-original="true" data-dl-translated="true">結論</h1>
+    <p class="western" data-dl-uid="1527" data-dl-original="true" data-dl-translated="true">
+      この章では、プロセス、スレッド、プロセス管理について調べ、基本的なプロセス
+      管理のサポートを構築しました。オペレーティングシステムにとって大きな節目となる、ディスクからのユーザモードプログラムの実行に必要なすべてをカバーしました。
+    </p>
+    <p class="western" data-dl-uid="1528" data-dl-original="true" data-dl-translated="true">
+      次章では、本章で実装したプロセス管理機能をベースに、スケジューラを構築し、プリエンプティブ・マルチタスクを完全にサポートします。
+    </p>
+  </body>
+</html>
