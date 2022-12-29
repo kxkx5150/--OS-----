@@ -1,0 +1,1607 @@
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Cache-Control" content="no-cache" />
+    <title></title>
+    <link href="css/reference.css" rel="stylesheet" />
+  </head>
+  <body>
+    <table cellspacing="0" cellpadding="3" width="80%" border="0">
+      <tbody>
+        <tr>
+          <td class="tblhdr">Operating Systems Development Series</td>
+        </tr>
+        <tr>
+          <td align="middle" colspan="2"></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <table cellspacing="0" cellpadding="5" width="100%" border="0">
+      <tbody>
+        <tr>
+          <td>
+            <!-- Title -->
+
+            <div>
+              <span class="title">Portable Executable (PE)</span>
+
+              <br />
+              <span class="author">by Mike, 2011</span>
+            </div>
+
+            <h1 data-dl-uid="7" data-dl-original="true" data-dl-translated="true">はじめに</h1>
+            <p data-dl-uid="8" data-dl-original="true" data-dl-translated="true">ようこそ!</p>
+            <p data-dl-uid="9" data-dl-original="true" data-dl-translated="true">
+              どうも、長くなりそうです。
+            </p>
+            <p data-dl-uid="10" data-dl-original="true" data-dl-translated="true">
+              この章では、高度なトピックである PE 実行可能ファイル形式を取り上げます。PE
+              リソース、ダイナミックリンク、その他をカバーする予定です。また、この章は、可能な限り完全な情報にするために、より多くの情報を含むように更新される予定です。
+            </p>
+
+            <p data-dl-uid="11" data-dl-original="true" data-dl-translated="true">
+              この章に含まれるほとんどの内容は、情報提供のみを目的としており、完全性を期すためと、読者がサポートを提供したい場合のために含まれているに過ぎません。また、提供された情報の多くは、公式の
+              PE 仕様書にも記載されていることに注意してください。
+            </p>
+            <p data-dl-uid="12" data-dl-original="true" data-dl-translated="true">
+              この章を終えれば、ローダーを開発し、シングルタスク環境をサポートするために必要なものは全て揃うでしょう。
+            </p>
+            <p data-dl-uid="13" data-dl-original="true" data-dl-translated="true">
+              さぁ、はじめ<i data-dl-uid="14" data-dl-original="true" data-dl-translated="true">ましょ</i
+              >う
+            </p>
+
+            <h1 data-dl-uid="15" data-dl-original="true" data-dl-translated="true">
+              ファイルフォーマット
+            </h1>
+
+            <h2 data-dl-uid="16" data-dl-original="true" data-dl-translated="true">概要</h2>
+
+            <p data-dl-uid="17" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="18" data-dl-original="true" data-dl-translated="true"
+                >Portable Executable (PE)</b
+              >ファイルフォーマットは、Windows や ReactOS のような Windows 系 OS
+              を含むいくつかのオペレーティングシステムで使われている標準的な実行ファイルフォーマットです。また、<b
+                data-dl-uid="19"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >EFI (Extensable Firmware Interface)</b
+              >搭載機で起動する際に使用される標準的なファイルフォーマットでもあります。
+            </p>
+
+            <p data-dl-uid="20" data-dl-original="true" data-dl-translated="true">
+              PE実行ファイル形式は、再配置、シンボルテーブル、リソース、ダイナミックバインディングなどをサポートする複雑な形式である。
+            </p>
+
+            <h2 data-dl-uid="21" data-dl-original="true" data-dl-translated="true">用語</h2>
+
+            <h3 data-dl-uid="22" data-dl-original="true" data-dl-translated="true">
+              VA (バーチャルアドレス)
+            </h3>
+
+            <p data-dl-uid="23" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="24" data-dl-original="true" data-dl-translated="true"
+                >仮想アドレス（VA）とは</b
+              >、現在のプログラムの<b data-dl-uid="25" data-dl-original="true" data-dl-translated="true"
+                >仮想アドレス空間（VAS）</b
+              >内の線形アドレスのことである。PE実行形式では、すべてのアドレスが仮想アドレスになります。これらのアドレスは32ビットのリニアアドレスである。
+            </p>
+
+            <h3 data-dl-uid="26" data-dl-original="true" data-dl-translated="true">
+              RVA (相対的仮想アドレス)
+            </h3>
+
+            <p data-dl-uid="27" data-dl-original="true" data-dl-translated="true">
+              相対仮想<b data-dl-uid="28" data-dl-original="true" data-dl-translated="true"
+                >アドレス（RVA）とは</b
+              >、実行プログラムの<b data-dl-uid="29" data-dl-original="true" data-dl-translated="true"
+                >ベースアドレスからの</b
+              >相対的なVAである。PE実行形式は多くの部分でRVAを使用していますので、RVAとは何か、RVAからリニアアドレスを取得する方法について知っておくことが重要です。RVAとは、ベースアドレスからのオフセットに過ぎません。従って、リニア・アドレスを得るには、ベース・アドレスにRVAを加えればよいのです。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">Linear address = Base address + RVA</div></pre>
+            </blockquote>
+
+            <p data-dl-uid="33" data-dl-original="true" data-dl-translated="true">
+              これはパース時に多くの部分でこの計算を行う必要があるので重要である。
+            </p>
+
+            <h3 data-dl-uid="34" data-dl-original="true" data-dl-translated="true">
+              セクションとセクション・テーブル
+            </h3>
+
+            <p data-dl-uid="35" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="36" data-dl-original="true" data-dl-translated="true">セクション</b>
+            </p>
+            <p data-dl-uid="37" data-dl-original="true" data-dl-translated="true">
+              高度な実行ファイル形式では、一般に<b
+                data-dl-uid="38"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >プログラムセクションを</b
+              >使用してリンクプロセスを簡略化し、ソフトウェアに構造を与えます。
+              セクションは、実行イメージまたはオブジェクトファイル内に命令とデータを格納するための標準的な方法を提供することによって、リンクプロセスを簡略化します。
+            </p>
+            <p data-dl-uid="39" data-dl-original="true" data-dl-translated="true">
+              セクションは通常、セクションの中にある要素に関連する名前を持っています。例えば、<b
+                data-dl-uid="40"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >.data</b
+              >は可変の未初期化データを格納する一般的なセクション名です。その他のセクション名には、歴史的な背景があります。例えば、<b
+                data-dl-uid="41"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >.text</b
+              >は実行可能なコードやオブジェクトコードを含むセクションの典型的な名前です。<b
+                data-dl-uid="42"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >.bss</b
+              >は一般的に、グローバルでプログラム全体の初期化データに使用されます。
+            </p>
+            <p data-dl-uid="43" data-dl-original="true" data-dl-translated="true">
+              C++ツールチェーンを例にとると、グローバル名前空間または<b
+                data-dl-uid="44"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >staticとして</b
+              >定義された変数は<b data-dl-uid="45" data-dl-original="true" data-dl-translated="true"
+                >.bssに</b
+              >格納されます。コンパイル後に生成されるバイトコードは<b
+                data-dl-uid="46"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >.textに</b
+              >格納されます。
+            </p>
+            <p data-dl-uid="47" data-dl-original="true" data-dl-translated="true">
+              PE実行ファイル形式は、通常、以下のセクション名のうちの1つ以上を含んでいます。
+            </p>
+
+            <ul>
+              <li>.text</li>
+              <li>.data</li>
+              <li>.bss</li>
+              <li>.arch</li>
+              <li>.edata</li>
+              <li>.idata</li>
+              <li>.pdata</li>
+              <li>.rdata</li>
+              <li>.reloc</li>
+
+              <li>.rsrc</li>
+              <li>.sbss</li>
+              <li>.sdata</li>
+              <li>.srdata</li>
+              <li>.xdata</li>
+            </ul>
+
+            <p data-dl-uid="63" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="64" data-dl-original="true" data-dl-translated="true">セクション表</b>
+            </p>
+            <p data-dl-uid="65" data-dl-original="true" data-dl-translated="true">
+              プログラムファイルやオブジェクトファイルには、複数のセクションが含まれています。各セクションのベースロケーションとセクションの名前は、通常<b
+                data-dl-uid="66"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >セクション</b
+              >テーブルに格納されます。セクション・テーブルは、構造体の単純なリンクリストやハッシュ・テーブルなど、さまざまな実装があります。
+            </p>
+
+            <h3 data-dl-uid="67" data-dl-original="true" data-dl-translated="true">
+              シンボルとシンボル・テーブル
+            </h3>
+
+            <p data-dl-uid="68" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="69" data-dl-original="true" data-dl-translated="true">シンボル</b>
+            </p>
+            <p data-dl-uid="70" data-dl-original="true" data-dl-translated="true">
+              C++でプログラミングをしていると、有名な<b
+                data-dl-uid="71"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >未定義シンボルの</b
+              >リンカーエラー（C言語では警告）に遭遇したことがあるでしょう。その通り、昔のMSVCではエラーなしで完全にコンパイルとリンクができました）。これは、リンク時に定義が解決できなかった関数を呼び出したり、変数を名前で参照したりした場合に起こります。
+            </p>
+            <p data-dl-uid="72" data-dl-original="true" data-dl-translated="true">
+              リンカは関数や変数を<b data-dl-uid="73" data-dl-original="true" data-dl-translated="true"
+                >シンボルと</b
+              >呼んでいます。<b data-dl-uid="74" data-dl-original="true" data-dl-translated="true"
+                >シンボルには</b
+              >名前と、それが何であるかという情報（例えばデータ型や値など）が含まれています。コンパイル時に、コンパイラはこれらのシンボルを追跡して、最終的なプロ
+              グラムがリンクできることを保証しなければなりません。もし、現在の<b
+                data-dl-uid="75"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >翻訳ユニットで</b
+              >定義されていないシンボルが使用されているが、EXTERNシンボルである場合、コンパイラはオブジェクトファイルにシンボルを書き込む際に、それをEXTERNシンボルとしてマークする必要がある。
+            </p>
+            <p data-dl-uid="76" data-dl-original="true" data-dl-translated="true">
+              リンクの段階で、EXTERNとマークされたシンボルにまだ値が関連付けられていない（シンボルが定義されていない）場合、リンカーは上記のエラーを出します。
+            </p>
+            <p data-dl-uid="77" data-dl-original="true" data-dl-translated="true">
+              シンボルは、プログラマがモジュール、翻訳ユニット、またはライブラリにまたがって変数や関数を定義するためのものです。
+            </p>
+            <p data-dl-uid="78" data-dl-original="true" data-dl-translated="true">
+              このため、高級言語を使用すると名前の衝突が起こりやすいので、変数名や関数名には一般的に<b
+                data-dl-uid="79"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >名前潰し（name mangling</b
+              >）が行われています。もちろん、アセンブリ言語には適用されませんが、適用される名前のマングリングは複数の要因に依存し、ツールチェーンによって異なります。
+            </p>
+            <p data-dl-uid="80" data-dl-original="true" data-dl-translated="true">
+              では、見てみましょう。右はC言語の関数宣言とそのマングル化されたシンボル名です。マングリングされた名前の中の数字は、パラメータのバイト数です。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">void _cdecl function (int i);   -&gt;   _function
+void _stdcall function(int i);  -&gt;   _function@4
+void _fastcall function(int i); -&gt;   @function@4
+</div></pre>
+            </blockquote>
+
+            <p data-dl-uid="84" data-dl-original="true" data-dl-translated="true">
+              呼び出し規約が_cdeclの関数は、アンダースコアのみが先頭に付くことに注意してください。これにより、Cの関数をアセンブリ言語で簡単に定義でき、Cのコードで簡単にその関数を呼び出すことができます。
+            </p>
+            <p data-dl-uid="85" data-dl-original="true" data-dl-translated="true">
+              C++の名前のマングリングに関する標準はありません。コンパイラによっては、<b
+                data-dl-uid="86"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >?h@YAXH@Zの</b
+              >ようなシンボリックな名前を出すものもあれば、<b
+                data-dl-uid="90"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >void h(int)</b
+              >という<b data-dl-uid="89" data-dl-original="true" data-dl-translated="true">同じ</b
+              >関数に対して<b data-dl-uid="87" data-dl-original="true" data-dl-translated="true"
+                >__7h__Fi</b
+              >や<b data-dl-uid="88" data-dl-original="true" data-dl-translated="true">W?h$n(i)v</b
+              >といった名前を出すものもあります。このため、アセンブリ言語で使用するのは非現実的です。しかし、まだ可能性はあります。
+            </p>
+
+            <p data-dl-uid="91" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="92" data-dl-original="true" data-dl-translated="true">シンボル表</b>
+            </p>
+            <p data-dl-uid="93" data-dl-original="true" data-dl-translated="true">
+              セクションテーブルと同様にシンボ<b
+                data-dl-uid="94"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ルテーブルが</b
+              >存在します。シンボル・テーブルは、シンボル名やシンボルに関する情報（エクスポートされたシンボルかどうか、データ型、プロパティなど）をソフトウェアが検索できるようにするものである。シンボル・テーブルは通常、情報のリンクリストか、ハッシュ・テーブルで実装される。
+            </p>
+
+            <h2 data-dl-uid="95" data-dl-original="true" data-dl-translated="true">構造</h2>
+
+            <h3 data-dl-uid="96" data-dl-original="true" data-dl-translated="true">概要</h3>
+            <p data-dl-uid="97" data-dl-original="true" data-dl-translated="true">
+              MSVC++の章でPE実行形式の構造を見てきました。
+              PE実行形式をメモリにロードすると、そのメモリはロードしたファイルの正確なコピーを含むことになります。これは、PEファイル形式の最初の構造内の最初のバイトが、実際にファイルがメモリにロードされたところから最初のバイトに位置することを意味します。
+            </p>
+
+            <p data-dl-uid="98" data-dl-original="true" data-dl-translated="true">
+              例えば、PEファイルを1MBにロードした場合、メモリ内のフットプリントは次のようになります。
+            </p>
+
+            <center><img src="./24_files/PEload.jpg" /></center>
+
+            <p data-dl-uid="101" data-dl-original="true" data-dl-translated="true">
+              MSVCの章を読んでいる読者には、上記の画像は見慣れたものに見えるはずです。上の画像を見ると、PEファイルが1MBにロードされた場合、最初のディスク上の構造体であるIMAGE_DOS_HEADERがメモリ内のその位置から始まり、ファイル内の残りの構造体が続きます（パディングを含む）。
+            </p>
+            <p data-dl-uid="102" data-dl-original="true" data-dl-translated="true">
+              上の画像も単純化しすぎで、決してPEファイルフォーマットの完全な姿を示しているわけではありません。
+              PEファイルフォーマットの構造はかなり大きく、多くの構造体とテーブルで構成されています。
+            </p>
+
+            <p data-dl-uid="103" data-dl-original="true" data-dl-translated="true">
+              以下は、その完全な形式です。
+            </p>
+
+            <ol>
+              <li>IMAGE_DOS_HEADER structure <b>(Important)</b></li>
+              <li>STUB program</li>
+              <li>IMAGE_FILE_HEADER structure [COFF Header] <b>(Important)</b></li>
+
+              <li>IMAGE_OPTIONAL_HEADER structure <b>(Important)</b></li>
+              <li>Segment Table</li>
+              <li>Resource Table</li>
+              <li>Resident Name Table</li>
+              <li>Module Reference Table</li>
+              <li>Imported Names Table</li>
+
+              <li>Entry Table</li>
+              <li>Non Resident Name Table</li>
+              <li>Segments</li>
+              <ol>
+                <li>Data</li>
+                <li>Info</li>
+              </ol>
+            </ol>
+
+            <p data-dl-uid="123" data-dl-original="true" data-dl-translated="true">
+              上の表は、ファイルの最初から最後までの完全なフォーマットを示しています。<b
+                data-dl-uid="124"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >重要な</b
+              >項目は、プログラムを実行するために必要なパース方法を示しています。その他の情報は、情報提供のみを目的として提供されています。<b
+                data-dl-uid="125"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >IMAGE_OPTIONAL_HEADER</b
+              >構造体の中で重要なのは、エントリポイントのアドレスを含むメンバと、画像のベースアドレスだけである。
+            </p>
+            <p data-dl-uid="126" data-dl-original="true" data-dl-translated="true">
+              このファイルの各セクションのパースについては、次節以降で詳しく説明する。また、テーブルやディレクトリを解析する際に使用される他の構造体も同様に紹介します。
+            </p>
+
+            <h3 data-dl-uid="127" data-dl-original="true" data-dl-translated="true">
+              IMAGE_DOS_HEADER構造体
+            </h3>
+
+            <p data-dl-uid="128" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="129" data-dl-original="true" data-dl-translated="true"
+                >IMAGE_DOS_HEADERは</b
+              >PEファイルの最初の構造体である。これは、プログラムファイルとそれをロードする方法に関するグローバルな情報を含んでいます。この構造体に含まれる情報のほとんどは、DOS
+              ソフトウェアに関連するものであり、 後方互換性のためにのみサポートされています。
+            </p>
+            <p data-dl-uid="130" data-dl-original="true" data-dl-translated="true">
+              この構造体は，次のような形式になっている。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">typedef struct _IMAGE_DOS_HEADER {  // DOS .EXE header
+    uint16_t e_magic;		// must contain "MZ"
+    uint16_t e_cblp;		// number of bytes on the last page of the file
+    uint16_t e_cp;		// number of pages in file
+    uint16_t e_crlc;		// relocations
+    uint16_t e_cparhdr;		// size of the header in paragraphs
+    uint16_t e_minalloc;	// minimum and maximum paragraphs to allocate
+    uint16_t e_maxalloc;
+    uint16_t e_ss;		// initial SS:SP to set by Loader
+    uint16_t e_sp;
+    uint16_t e_csum;		// checksum
+    uint16_t e_ip;		// initial CS:IP
+    uint16_t e_cs;
+    uint16_t e_lfarlc;		// address of relocation table
+    uint16_t e_ovno;		// overlay number
+    uint16_t e_res[4];		// resevered
+    uint16_t e_oemid;		// OEM id
+    uint16_t e_oeminfo;		// OEM info
+    uint16_t e_res2[10];	// reserved
+    uint32_t   e_lfanew;	// address of new EXE header
+} IMAGE_DOS_HEADER, *PIMAGE_DOS_HEADER;</div></pre>
+            </blockquote>
+
+            <p data-dl-uid="134" data-dl-original="true" data-dl-translated="true">
+              さてさて、この構造体には興味深いものがたくさんあります。オペレーティングシステムは通常CSにスタック空間とコード記述子の値を割り当てるので、CS:IPとSS:SPの初期メンバは無視する必要があります。これらのメンバは、DOSエリアやv8086モードを必要とするソフトウエアの時代に目立つようになった。
+            </p>
+
+            <h3 data-dl-uid="135" data-dl-original="true" data-dl-translated="true">STUBプログラム</h3>
+            <p data-dl-uid="136" data-dl-original="true" data-dl-translated="true">
+              さて、それでは<b data-dl-uid="137" data-dl-original="true" data-dl-translated="true"
+                >IMAGE_DOS_HEADER</b
+              >構造体の直後にDOSスタブプログラムがあることに注目してください。
+              これは、実は便利なプログラムなのです。これは、DOSの中からWindowsのプログラムを実行しようとすると、「このプログラムはDOSモードでは実行できません」と表示するプログラムなのです。
+            </p>
+            <p data-dl-uid="138" data-dl-original="true" data-dl-translated="true">
+              このスタブプログラムを変更するには、<b
+                data-dl-uid="139"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >/STUBという</b
+              >リンカーオプションを使用します。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">/stub=myprog.exe</div></pre>
+            </blockquote>
+
+            <p data-dl-uid="143" data-dl-original="true" data-dl-translated="true">
+              DOSが実行ファイルをロードしようとすると、IMAGE_DOS_HEADER構造体を解析し、有効なDOSプログラムであるため、DOSスタブプログラムを実行しようと試みます。Win32サブシステムの下で実行される場合、Windowsローダーはスタブプログラムを無視します。
+            </p>
+
+            <h3 data-dl-uid="144" data-dl-original="true" data-dl-translated="true">画像_NT_HEADERS</h3>
+
+            <p data-dl-uid="145" data-dl-original="true" data-dl-translated="true">
+              STUB プログラムに続いて、PE ヘッダー構造体のフォーマットを含む<b
+                data-dl-uid="146"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >IMAGE_NT_HEADERS</b
+              >という構造体があります。以下は、その構造体である。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">typedef struct _IMAGE_NT_HEADERS {
+  DWORD                 Signature;
+  IMAGE_FILE_HEADER     FileHeader;
+  IMAGE_OPTIONAL_HEADER OptionalHeader;
+} IMAGE_NT_HEADERS, *PIMAGE_NT_HEADERS;</div></pre>
+            </blockquote>
+
+            <p data-dl-uid="150" data-dl-original="true" data-dl-translated="true">
+              署名は、"PE0 "にマッチする必要があります（ただし、"PE0 "はヌル文字）。<b
+                data-dl-uid="151"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >IMAGE_FILE_HEADER</b
+              >には、ローダーが使用する追加情報と<b
+                data-dl-uid="152"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >IMAGE_OPTIONAL_HEADER</b
+              >構造体の全サイズが格納される。<b
+                data-dl-uid="153"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >IMAGE_OPTIONAL_HEADER</b
+              >は、ファイルの中で最も大きく、最も重要な構造体である。
+              また、定義されたサイズを持っていない。
+            </p>
+            <p data-dl-uid="154" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="156" data-dl-original="true" data-dl-translated="true">e_lfanewは</b
+              >メモリ上のこの構造体へのRVAなので、この構造体の位置を特定するために、OSローダーは次のことを実行する必要があります。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">IMAGE_DOS_HEADER* pFile = (IMAGE_DOS_HEADER*) imageBase;
+IMAGE_NT_HEADERS* pHeaders = (IMAGE_NT_HEADERS*) (pFile-&gt;e_lfanew + imageBase);</div></pre>
+            </blockquote>
+
+            <p data-dl-uid="160" data-dl-original="true" data-dl-translated="true">
+              これは、<b data-dl-uid="161" data-dl-original="true" data-dl-translated="true"
+                >imageBaseが</b
+              >プログラムファイルがメモリにロードされた場所を参照していると仮定しています。DOS などの古い
+              OS では、このヘッダのメンバは認識されないので、これらの OS では無視されます。
+            </p>
+            <p data-dl-uid="162" data-dl-original="true" data-dl-translated="true">
+              この構造体には、他の2つのヘッダー構造体のフォーマットが含まれています。ここでは、そのうちの最初の構造体を見てみましょう。
+            </p>
+
+            <h3 data-dl-uid="163" data-dl-original="true" data-dl-translated="true">
+              IMAGE_FILE_HEADER
+            </h3>
+
+            <p data-dl-uid="164" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="165" data-dl-original="true" data-dl-translated="true"
+                >IMAGE_FILE_HEADERは</b
+              >、<b data-dl-uid="166" data-dl-original="true" data-dl-translated="true"
+                >COFF (Common Object File Format)</b
+              >ヘッダー構造体です。次のような形式になっています。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">typedef struct _IMAGE_FILE_HEADER {
+    USHORT  Machine;
+    USHORT  NumberOfSections;			// Number of sections in section table
+    ULONG   TimeDateStamp;			// Date and time of program link
+    ULONG   PointerToSymbolTable;		// RVA of symbol table
+    ULONG   NumberOfSymbols;			// Number of symbols in table
+    USHORT  SizeOfOptionalHeader;		// Size of IMAGE_OPTIONAL_HEADER in bytes
+    USHORT  Characteristics;
+} IMAGE_FILE_HEADER, *PIMAGE_FILE_HEADER;</div></pre>
+            </blockquote>
+
+            <p data-dl-uid="170" data-dl-original="true" data-dl-translated="true">
+              この構造体はあまり複雑ではありません。上記のほとんどは、デバッガ(シンボルテーブルの解析)にのみ有用です。<b
+                data-dl-uid="171"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >SizeOfOptionalHeaderは</b
+              >重要です -
+              IMAGE_OPTIONAL_HEADERはサイズが定義されていないため、このメンバーで構造体のサイズを知ることができます。
+            </p>
+            <p data-dl-uid="172" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="173" data-dl-original="true" data-dl-translated="true">Machineは</b
+              >以下の値のいずれかになります。
+            </p>
+            <ul data-dl-uid="174" data-dl-original="true" data-dl-translated="true">
+              <li data-dl-uid="175" data-dl-original="true" data-dl-translated="true">
+                0x014c (x86マシン)
+              </li>
+              <li data-dl-uid="176" data-dl-original="true" data-dl-translated="true">
+                0x0200 (x64マシン)
+              </li>
+              <li data-dl-uid="177" data-dl-original="true" data-dl-translated="true">
+                0x8664 AMD64マシン用
+              </li>
+            </ul>
+            <p data-dl-uid="178" data-dl-original="true" data-dl-translated="true"></p>
+            <p data-dl-uid="179" data-dl-original="true" data-dl-translated="true">
+              通常の場合、x86アーキテクチャ向けに開発しているので、<b
+                data-dl-uid="180"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >0x014c</b
+              >であるべきである。
+            </p>
+            <p data-dl-uid="181" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="182" data-dl-original="true" data-dl-translated="true">特性は</b
+              >ビットフラグで構成されており、リンカがビット単位でORすることで、ローダに実行イメージの種類の異なる特性を知らせることができます。以下はその形式である。
+            </p>
+            <ul data-dl-uid="183" data-dl-original="true" data-dl-translated="true">
+              <li data-dl-uid="184" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="185" data-dl-original="true" data-dl-translated="true">Bit 0</b>:
+                設定されている場合、イメージは再配置情報を持っていません。
+              </li>
+              <li data-dl-uid="186" data-dl-original="true" data-dl-translated="true">
+                Bit<b data-dl-uid="187" data-dl-original="true" data-dl-translated="true">1</b>:
+                設定されている場合、ファイルは実行可能です。
+              </li>
+              <li data-dl-uid="188" data-dl-original="true" data-dl-translated="true">
+                Bit<b data-dl-uid="189" data-dl-original="true" data-dl-translated="true">2</b>:
+                設定されている場合、イメージはCOFF行番号を持ちません。
+              </li>
+              <li data-dl-uid="190" data-dl-original="true" data-dl-translated="true">
+                Bit<b data-dl-uid="191" data-dl-original="true" data-dl-translated="true">3</b>:
+                設定されている場合、イメージはCOFFシンボルテーブルのエントリを持ちません。
+              </li>
+
+              <li data-dl-uid="192" data-dl-original="true" data-dl-translated="true">
+                Bit<b data-dl-uid="193" data-dl-original="true" data-dl-translated="true">4</b
+                >：設定されている場合、イメージの作業セットを切り詰める。(Windowsのメモリ管理に特化。廃止)
+              </li>
+              <li data-dl-uid="194" data-dl-original="true" data-dl-translated="true">
+                Bit<b data-dl-uid="195" data-dl-original="true" data-dl-translated="true">5</b>:
+                セットされた場合、ローダーは実行ファイルが2GB以上のVAを処理できると見なします。
+              </li>
+              <li data-dl-uid="196" data-dl-original="true" data-dl-translated="true">
+                Bit<b data-dl-uid="197" data-dl-original="true" data-dl-translated="true">6</b>:
+                設定された場合、ローダーはイメージが32ビットワードをサポートすると仮定します。
+              </li>
+              <li data-dl-uid="198" data-dl-original="true" data-dl-translated="true">
+                Bit<b data-dl-uid="199" data-dl-original="true" data-dl-translated="true">7</b>:
+                セットされた場合、イメージはデバッグ情報を持ちません。
+              </li>
+              <li data-dl-uid="200" data-dl-original="true" data-dl-translated="true">
+                Bit<b data-dl-uid="201" data-dl-original="true" data-dl-translated="true">8</b>:
+                セットされた場合、イメージはネットワークドライブから直接実行できない（Windows固有）
+              </li>
+              <li data-dl-uid="202" data-dl-original="true" data-dl-translated="true">
+                Bit<b data-dl-uid="203" data-dl-original="true" data-dl-translated="true">9</b>:
+                設定された場合、イメージはSYSTEMファイルとして扱われます。
+              </li>
+
+              <li data-dl-uid="204" data-dl-original="true" data-dl-translated="true">
+                Bit<b data-dl-uid="205" data-dl-original="true" data-dl-translated="true">10</b>:
+                設定すると、イメージはDLLファイルとして扱われます。
+              </li>
+              <li data-dl-uid="206" data-dl-original="true" data-dl-translated="true">
+                Bit<b data-dl-uid="207" data-dl-original="true" data-dl-translated="true">11</b>:
+                設定すると、イメージはシングルプロセッサのマシンでしか実行されません。
+              </li>
+              <li data-dl-uid="208" data-dl-original="true" data-dl-translated="true">
+                Bit<b data-dl-uid="209" data-dl-original="true" data-dl-translated="true">12</b>:
+                設定されている場合、ビッグエンディアンを使用する。
+              </li>
+            </ul>
+            <p data-dl-uid="210" data-dl-original="true" data-dl-translated="true">
+              Windows のヘッダでは、IMAGE_FILE_RELOCS_STRIPPED や IMAGE_FILE_EXECUTABLE_IMAGE
+              など、これらのフラグを設定する際に使用できる定数を定義して使用しています。
+            </p>
+            <p data-dl-uid="211" data-dl-original="true" data-dl-translated="true">
+              見ての通り、この構造体のほとんどは、ローダーが画像を読み込む方法に関する情報のみを提供するためのものです。しかし、ちょっと待ってください!リソース、シンボルテーブル、デバッグ情報......これはどこにあるのでしょうか？ああ、<b
+                data-dl-uid="212"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >IMAGE_OPTIONAL_HEADERが</b
+              >定義されたサイズを持っていない理由を見よ。見てみましょう。
+            </p>
+
+            <h3 data-dl-uid="213" data-dl-original="true" data-dl-translated="true">
+              IMAGE_OPTIONAL_HEADER
+            </h3>
+            <p data-dl-uid="214" data-dl-original="true" data-dl-translated="true">
+              うーん、これだ。これはファイルの中で最も複雑な構造です。しかし、この構造体は以前にも見たことがあるはずです。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">struct _IMAGE_OPTIONAL_HEADER {
+
+    USHORT  Magic;				// not-so-magical number
+    UCHAR   MajorLinkerVersion;			// linker version
+    UCHAR   MinorLinkerVersion;
+    ULONG   SizeOfCode;				// size of .text in bytes
+    ULONG   SizeOfInitializedData;		// size of .bss (and others) in bytes
+    ULONG   SizeOfUninitializedData;		// size of .data,.sdata etc in bytes
+    ULONG   AddressOfEntryPoint;		// RVA of entry point
+    ULONG   BaseOfCode;				// base of .text
+    ULONG   BaseOfData;				// base of .data
+    ULONG   ImageBase;				// image base VA
+    ULONG   SectionAlignment;			// file section alignment
+    ULONG   FileAlignment;			// file alignment
+    USHORT  MajorOperatingSystemVersion;	// Windows specific. OS version required to run image
+    USHORT  MinorOperatingSystemVersion;
+    USHORT  MajorImageVersion;			// version of program
+    USHORT  MinorImageVersion;
+    USHORT  MajorSubsystemVersion;		// Windows specific. Version of SubSystem
+    USHORT  MinorSubsystemVersion;
+    ULONG   Reserved1;
+    ULONG   SizeOfImage;			// size of image in bytes
+    ULONG   SizeOfHeaders;			// size of headers (and stub program) in bytes
+    ULONG   CheckSum;				// checksum
+    USHORT  Subsystem;				// Windows specific. subsystem type
+    USHORT  DllCharacteristics;			// DLL properties
+    ULONG   SizeOfStackReserve;			// size of stack, in bytes
+    ULONG   SizeOfStackCommit;			// size of stack to commit
+    ULONG   SizeOfHeapReserve;			// size of heap, in bytes
+    ULONG   SizeOfHeapCommit;			// size of heap to commit
+    ULONG   LoaderFlags;			// no longer used
+    ULONG   NumberOfRvaAndSizes;		// number of DataDirectory entries
+    IMAGE_DATA_DIRECTORY DataDirectory[IMAGE_NUMBEROF_DIRECTORY_ENTRIES];
+} IMAGE_OPTIONAL_HEADER, *PIMAGE_OPTIONAL_HEADER;</div></pre>
+            </blockquote>
+
+            <p data-dl-uid="218" data-dl-original="true" data-dl-translated="true">
+              まず、最後のメンバーである<b
+                data-dl-uid="219"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >DataDirectoryを見て</b
+              >ください。定数<b data-dl-uid="220" data-dl-original="true" data-dl-translated="true"
+                >IMAGE_NUMBEROF_DIRECTORY_ENTRIESは</b
+              >、長年にわたって変更することができますし、これまでも変更されてきました。これは、この構造体のサイズを変更することができるメンバーです。このメンバーについては、もう少し後で詳しく見てみましょう。
+            </p>
+            <p data-dl-uid="221" data-dl-original="true" data-dl-translated="true">
+              このヘッダーは明らかにオプションではないのに、なぜ「オプション」と呼ばれているのか、興味を持たれたかもしれません。これは、COFFオブジェクトファイルではオプションであるためです。実行可能なイメージではオプションではありませんが、オブジェクトファイルではオプショナルです
+              :)
+            </p>
+            <p data-dl-uid="222" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="223" data-dl-original="true" data-dl-translated="true">マジックは</b
+              >、以下のいずれかになります。
+            </p>
+            <ul data-dl-uid="224" data-dl-original="true" data-dl-translated="true">
+              <li data-dl-uid="225" data-dl-original="true" data-dl-translated="true">
+                0x10b: 32ビット実行イメージ
+              </li>
+              <li data-dl-uid="226" data-dl-original="true" data-dl-translated="true">
+                0x20b: 64ビット実行形式イメージ
+              </li>
+              <li data-dl-uid="227" data-dl-original="true" data-dl-translated="true">
+                0x107:ROMイメージ
+              </li>
+            </ul>
+            通常の場合、<b data-dl-uid="228" data-dl-original="true" data-dl-translated="true">0x10b</b>
+            となるはずです。
+            <p data-dl-uid="229" data-dl-original="true" data-dl-translated="true"></p>
+            。
+            <p data-dl-uid="230" data-dl-original="true" data-dl-translated="true">
+              この構造体の多くのメンバーは、それほど複雑ではない。
+            </p>
+            <p data-dl-uid="231" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="232" data-dl-original="true" data-dl-translated="true">subsystem</b
+              >メンバは Windows
+              固有のものである。プログラムが正しく実行されるために、どのようなサブシステムが必要かを
+              Windows に伝える。以下の値のいずれかになります (完全を期すためにここに掲載します)。
+            </p>
+            <ul data-dl-uid="233" data-dl-original="true" data-dl-translated="true">
+              <li data-dl-uid="234" data-dl-original="true" data-dl-translated="true">0: 不明</li>
+              <li data-dl-uid="235" data-dl-original="true" data-dl-translated="true">
+                1: ネイティブサブシステム
+              </li>
+
+              <li data-dl-uid="236" data-dl-original="true" data-dl-translated="true">
+                2: GUIサブシステム
+              </li>
+              <li data-dl-uid="237" data-dl-original="true" data-dl-translated="true">
+                3: CUIサブシステム
+              </li>
+              <li data-dl-uid="238" data-dl-original="true" data-dl-translated="true">
+                5: OS/2 CUIサブシステム
+              </li>
+              <li data-dl-uid="239" data-dl-original="true" data-dl-translated="true">
+                7: POSIX CUIサブシステム
+              </li>
+              <li data-dl-uid="240" data-dl-original="true" data-dl-translated="true">
+                9: Windows CE GUIサブシステム
+              </li>
+              <li data-dl-uid="241" data-dl-original="true" data-dl-translated="true">10: EFI</li>
+              <li data-dl-uid="242" data-dl-original="true" data-dl-translated="true">
+                11: EFIブートドライバ
+              </li>
+              <li data-dl-uid="243" data-dl-original="true" data-dl-translated="true">
+                12: EFIランタイムドライバ
+              </li>
+              <li data-dl-uid="244" data-dl-original="true" data-dl-translated="true">13: EFI ROM</li>
+
+              <li data-dl-uid="245" data-dl-original="true" data-dl-translated="true">14: XBox</li>
+              <li data-dl-uid="246" data-dl-original="true" data-dl-translated="true">
+                16: ブートアプリケーション
+              </li>
+            </ul>
+            <p data-dl-uid="247" data-dl-original="true" data-dl-translated="true"></p>
+            <p data-dl-uid="248" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="249" data-dl-original="true" data-dl-translated="true"
+                >DllCharacteristics</b
+              >メンバは、ローダがDLLに関する情報を得るためのビットフラグを含む。以下のフォーマットで記述する。
+            </p>
+            <ul data-dl-uid="250" data-dl-original="true" data-dl-translated="true">
+              <li data-dl-uid="251" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="252" data-dl-original="true" data-dl-translated="true">Bit0～3</b>：予約
+              </li>
+              <li data-dl-uid="253" data-dl-original="true" data-dl-translated="true">
+                Bit<b data-dl-uid="254" data-dl-original="true" data-dl-translated="true">4</b
+                >：設定されている場合、DLLは再配置可能である
+              </li>
+
+              <li data-dl-uid="255" data-dl-original="true" data-dl-translated="true">
+                Bit<b data-dl-uid="256" data-dl-original="true" data-dl-translated="true">5</b
+                >：設定された場合、コードの整合性チェックを強制する
+              </li>
+              <li data-dl-uid="257" data-dl-original="true" data-dl-translated="true">
+                Bit<b data-dl-uid="258" data-dl-original="true" data-dl-translated="true">6</b>:
+                設定されている場合、イメージは<b
+                  data-dl-uid="259"
+                  data-dl-original="true"
+                  data-dl-translated="true"
+                  >データ実行防止(DEP)</b
+                >に対応している
+              </li>
+              <li data-dl-uid="260" data-dl-original="true" data-dl-translated="true">
+                Bit<b data-dl-uid="261" data-dl-original="true" data-dl-translated="true">7</b>:
+                設定されている場合、イメージは分離されるべきではありません。
+              </li>
+              <li data-dl-uid="262" data-dl-original="true" data-dl-translated="true">
+                Bit<b data-dl-uid="263" data-dl-original="true" data-dl-translated="true">8</b>:
+                設定されている場合、イメージは<b
+                  data-dl-uid="264"
+                  data-dl-original="true"
+                  data-dl-translated="true"
+                  >構造化例外処理(SEH</b
+                >)を使用しない
+              </li>
+              <li data-dl-uid="265" data-dl-original="true" data-dl-translated="true">
+                Bit<b data-dl-uid="266" data-dl-original="true" data-dl-translated="true">9</b>:
+                設定された場合、画像はバインドされない
+              </li>
+
+              <li data-dl-uid="267" data-dl-original="true" data-dl-translated="true">
+                Bit<b data-dl-uid="268" data-dl-original="true" data-dl-translated="true">10</b>:
+                予約済み
+              </li>
+              <li data-dl-uid="269" data-dl-original="true" data-dl-translated="true">
+                Bit<b data-dl-uid="270" data-dl-original="true" data-dl-translated="true">11</b>:
+                設定されている場合、イメージは<b
+                  data-dl-uid="271"
+                  data-dl-original="true"
+                  data-dl-translated="true"
+                  >Windows Driver Model (WDM)</b
+                >ドライバである。
+              </li>
+              <li data-dl-uid="272" data-dl-original="true" data-dl-translated="true">
+                Bit<b data-dl-uid="273" data-dl-original="true" data-dl-translated="true">12</b>: 予約
+              </li>
+              <li data-dl-uid="274" data-dl-original="true" data-dl-translated="true">
+                Bit<b data-dl-uid="275" data-dl-original="true" data-dl-translated="true">13</b>:
+                イメージはターミナルサーバーを意識している
+              </li>
+            </ul>
+            <p data-dl-uid="276" data-dl-original="true" data-dl-translated="true"></p>
+
+            <p data-dl-uid="277" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="278" data-dl-original="true" data-dl-translated="true"
+                >AddressOfEntryPointは</b
+              >重要なものです。このメンバには、イメージのエントリポイント関数のRVAが含まれています（DLLにはエントリポイントが不要なため、NULLでもかまいません）。
+            </p>
+
+            <p data-dl-uid="279" data-dl-original="true" data-dl-translated="true">
+              これだけです。<b data-dl-uid="280" data-dl-original="true" data-dl-translated="true"
+                >.text</b
+              >、<b data-dl-uid="281" data-dl-original="true" data-dl-translated="true">.data</b>、<b
+                data-dl-uid="282"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >.bss</b
+              >などの他のメンバーについて興味があるかもしれません。また、<b
+                data-dl-uid="283"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >DataDirectoryという</b
+              >厄介なメンバーもありますが、これはまだ見ていません。
+            </p>
+            <p data-dl-uid="284" data-dl-original="true" data-dl-translated="true">
+              これらのメンバーについては、後ほど詳しく見ていきます。とりあえず、プログラムの実行を見てみましょう。
+            </p>
+
+            <h3 data-dl-uid="285" data-dl-original="true" data-dl-translated="true">プログラムの実行</h3>
+
+            <p data-dl-uid="286" data-dl-original="true" data-dl-translated="true">
+              この段階で、<b data-dl-uid="287" data-dl-original="true" data-dl-translated="true"
+                >もしあなたがプログラムを</b
+              >実行したいだけなら、すべての情報は提供されています。プログラムをロードした後、ローダーがすべきことは、オプショナル・ヘッダから<b
+                data-dl-uid="288"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >AddressOfEntryPoint</b
+              >メンバを探し出し、そのアドレスを呼び出すことです。これはRVAであり、ローダーはこのアドレスを<b
+                data-dl-uid="289"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ImageBaseに</b
+              >追加して、エントリポイント関数へのリニアアドレスを取得する必要があることを忘れないでください。
+            </p>
+            以下はその一例です。
+
+            <blockquote>
+              <pre><div class="code">//! loadedProgram is where the image was loaded to
+IMAGE_DOS_HEADER* pImage = (IMAGE_DOS_HEADER*) loadedProgram;
+
+//! go to NT HEADERS
+IMAGE_NT_HEADERS* pHeaders = (IMAGE_NT_HEADERS*)(loadedProgram + pImage-&gt;e_lfanew);
+
+//! get image base and entry point address from optional header
+int base = pHeaders-&gt;OptionalHeader.ImageBase;
+int entryPoint = pHeaders-&gt;OptionalHeader.AddressOfEntryPoint;
+
+//! entry point function is at base+entryPoint
+void (*entryFunction) () = (entryPoint + base);
+
+//! call program entry point
+entryFunction();</div></pre>
+            </blockquote>
+
+            <p data-dl-uid="293" data-dl-original="true" data-dl-translated="true">
+              PE 実行ファイルを実行するのに必要なのは、これだけです :)
+            </p>
+
+            <h2 data-dl-uid="294" data-dl-original="true" data-dl-translated="true">
+              データディレクトリ
+            </h2>
+
+            <h3 data-dl-uid="295" data-dl-original="true" data-dl-translated="true">概要</h3>
+
+            <p data-dl-uid="296" data-dl-original="true" data-dl-translated="true">
+              リソース、シンボルテーブル、デバッグ情報、インポート、エクスポートテーブルなどは、
+              オプションのヘッダにある<b
+                data-dl-uid="297"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >DataDirectory</b
+              >メンバからアクセスすることができます。このメンバーは<b
+                data-dl-uid="298"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >IMAGE_DATA_DIRECTORY</b
+              >
+              の配列であり、 これらの情報を含む他の構造体にアクセスするために使用されます。<b
+                data-dl-uid="299"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >IMAGE_DATA_DIRECTORYは</b
+              >以下のような形式になっています。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">typedef struct _IMAGE_DATA_DIRECTORY {
+  DWORD VirtualAddress;		// RVA of table
+  DWORD Size;			// size of table
+} IMAGE_DATA_DIRECTORY, *PIMAGE_DATA_DIRECTORY;</div></pre>
+            </blockquote>
+
+            <p data-dl-uid="303" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="304" data-dl-original="true" data-dl-translated="true">DataDirectoryは</b
+              >、<b data-dl-uid="306" data-dl-original="true" data-dl-translated="true"
+                >IMAGE_DATA_DIRECTORYの</b
+              >
+              <b data-dl-uid="305" data-dl-original="true" data-dl-translated="true">配列</b
+              >であることを忘れないでください。この配列の各エントリによって、アクセスしたい異なるデータにアクセスすることができます。
+            </p>
+            <p data-dl-uid="307" data-dl-original="true" data-dl-translated="true">
+              以下は、インデックスのエントリです。
+            </p>
+            <ul data-dl-uid="308" data-dl-original="true" data-dl-translated="true">
+              <li data-dl-uid="309" data-dl-original="true" data-dl-translated="true">
+                0: エクスポートディレクトリ
+              </li>
+              <li data-dl-uid="310" data-dl-original="true" data-dl-translated="true">
+                1: インポートディレクトリ
+              </li>
+              <li data-dl-uid="311" data-dl-original="true" data-dl-translated="true">
+                2: Resourceディレクトリ
+              </li>
+              <li data-dl-uid="312" data-dl-original="true" data-dl-translated="true">
+                3: Exceptionディレクトリ
+              </li>
+              <li data-dl-uid="313" data-dl-original="true" data-dl-translated="true">
+                4: Securityディレクトリ
+              </li>
+              <li data-dl-uid="314" data-dl-original="true" data-dl-translated="true">
+                5: ベースリロケーションテーブル
+              </li>
+
+              <li data-dl-uid="315" data-dl-original="true" data-dl-translated="true">
+                6: デバッグディレクトリ
+              </li>
+              <li data-dl-uid="316" data-dl-original="true" data-dl-translated="true">7: 説明文字列</li>
+              <li data-dl-uid="317" data-dl-original="true" data-dl-translated="true">
+                8: マシン値(MIPS GP)
+              </li>
+              <li data-dl-uid="318" data-dl-original="true" data-dl-translated="true">
+                9:TLSディレクトリ
+              </li>
+              <li data-dl-uid="319" data-dl-original="true" data-dl-translated="true">
+                10: ロードコンフィグレーションディレクトリ
+              </li>
+              <li data-dl-uid="320" data-dl-original="true" data-dl-translated="true">
+                14: COM+ データディレクトリ
+              </li>
+            </ul>
+            <p data-dl-uid="321" data-dl-original="true" data-dl-translated="true">
+              例えば、エクスポートテーブルを読み込む場合は、<b
+                data-dl-uid="322"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >DataDirectory[0]</b
+              >を参照する。リソースを読み込む場合は、<b
+                data-dl-uid="323"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >DataDirectory[2].VirtualAddressを</b
+              >参照します。
+            </p>
+            <p data-dl-uid="324" data-dl-original="true" data-dl-translated="true">
+              これらのセクションには、特定のデータを解析するために必要な独自の構造体が含まれています。
+              より便利なものをいくつか見てみましょう。
+            </p>
+
+            <h3 data-dl-uid="325" data-dl-original="true" data-dl-translated="true">
+              エクスポートテーブルの読み込み
+            </h3>
+            <p data-dl-uid="326" data-dl-original="true" data-dl-translated="true">
+              エクスポートテーブルには、ライブラリやDLLからエクスポートされたすべての関数と、そのDLL内の関数アドレス、関数名、序数などが含まれています。Win32
+              API 関数<b data-dl-uid="327" data-dl-original="true" data-dl-translated="true"
+                >GetProcAddress()</b
+              >は、序数または名前によってモジュールのエクスポートテーブルを解析し、そこからアドレスを返すことによって動作します。
+              これは、エクスポートテーブルを読むことが有用である方法の 1 つです。
+            </p>
+            <p data-dl-uid="328" data-dl-original="true" data-dl-translated="true">
+              エクスポートテーブルを解析するためには、まずエクスポートディレクトリの構造を取得する必要があります。これは<b
+                data-dl-uid="329"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >DataDirectory[0]</b
+              >
+              を取得することで行われます。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">PIMAGE_DATA_DIRECTORY DataDirectory = &amp;OptionalHeader-&gt;DataDirectory [0];
+PIMAGE_EXPORT_DIRECTORY exportDirectory = (PIMAGE_EXPORT_DIRECTORY) (DataDirectory-&gt;VirtualAddress + ImageBase);
+</div></pre>
+            </blockquote>
+
+            <p data-dl-uid="333" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="335" data-dl-original="true" data-dl-translated="true"
+                >IMAGE_DATA_DIRECTORY</b
+              >構造体の<b data-dl-uid="334" data-dl-original="true" data-dl-translated="true"
+                >VirtualAddressは</b
+              >RVAなので、イメージベースに追加する必要があることに注意してください。これで、<b
+                data-dl-uid="336"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >exportDirectoryは</b
+              >、この素敵な構造体を指すようになります。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">typedef struct _IMAGE_EXPORT_DIRECTORY {
+  uint32_t Characteristics;
+  uint32_t TimeDateStamp;
+  uint16_t MajorVersion;
+  uint16_t MinorVersion;
+  uint32_t Name;
+  uint32_t Base;
+  uint32_t NumberOfFunctions;
+  uint32_t NumberOfNames;
+  uint32_t** AddressOfFunctions;
+  uint32_t** AddressOfNames;
+  uint16_t** AddressOfNameOrdinal;
+}IMAGE_EXPORT_DIRECTORY,*PIMAGE_EXPORT_DIRECTORY;</div></pre>
+            </blockquote>
+
+            <p data-dl-uid="340" data-dl-original="true" data-dl-translated="true">
+              こちらは簡単ですね。<b data-dl-uid="341" data-dl-original="true" data-dl-translated="true"
+                >AddressOfFunctionsは</b
+              >関数アドレスの配列を指すRVAです。 ただし、関数アドレスもRVAです。<b
+                data-dl-uid="342"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >AddressOfNamesは</b
+              >関数名のリストへのポインタです。
+              しかし、これらのアドレスはすべてRVAですので、関数名とアドレスを正しく取得するためにイメージベースに追加する必要があります。
+            </p>
+            <p data-dl-uid="343" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="344" data-dl-original="true" data-dl-translated="true"
+                >AddressOfNameOrdinalは</b
+              >序数列のリストへのRVAです。序数は、アドレスではなく、エクスポートされた関数を表す単なる番号なので、RVAではありません。
+            </p>
+            <p data-dl-uid="345" data-dl-original="true" data-dl-translated="true">
+              エクスポートテーブルを正しく解析するためには、ループで行う必要があります。例えば
+            </p>
+
+            <blockquote>
+              <pre><div class="code">PDWORD	FunctionNameAddressArray = ((DWORD)ExportDirectory-&gt;AddressOfNames) + ((PBYTE)imageBase);
+PWORD	FunctionOrdinalAddressArray = (DWORD)ExportDirectory-&gt;AddressOfNameOrdinal + (PBYTE)imageBase;
+PDWORD	FunctionAddressArray = (DWORD)ExportDirectory-&gt;AddressOfFunctions + (PBYTE)imageBase;
+
+//! search for function in exports table
+for ( i = 0; i &lt; ExportDirectory-&gt;NumberOfFunctions; i++ )
+{
+	LPSTR	FunctionName = FunctionNameAddressArray [i] + (PBYTE)imageBase;
+
+	if (strcmp (FunctionName, funct) == 0) {
+
+		WORD Ordinal = FunctionOrdinalAddressArray [i];
+		DWORD FunctionAddress = FunctionAddressArray [Ordinal];
+		return (PBYTE) (FunctionAddress + (PBYTE)imageBase);
+	}
+}</div></pre>
+            </blockquote>
+
+            <p data-dl-uid="349" data-dl-original="true" data-dl-translated="true">
+              これは、DLLのサポートに便利な<b
+                data-dl-uid="350"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >GetProcAddress()</b
+              >を実装するために使用できます。
+            </p>
+
+            <h3 data-dl-uid="351" data-dl-original="true" data-dl-translated="true">
+              インポートテーブルの読み込み
+            </h3>
+
+            <p data-dl-uid="352" data-dl-original="true" data-dl-translated="true">
+              さて...エクスポートテーブルを読むのはそれほど難しくはないでしょう?インポートテーブルを読むのはそれほど難しくありませんが、エクスポートテーブルより少し複雑です。OK、OK、インポートテーブルを読んで何になるのでしょうか？読むというより、<b
+                data-dl-uid="353"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >書き込む</b
+              >のです。プログラムのインポートテーブルにエントリを書き込むことで、GetProcAddress()を呼び出すことなく、ライブラリやDLLをまたいだ関数コールを可能にします。Windowsでは、遅延ロードされたDLLとシステムDLLでこれを実行します。
+            </p>
+            <p data-dl-uid="354" data-dl-original="true" data-dl-translated="true">
+              インポートテーブルを読み込むには、インポートディレクトリ構造を見つける必要があります。これは<b
+                data-dl-uid="355"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >DataDirectory[1]</b
+              >にあります。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">PIMAGE_DATA_DIRECTORY DataDirectory = &amp;OptionalHeader-&gt;DataDirectory [1];
+PIMAGE_IMPORT_DESCRIPTOR importDirectory = (PIMAGE_IMPORT_DESCRIPTOR) (DataDirectory-&gt;VirtualAddress + ImageBase);
+</div></pre>
+            </blockquote>
+
+            <p data-dl-uid="359" data-dl-original="true" data-dl-translated="true"></p>
+            <p data-dl-uid="360" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="361" data-dl-original="true" data-dl-translated="true">importDirectory</b
+              >は、記述子の<b data-dl-uid="362" data-dl-original="true" data-dl-translated="true"
+                >配列を</b
+              >指すことに注意することが重要である。これらのエントリはそれぞれ、インポートされたモジュール、例えばインポートDLLを表しています。この構造体を見てみましょう。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">typedef struct _IMAGE_IMPORT_DESCRIPTOR {
+    union {
+        uint32_t   Characteristics;		// 0 for terminating null import descriptor
+        uint32_t   OriginalFirstThunk;		// RVA to INT
+    };
+    uint32_t   TimeDateStamp;			// Time/Date of module, or other properties (see below)
+    uint32_t   ForwarderChain;			// Forwarder chain ID
+    uint32_t   Name;				// Module name
+    uint32_t   FirstThunk;			// RVA to IAT (if bound this IAT has actual addresses)
+} IMAGE_IMPORT_DESCRIPTOR;
+typedef IMAGE_IMPORT_DESCRIPTOR *PIMAGE_IMPORT_DESCRIPTOR;</div></pre>
+            </blockquote>
+
+            <p data-dl-uid="366" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="367" data-dl-original="true" data-dl-translated="true"
+                >Name、OriginalFirstThunk</b
+              >、<b data-dl-uid="368" data-dl-original="true" data-dl-translated="true">FirstThunkは</b
+              >RVAであることに注意することが重要です。つまり、データを適切に解析するために、画像ベースにアドレス（これらはポインタです）を追加する必要があります。<b
+                data-dl-uid="369"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >Nameは</b
+              >、<b data-dl-uid="370" data-dl-original="true" data-dl-translated="true">kernel32.dllの</b
+              >ようなインポートモジュール名を指し示すRVAです。これはヌル文字で終端しています。
+            </p>
+            <p data-dl-uid="371" data-dl-original="true" data-dl-translated="true">
+              インポート記述子の配列で作業していることを思い出してください。この配列に含まれるインポート記述子の数をどうやって知ることができるでしょうか？配列はNULLのIMAGE_IMPORT_DESCRIPTORで終わっているので、各エントリをループする簡単な方法は次のとおりです。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">IMAGE_IMPORT_DESCRIPTOR* lpImportDesc;
+while (! lpImportDesc-&gt;FirstThunk) {
+
+	//! work with lpImportDesc here
+
+	lpImportDesc++; // move to next entry
+}</div></pre>
+            </blockquote>
+
+            <p data-dl-uid="375" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="376" data-dl-original="true" data-dl-translated="true">TimeDateStampには</b
+              >、適切な時間/日付、または以下の値のいずれかを指定します。
+            </p>
+            <ul data-dl-uid="377" data-dl-original="true" data-dl-translated="true">
+              <li data-dl-uid="378" data-dl-original="true" data-dl-translated="true">
+                0: モジュールがバインドされていない
+              </li>
+              <li data-dl-uid="379" data-dl-original="true" data-dl-translated="true">
+                -1: 画像がバインドされている。実時間／日付スタンプを格納
+              </li>
+            </ul>
+            <p data-dl-uid="380" data-dl-original="true" data-dl-translated="true"></p>
+            <p data-dl-uid="381" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="382" data-dl-original="true" data-dl-translated="true">ForwarderChainは</b
+              >、<b data-dl-uid="383" data-dl-original="true" data-dl-translated="true">DLL</b
+              >間の呼び出しを他のDLLに転送する<b data-dl-uid="383" data-dl-translated="true"
+                >DLL Forward Referencingを</b
+              >サポートする場合にのみ使用されます。たとえば、Windows<b
+                data-dl-uid="384"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >kernel32.dllの</b
+              >一部の呼び出しは、他のDLLに転送されます。
+            </p>
+            <p data-dl-uid="385" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="386" data-dl-original="true" data-dl-translated="true">FirstThunkは</b
+              >IATを指し、<b data-dl-uid="387" data-dl-original="true" data-dl-translated="true"
+                >OriginalFirstThunkは</b
+              >インポートされたすべての関数を表す構造体の配列を指します。 これが<b
+                data-dl-uid="388"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >インポートネームテーブル（INT）</b
+              >です。これらのメンバは両方ともRVAです。
+            </p>
+            <p data-dl-uid="389" data-dl-original="true" data-dl-translated="true">
+              別の構造体が出てくることはおわかりですね<i
+                data-dl-uid="390"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >。</i
+              >見てみましょう。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">typedef struct _IMAGE_THUNK_DATA {
+	union {
+		uint32_t* Function;				// address of imported function
+		uint32_t  Ordinal;				// ordinal value of function
+		PIMAGE_IMPORT_BY_NAME AddressOfData;		// RVA of imported name
+		DWORD ForwarderStringl				// RVA to forwarder string
+	} u1;
+} IMAGE_THUNK_DATA, *PIMAGE_THUNK_DATA;</div></pre>
+            </blockquote>
+
+            <p data-dl-uid="394" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="395" data-dl-original="true" data-dl-translated="true"
+                >OriginalFirstThunkは</b
+              >、<b data-dl-uid="396" data-dl-original="true" data-dl-translated="true"
+                >IMAGE_THUNK_DATA</b
+              >構造体の配列を指し示すRVAです。
+            </p>
+            <p data-dl-uid="397" data-dl-original="true" data-dl-translated="true">
+              うっ、やった、また構造体だ。でも、これは小さいものです。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">typedef struct _IMAGE_IMPORT_BY_NAME {
+	uint16_t  Hint;		// Possible ordinal number to use
+	uint8_t   Name[1];	// Name of function, null terminated
+} IMAGE_IMPORT_BY_NAME, *PIMAGE_IMPORT_BY_NAME;</div></pre>
+            </blockquote>
+
+            <p data-dl-uid="401" data-dl-original="true" data-dl-translated="true">
+              以上で完了です。最初のパラメータは0でも構いませんが、これは関数が使用する可能性のある序数をローダーに示唆するものに過ぎません。<b
+                data-dl-uid="402"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >Nameは</b
+              >、関数の名前を表す文字の配列です。
+            </p>
+
+            <p data-dl-uid="403" data-dl-original="true" data-dl-translated="true">
+              ここからが本題です。IATは、関数を表すアドレスのリストに過ぎません。関数とは？このIMAGE_THUNK_DATA配列の中にある関数です。IMAGE_THUNK_DATAの構造体を見て、それが関数名を表す単なるアニオンであることに気づいてください。これが<b
+                data-dl-uid="404"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >インポート名テーブル(INT</b
+              >)です。
+            </p>
+            <p data-dl-uid="405" data-dl-original="true" data-dl-translated="true">
+              例えば、IMAGE_THUNK_DATA[3]にある関数の現在のアドレスを取得したい場合を考えてみましょう。そのアドレスはIATの3番目のドワードになり、<b
+                data-dl-uid="406"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >IMAGE_IMPORT_DESCRIPTOR-&gt;FirstThunkで</b
+              >読み取ることができます。
+            </p>
+            <p data-dl-uid="407" data-dl-original="true" data-dl-translated="true">
+              そこで、関数名とアドレスを取得してみます。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">unsigned int count=0;
+while (lpThunk-&gt;u1.Function) {
+
+	//! get the function name
+	char* lpFunctionName = (char*)((uint8_t*)imageBase + (uint32_t)lpThunk-&gt;u1.AddressOfData.Name);
+
+	//! go into the IAT to get this functions address
+	uint32_t* addr = (uint32_t*)((uint8_t*)imageBase + lpImportDesc-&gt;FirstThunk) + count;
+
+	// lpFunctionName now points to the null terminated function name
+	// addr now points to the address of this function
+
+	count++;
+	lpThunk++;
+}</div></pre>
+            </blockquote>
+
+            <p data-dl-uid="411" data-dl-original="true" data-dl-translated="true"></p>
+            <p data-dl-uid="412" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="413" data-dl-original="true" data-dl-translated="true">画像結合</b>
+            </p>
+            <p data-dl-uid="414" data-dl-original="true" data-dl-translated="true">
+              ここが面白いところです。IATには、<b
+                data-dl-uid="415"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >実行</b
+              >時または<b data-dl-uid="416" data-dl-original="true" data-dl-translated="true">ビルド</b
+              >時に、インポートされた関数のアドレスを入力することができます。拘束<b
+                data-dl-uid="417"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >された</b
+              >イメージとは、ビルド時にIATが関数に拘束されるイメージのことである。<b
+                data-dl-uid="418"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >非拘束</b
+              >型イメージとは、ロード時にOSローダーによってIATが埋められるイメージのことです。
+            </p>
+            <p data-dl-uid="419" data-dl-original="true" data-dl-translated="true">
+              バウンデッドイメージの場合、外部DLL内の関数を呼び出すには、以下のようにします。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">__declspec (dllimport) void function ();
+function (); // calls myDll:function()</div></pre>
+            </blockquote>
+
+            <p data-dl-uid="423" data-dl-original="true" data-dl-translated="true">
+              画像がバインドされていない場合、IATはジャンクを含んでいます。<b
+                data-dl-uid="424"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >その場合</b
+              >、上記のコードが動作するように<b data-dl-uid="424" data-dl-translated="true"
+                >IATを更新するのはOSローダーの責任</b
+              >となります。これは、ロードされたDLLモジュールのエクスポートテーブルを読み込んで（GetProcAddress()を呼び出し）、そのインポート関数のIATエントリを上書きすることで実行できます。IAT
+              の上書きは、上記の方法で行うことができます - 関数の IAT
+              エントリを取得したら、それを上書きするだけです :) 。
+            </p>
+            <p data-dl-uid="425" data-dl-original="true" data-dl-translated="true">
+              この方法は、DLLや他のモジュールに<b
+                data-dl-uid="426"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >フックを</b
+              >インストールする際にも有効です。
+            </p>
+            <h3 data-dl-uid="427" data-dl-original="true" data-dl-translated="true">サポートリソース</h3>
+
+            <p data-dl-uid="428" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="429" data-dl-original="true" data-dl-translated="true">はじめに</b>
+            </p>
+
+            <p data-dl-uid="430" data-dl-original="true" data-dl-translated="true">
+              Windows カーネルがディスクから何もロードせずに画像を表示し、XML
+              設定ファイルを扱うことができることを不思議に思ったことはありませんか?リソースを追加する作業をしたことがあるが、OSでサポートすることは可能だろうかと思ったことはないだろうか。その答えは、"もちろん！"です。
+            </p>
+            <p data-dl-uid="431" data-dl-original="true" data-dl-translated="true">
+              しかし、リソースのパースは、他のディレクトリタイプより少し複雑です。他のセクションと同様に、基本的な<b
+                data-dl-uid="432"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >IMAGE_RESOURCE_DIRECTORY</b
+              >構造体があり、オプションのヘッダーの<b
+                data-dl-uid="433"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >DataDirectory</b
+              >メンバーから取得することができます。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">PIMAGE_DATA_DIRECTORY DataDirectory = &amp;OptionalHeader-&gt;DataDirectory [2];
+PIMAGE_RESOURCE_DIRECTORY resourceDirectory = (PIMAGE_RESOURCE_DIRECTORY) (DataDirectory-&gt;VirtualAddress + ImageBase);</div></pre>
+            </blockquote>
+
+            <p data-dl-uid="437" data-dl-original="true" data-dl-translated="true">
+              これらのセクションにアクセスする方法がパターン化されていることにお気づきですか？そうそう、新しい構造体について説明します。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">typedef struct _IMAGE_RESOURCE_DIRECTORY {
+    uint32_t                       Characteristics;
+    uint32_t                       TimeDateStamp;
+    uint16_t                       MajorVersion;
+    uint16_t                       MinorVersion;
+    uint16_t                       NumberOfNamedEntries;
+    uint16_t                       NumberOfIdEntries;
+    IMAGE_RESOURCE_DIRECTORY_ENTRY DirectoryEntries[1];
+} IMAGE_RESOURCE_DIRECTORY, *PIMAGE_RESOURCE_DIRECTORY;</div></pre>
+            </blockquote>
+
+            <p data-dl-uid="441" data-dl-original="true" data-dl-translated="true">
+              この構造体は、最後の3つを除いて、あまり面白いフィールドを持っていません。
+            </p>
+            <p data-dl-uid="442" data-dl-original="true" data-dl-translated="true">
+              Win32のリソースを扱ったことがある人なら、リソースがIDや名前で識別できることをご存知かもしれません。この構造体の
+              2 つのメンバによって、これらのエントリの数とエントリの合計量 (NumberOfNamedEntries +
+              NumberOfIdEntries) を知ることができ、すべてのエントリをループする際に役立ちます。
+              おそらく推測できるように、エントリは DirectoryEntries 配列に格納されています。<b
+                data-dl-uid="443"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >DirectoryEntries</b
+              >は<b data-dl-uid="444" data-dl-original="true" data-dl-translated="true"
+                >IMAGE_RESOURCE_DIRECTORY_ENTRY</b
+              >構造体の配列で構成されており、その形式は次のとおりです。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">typedef struct _IMAGE_RESOURCE_DIRECTORY_ENTRY {
+    union {
+        struct {
+            DWORD NameOffset:31;
+            DWORD NameIsString:1;
+        };
+        DWORD   Name;
+        WORD    Id;
+    };
+    union {
+        DWORD   OffsetToData;
+        struct {
+            DWORD   OffsetToDirectory:31;
+            DWORD   DataIsDirectory:1;
+        };
+    };
+} IMAGE_RESOURCE_DIRECTORY_ENTRY, *PIMAGE_RESOURCE_DIRECTORY_ENTRY;</div></pre>
+            </blockquote>
+
+            <p data-dl-uid="448" data-dl-original="true" data-dl-translated="true">
+              さて、これは醜い構造体です。この構造体は、1つのリソース、つまりリソースディレクトリを表しています。
+            </p>
+            <p data-dl-uid="449" data-dl-original="true" data-dl-translated="true"></p>
+            <p data-dl-uid="450" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="451" data-dl-original="true" data-dl-translated="true"
+                >リソース・ディレクトリの構造</b
+              >
+            </p>
+            <p data-dl-uid="452" data-dl-original="true" data-dl-translated="true">
+              <i data-dl-uid="453" data-dl-original="true" data-dl-translated="true"
+                >リソースなのかリソースディレクトリなのか？</i
+              >ちょっと立ち止まってみましょう。(リソースは<b
+                data-dl-uid="454"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ツリーとして</b
+              >格納されることを知っておくことが重要です。このツリーは次のような構造になっています。
+            </p>
+            <ul>
+              <li>Root directory</li>
+              <ul>
+                <li>Resource group 1 Directory</li>
+                <ul>
+                  <li>Resource 1</li>
+                  <li>Resource 2</li>
+                </ul>
+
+                <li>Resource group 2 Directory</li>
+                <ul>
+                  <li>Resource 1</li>
+                  <li>Resource 2</li>
+                </ul>
+                <li>Resource group 3 Directory</li>
+                <ul>
+                  <li>Resource 1</li>
+                  <li>Resource 2</li>
+                </ul>
+                <li>...etc...</li>
+              </ul>
+            </ul>
+
+            <p data-dl-uid="471" data-dl-original="true" data-dl-translated="true"></p>
+            <p data-dl-uid="472" data-dl-original="true" data-dl-translated="true">
+              リソースグループにはいくつかの種類があり、このグループに含まれるリソースの種類を知ることができます。
+              以下、グループIDを示します。
+            </p>
+
+            <ul>
+              <li>1 - Cursor</li>
+              <li>2 - Bitmap</li>
+              <li>3 - Icon</li>
+              <li>4 - Menu</li>
+              <li>5 - Dialog</li>
+              <li>6 - String</li>
+              <li>7 - Font directory</li>
+              <li>8 - Font</li>
+
+              <li>9 - Accelerator</li>
+              <li>10 - RcData</li>
+              <li>11 - Message table</li>
+              <li>16 - Version</li>
+              <li>17 - DlgInclude/li&gt;</li>
+              <li>19 - Plug and Play</li>
+              <li>20 - VXD</li>
+              <li>21 - Animated Cursor</li>
+              <li>22 - Animated Icon</li>
+
+              <li>23 - HTML</li>
+              <li>24 - Manifest</li>
+            </ul>
+
+            リソースを見つけるには、このツリーを横断する必要があります。このツリーには3層しかないと仮定すれば、難しいことではありません。
+            <p data-dl-uid="493" data-dl-original="true" data-dl-translated="true"></p>
+            。
+            <p data-dl-uid="494" data-dl-original="true" data-dl-translated="true">
+              まず、リソースディレクトリのすべてのエントリをループすることについて見てみましょう。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">//! get first entry in directory
+IMAGE_RESOURCE_DIRECTORY_ENTRY* lpResourceEntry = lpResourceDir-&gt;DirectoryEntries;
+
+//! loop through all entries
+int entries = lpResourceDir-&gt;NumberOfIdEntries + lpResourceDir-&gt;NumberOfNamedEntries;
+while (entries-- != 0) {
+
+	//! look for bitmap resource (id=2)
+	if (lpResourceEntry-&gt;Id == 2) {
+		//! see below
+	}
+	lpResourceEntry++;
+}</div></pre>
+            </blockquote>
+
+            <p data-dl-uid="498" data-dl-original="true" data-dl-translated="true">
+              これだけなら簡単でしょう？<b
+                data-dl-uid="500"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >IMAGE_RESOURCE_DIRECTORY_ENTRY</b
+              >の<b data-dl-uid="499" data-dl-original="true" data-dl-translated="true">Id</b
+              >メンバは、グループ ID
+              を格納するために使用されます。ビットマップを探すなら、ルートディレクトリのビットマップグループにあるので、ID=2のエントリーを探せばいいのです。
+            </p>
+            <p data-dl-uid="501" data-dl-original="true" data-dl-translated="true">
+              IMAGE_RESOURCE_DIRECTORY_ENTRYはリソースエントリとディレクトリの両方を表すので、それが何であるかを見分けるにはどうしたらよいでしょうか。もちろん、<b
+                data-dl-uid="502"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >DataIsDirectory</b
+              >メンバです。このメンバが設定されている場合、それはディレクトリです。このメンバがセットされている場合、それはディレクトリです。ああ、しかし、それがディレクトリである場合、どのようにディレクトリを読むことができますか？見てみましょう。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">if (lpResourceEntry-&gt;DataIsDirectory) {
+	lpResourceEntry = lpResourceEntry-&gt;OffsetToDirectory;
+	lpResourceEntry += startOfResourceSection;
+}</div></pre>
+            </blockquote>
+
+            <p data-dl-uid="506" data-dl-original="true" data-dl-translated="true">
+              これも悪くはない。エントリーがディレクトリの場合、上記は<b
+                data-dl-uid="507"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >OffsetToDirectory</b
+              >から新しいディレクトリへのオフセットを取得し、それを<i
+                data-dl-uid="508"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >startOfResourceSection</i
+              >
+              に追加しています！？そう、これはオフセットであって、RVAではないのです。そうだ．<i
+                data-dl-uid="509"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >なぜマイクロソフトは、なぜ！</i
+              >？
+            </p>
+            <p data-dl-uid="510" data-dl-original="true" data-dl-translated="true">
+              リソースセクションの開始位置は、実際にはIMAGE_RESOURCE_DIRECTORY_ENTRY配列の最初のメンバーのアドレスです。
+              したがって、このアドレスを<b
+                data-dl-uid="511"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >OffsetToDirectoryから</b
+              >得たオフセットに追加すれば、このディレクトリの<b
+                data-dl-uid="512"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >IMAGE_RESOURCE_DIRECTORY</b
+              >構造へのポインタを取得することができるわけです。はい、それからこれらのディレクトリエントリを読み込む全処理が始まります
+              :)
+            </p>
+            <p data-dl-uid="513" data-dl-original="true" data-dl-translated="true">
+              特定のリソースのためにディレクトリをパースしている最中であれば、ディレクトリ内のすべてのリソースエントリをループするだけです。resourceEntry
+              IDフィールドが、探そうとしているリソースID（ここではプログラム固有のID）と一致すれば、リソース・データを見つけたことになります。
+            </p>
+            <p data-dl-uid="514" data-dl-original="true" data-dl-translated="true">
+              リソースデータは...ゾクゾクするような構造で格納されています。ディレクトリエントリ構造の<b
+                data-dl-uid="515"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >OffsetToData</b
+              >メンバから取得することができます。<b
+                data-dl-uid="516"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >OffsetToDirectory</b
+              >メンバと同様、これもリソースセクションの開始点からのオフセットです。
+            </p>
+            <p data-dl-uid="517" data-dl-original="true" data-dl-translated="true">
+              ポインタを取得すると、リソースデータを取り出すことができます。その構造体を見てみよう。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">typedef struct _IMAGE_RESOURCE_DATA_ENTRY {
+	uint32_t   OffsetToData;
+	uint32_t   Size;
+	uint32_t   CodePage;
+	uint32_t   Reserved;
+} IMAGE_RESOURCE_DATA_ENTRY, *PIMAGE_RESOURCE_DATA_ENTRY;</div></pre>
+            </blockquote>
+
+            <p data-dl-uid="521" data-dl-original="true" data-dl-translated="true">
+              以上です。<b data-dl-uid="522" data-dl-original="true" data-dl-translated="true"
+                >OffsetToDataは</b
+              >実際のリソースデータへのRVAで、<b
+                data-dl-uid="523"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >Sizeは</b
+              >そのデータのサイズ（バイト数）です。例えば、ビットマップリソースを探している場合、<b
+                data-dl-uid="524"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >OffsetToDataは</b
+              >ビットマップの<b data-dl-uid="525" data-dl-original="true" data-dl-translated="true"
+                >BITMAPINFOHEADER</b
+              >構造体を指すRVAとなり、どのビットマップローダでも扱うことができます。
+            </p>
+
+            <h1 data-dl-uid="526" data-dl-original="true" data-dl-translated="true">まとめ</h1>
+            <p data-dl-uid="527" data-dl-original="true" data-dl-translated="true">
+              この章はこれで終わりです。今後、デバッグデータ、COMDATSなどのセクションを追加し、更新していく予定です。
+            </p>
+            <p data-dl-uid="528" data-dl-original="true" data-dl-translated="true">
+              この章にはデモはありません。PE
+              実行可能ファイルフォーマットの内部動作に興味があり、それを使って作業したい人のために主にリリースされます。本編では、プログラムをロードして実行するだけかもしれないので、その他の情報は完全性のためにのみ提供されます。デモのためにテキストで提供されるすべてのコードは、動作確認済みです（若干の修正あり）。
+            </p>
+            <p data-dl-uid="529" data-dl-original="true" data-dl-translated="true">
+              次の章では、PE実行ファイル形式を使用し、ユーザーモードプログラムをサポートするためのローダーを構築します。その後、マルチタスクに進みます!
+            </p>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </body>
+</html>
