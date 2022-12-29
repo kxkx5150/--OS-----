@@ -1,0 +1,2542 @@
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Cache-Control" content="no-cache" />
+    <title></title>
+    <link href="css/reference.css" rel="stylesheet" />
+  </head>
+  <body>
+    <table cellspacing="0" cellpadding="3" width="80%" border="0">
+      <tbody>
+        <tr>
+          <td class="tblhdr">Operating Systems Development Series</td>
+        </tr>
+        <tr>
+          <td align="middle" colspan="2"></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h1 class="western" data-dl-uid="707" data-dl-original="true" data-dl-translated="true">
+      1.はじめに
+    </h1>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="708"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      ようこそ!<br data-dl-uid="709" data-dl-original="true" data-dl-translated="true" /><br
+        data-dl-uid="710"
+        data-dl-original="true"
+        data-dl-translated="true"
+      /><span
+        style="font-weight: normal"
+        data-dl-uid="711"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >前章では、タスクがカーネルモードプロセスとして動作するマルチタスクオペレーティングシステムを構築しました。このシリーズでは、もっと早く紹介すべきトピックを避けてきました。 </span
+      ><span
+        style="font-weight: normal"
+        data-dl-uid="714"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >また </span
+      >、<i data-dl-uid="715" data-dl-original="true" data-dl-translated="true"
+        ><b data-dl-uid="716" data-dl-original="true" data-dl-translated="true">ページスワップ</b></i
+      ><span
+        style="font-weight: normal"
+        data-dl-uid="717"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >、 </span
+      ><i data-dl-uid="718" data-dl-original="true" data-dl-translated="true"
+        ><b data-dl-uid="719" data-dl-original="true" data-dl-translated="true"
+          >再帰的ページディレクトリ</b
+        ></i
+      ><span
+        style="font-weight: normal"
+        data-dl-uid="720"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >、</span
+      ><i data-dl-uid="721" data-dl-original="true" data-dl-translated="true"
+        ><b data-dl-uid="722" data-dl-original="true" data-dl-translated="true"
+          >アドレス空間管理など</b
+        ></i
+      >、<span data-dl-uid="714" data-dl-translated="true">他のトピックに ついて </span
+      >も甘く見てきました<span
+        style="font-weight: normal"
+        data-dl-uid="723"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >。 適切なメモリアロケータが </span
+      >あれば、<i data-dl-uid="724" data-dl-original="true" data-dl-translated="true"
+        ><b data-dl-uid="725" data-dl-original="true" data-dl-translated="true">カーネルヒープを</b></i
+      ><span data-dl-uid="723" data-dl-translated="true">実装 </span>することができます<span
+        style="font-weight: normal"
+        data-dl-uid="726"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >。うまく設計すれば、物理メモリマネージャをさらに拡張して、ページ割り当てやゾーン割り当てを改善することも可能です。仮想メモリに関するトピックも同様に重要です。 </span
+      ><span
+        style="font-weight: normal"
+        data-dl-uid="729"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >現在の仮想メモリマネージャ </span
+      >には<i data-dl-uid="727" data-dl-original="true" data-dl-translated="true"
+        ><b data-dl-uid="728" data-dl-original="true" data-dl-translated="true">大きな</b></i
+      ><span data-dl-uid="729" data-dl-translated="true"
+        >問題があり、ID マッピングを削除すればすぐにその </span
+      >問題が明らかになります。<span data-dl-uid="729" data-dl-translated="true">この問題は、後で </span
+      ><i data-dl-uid="730" data-dl-original="true" data-dl-translated="true"
+        ><b data-dl-uid="731" data-dl-original="true" data-dl-translated="true"
+          >再帰的ページディレクトリを</b
+        ></i
+      ><span data-dl-uid="729" data-dl-translated="true">導入するときに対処 </span>します<span
+        style="font-weight: normal"
+        data-dl-uid="732"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >。 最後に、プロセスの </span
+      ><i data-dl-uid="733" data-dl-original="true" data-dl-translated="true"
+        ><b data-dl-uid="734" data-dl-original="true" data-dl-translated="true">仮想アドレス</b></i
+      >
+      <span
+        style="font-style: normal"
+        data-dl-uid="735"
+        data-dl-original="true"
+        data-dl-translated="true"
+        ><span
+          style="font-weight: normal"
+          data-dl-uid="736"
+          data-dl-original="true"
+          data-dl-translated="true"
+          >空間と</span
+        ></span
+      ><i data-dl-uid="737" data-dl-original="true" data-dl-translated="true"
+        ><b data-dl-uid="738" data-dl-original="true" data-dl-translated="true"
+          >ワーキングセットリストを</b
+        ></i
+      ><span data-dl-uid="732" data-dl-translated="true">管理する素晴らしい方法が必要 </span>です。<span
+        style="font-style: normal"
+        data-dl-uid="739"
+        data-dl-original="true"
+        data-dl-translated="true"
+        ><span
+          style="font-weight: normal"
+          data-dl-uid="740"
+          data-dl-original="true"
+          data-dl-translated="true"
+        >
+          これらによって、必要なものを適切にマッピングし、マルチスレッドのユーザモードタスクをサポート</span
+        ></span
+      >できるようになります。<span data-dl-uid="739" data-dl-translated="true"
+        ><span data-dl-uid="740" data-dl-translated="true"
+          ><br data-dl-uid="741" data-dl-translated="true" /><br
+            data-dl-uid="742"
+            data-dl-translated="true"
+          />まず、割り当て技術に飛び込みます。そのうちのいくつかは以前にも紹介しましたが、ここでは少し違った形でプリセットします。</span
+        ></span
+      ><i data-dl-uid="743" data-dl-original="true" data-dl-translated="true"
+        ><b data-dl-uid="744" data-dl-original="true" data-dl-translated="true">線形アロケータ</b></i
+      ><span
+        style="font-style: normal"
+        data-dl-uid="745"
+        data-dl-original="true"
+        data-dl-translated="true"
+        ><span
+          style="font-weight: normal"
+          data-dl-uid="746"
+          data-dl-original="true"
+          data-dl-translated="true"
+          >、</span
+        ></span
+      ><i data-dl-uid="747" data-dl-original="true" data-dl-translated="true"
+        ><b data-dl-uid="748" data-dl-original="true" data-dl-translated="true">フリーリスト</b></i
+      ><span
+        style="font-style: normal"
+        data-dl-uid="749"
+        data-dl-original="true"
+        data-dl-translated="true"
+        ><span
+          style="font-weight: normal"
+          data-dl-uid="750"
+          data-dl-original="true"
+          data-dl-translated="true"
+          >、</span
+        ></span
+      ><i data-dl-uid="751" data-dl-original="true" data-dl-translated="true"
+        ><b data-dl-uid="752" data-dl-original="true" data-dl-translated="true">フリースタック</b></i
+      ><span
+        style="font-style: normal"
+        data-dl-uid="753"
+        data-dl-original="true"
+        data-dl-translated="true"
+        ><span
+          style="font-weight: normal"
+          data-dl-uid="754"
+          data-dl-original="true"
+          data-dl-translated="true"
+          >、
+        </span></span
+      ><i data-dl-uid="755" data-dl-original="true" data-dl-translated="true"
+        ><b data-dl-uid="756" data-dl-original="true" data-dl-translated="true">ビットマップなど</b></i
+      >です。 次に、<span
+        style="font-style: normal"
+        data-dl-uid="757"
+        data-dl-original="true"
+        data-dl-translated="true"
+        ><span
+          style="font-weight: normal"
+          data-dl-uid="758"
+          data-dl-original="true"
+          data-dl-translated="true"
+          >より高度なアロケータである
+        </span></span
+      >
+      <span
+        style="font-style: normal"
+        data-dl-uid="761"
+        data-dl-original="true"
+        data-dl-translated="true"
+        ><span
+          style="font-weight: normal"
+          data-dl-uid="762"
+          data-dl-original="true"
+          data-dl-translated="true"
+          >バディアロケータと</span
+        ></span
+      ><i data-dl-uid="763" data-dl-original="true" data-dl-translated="true"
+        ><b data-dl-uid="764" data-dl-original="true" data-dl-translated="true"
+          >スラブアロケータを見て</b
+        ></i
+      >いきます<span
+        style="font-style: normal"
+        data-dl-uid="765"
+        data-dl-original="true"
+        data-dl-translated="true"
+        ><span
+          style="font-weight: normal"
+          data-dl-uid="766"
+          data-dl-original="true"
+          data-dl-translated="true"
+          >。
+        </span></span
+      ><i data-dl-uid="767" data-dl-original="true" data-dl-translated="true"
+        ><b data-dl-uid="768" data-dl-original="true" data-dl-translated="true">スラブアロケータは</b></i
+      >
+      <span
+        style="font-style: normal"
+        data-dl-uid="769"
+        data-dl-original="true"
+        data-dl-translated="true"
+        ><span
+          style="font-weight: normal"
+          data-dl-uid="770"
+          data-dl-original="true"
+          data-dl-translated="true"
+          >この章で紹介するアロケータの中で最も複雑な
+        </span></span
+      >ものです。<span data-dl-uid="769" data-dl-translated="true"
+        ><span data-dl-uid="770" data-dl-translated="true"
+          ><br data-dl-uid="771" data-dl-translated="true" /><br
+            data-dl-uid="772"
+            data-dl-translated="true"
+          />そして
+        </span></span
+      >、<i data-dl-uid="773" data-dl-original="true" data-dl-translated="true"
+        ><b data-dl-uid="774" data-dl-original="true" data-dl-translated="true">アロケータの設計に</b></i
+      >入り、<i data-dl-uid="777" data-dl-original="true" data-dl-translated="true"
+        ><b data-dl-uid="778" data-dl-original="true" data-dl-translated="true"
+          >カーネルヒーププールの</b
+        ></i
+      ><span
+        style="font-style: normal"
+        data-dl-uid="775"
+        data-dl-original="true"
+        data-dl-translated="true"
+        ><span
+          style="font-weight: normal"
+          data-dl-uid="776"
+          data-dl-original="true"
+          data-dl-translated="true"
+          >構築
+        </span></span
+      ><span
+        style="font-style: normal"
+        data-dl-uid="779"
+        data-dl-original="true"
+        data-dl-translated="true"
+        ><span
+          style="font-weight: normal"
+          data-dl-uid="780"
+          data-dl-original="true"
+          data-dl-translated="true"
+          >、</span
+        ></span
+      ><i data-dl-uid="781" data-dl-original="true" data-dl-translated="true"
+        ><b data-dl-uid="782" data-dl-original="true" data-dl-translated="true"
+          >物理ページの割り当て</b
+        ></i
+      ><span
+        style="font-style: normal"
+        data-dl-uid="783"
+        data-dl-original="true"
+        data-dl-translated="true"
+        ><span
+          style="font-weight: normal"
+          data-dl-uid="784"
+          data-dl-original="true"
+          data-dl-translated="true"
+          >、</span
+        ></span
+      ><i data-dl-uid="785" data-dl-original="true" data-dl-translated="true"
+        ><b data-dl-uid="786" data-dl-original="true" data-dl-translated="true"
+          >仮想ページの割り当て</b
+        ></i
+      >、<span
+        style="font-style: normal"
+        data-dl-uid="787"
+        data-dl-original="true"
+        data-dl-translated="true"
+        ><span
+          style="font-weight: normal"
+          data-dl-uid="788"
+          data-dl-original="true"
+          data-dl-translated="true"
+          >そしてすべてがどのように連動して
+        </span></span
+      ><span data-dl-uid="775" data-dl-translated="true"
+        ><span data-dl-uid="776" data-dl-translated="true">いるかについて見て </span></span
+      >いきます。<span data-dl-uid="787" data-dl-translated="true"
+        ><span data-dl-uid="788" data-dl-translated="true"
+          ><br data-dl-uid="789" data-dl-translated="true" /><br
+            data-dl-uid="790"
+            data-dl-translated="true"
+          />次の章では
+        </span></span
+      >、<i data-dl-uid="791" data-dl-original="true" data-dl-translated="true"
+        ><b data-dl-uid="792" data-dl-original="true" data-dl-translated="true">ページスワップ</b></i
+      ><span
+        style="font-style: normal"
+        data-dl-uid="793"
+        data-dl-original="true"
+        data-dl-translated="true"
+        ><span
+          style="font-weight: normal"
+          data-dl-uid="794"
+          data-dl-original="true"
+          data-dl-translated="true"
+          >、</span
+        ></span
+      ><i data-dl-uid="795" data-dl-original="true" data-dl-translated="true"
+        ><b data-dl-uid="796" data-dl-original="true" data-dl-translated="true">ページファイル</b></i
+      ><span
+        style="font-style: normal"
+        data-dl-uid="797"
+        data-dl-original="true"
+        data-dl-translated="true"
+        ><span
+          style="font-weight: normal"
+          data-dl-uid="798"
+          data-dl-original="true"
+          data-dl-translated="true"
+          >、</span
+        ></span
+      ><i data-dl-uid="799" data-dl-original="true" data-dl-translated="true"
+        ><b data-dl-uid="800" data-dl-original="true" data-dl-translated="true"
+          >再帰的ページディレクトリ</b
+        ></i
+      ><span
+        style="font-style: normal"
+        data-dl-uid="801"
+        data-dl-original="true"
+        data-dl-translated="true"
+        ><span
+          style="font-weight: normal"
+          data-dl-uid="802"
+          data-dl-original="true"
+          data-dl-translated="true"
+          >、
+        </span></span
+      ><i data-dl-uid="803" data-dl-original="true" data-dl-translated="true"
+        ><b data-dl-uid="804" data-dl-original="true" data-dl-translated="true"
+          >アドレス空間構造など</b
+        ></i
+      ><span data-dl-uid="787" data-dl-translated="true"
+        ><span data-dl-uid="788" data-dl-translated="true"
+          >、アドレス空間管理の問題に飛び込みます
+        </span></span
+      ><span
+        style="font-style: normal"
+        data-dl-uid="805"
+        data-dl-original="true"
+        data-dl-translated="true"
+        ><span
+          style="font-weight: normal"
+          data-dl-uid="806"
+          data-dl-original="true"
+          data-dl-translated="true"
+          >。</span
+        ></span
+      >
+    </p>
+    <h1 class="western" data-dl-uid="807" data-dl-original="true" data-dl-translated="true">
+      2.一般的な割当先
+    </h1>
+    <h2 class="western" data-dl-uid="808" data-dl-original="true" data-dl-translated="true">
+      リニアアロケータ
+    </h2>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="809"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      最初に紹介するのは<i data-dl-uid="810" data-dl-original="true" data-dl-translated="true"
+        ><b data-dl-uid="811" data-dl-original="true" data-dl-translated="true">線形</b></i
+      >アロケータです。
+      これは実装するのが最も簡単なアロケータです。割り当てが非常に速く、一定時間で実行されます。これは、割り当てられた個々のブロックの解放をサポートしていません。その代わり、<i
+        data-dl-uid="812"
+        data-dl-original="true"
+        data-dl-translated="true"
+        ><b data-dl-uid="813" data-dl-original="true" data-dl-translated="true">バッファ</b></i
+      >全体を使い終わったら、バッファ全体が解放されます。<br
+        data-dl-uid="814"
+        data-dl-original="true"
+        data-dl-translated="true"
+      /><br data-dl-uid="815" data-dl-original="true" data-dl-translated="true" />例えば、<b
+        data-dl-uid="816"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >startが</b
+      >バッファの先頭を、endがバッファの<b
+        data-dl-uid="817"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >最後を指して</b
+      >いるとします。さらに、<b data-dl-uid="818" data-dl-original="true" data-dl-translated="true"
+        >Current Offset</b
+      >にはバッファの開始点からの現在のバイトオフセットが格納されるとします。このバッファから<i
+        data-dl-uid="819"
+        data-dl-original="true"
+        data-dl-translated="true"
+        ><b data-dl-uid="820" data-dl-original="true" data-dl-translated="true">n</b></i
+      >バイトを確保したい場合、必要なことは、現在の位置へのポインタを返し、<i
+        data-dl-uid="821"
+        data-dl-original="true"
+        data-dl-translated="true"
+        ><b data-dl-uid="822" data-dl-original="true" data-dl-translated="true"
+          >Current Offset += nを</b
+        ></i
+      >更新することだけです。
+    </p>
+
+    <p class="western" style="margin-bottom: 0.2in">
+      <img
+        src="./ma_files/osdev26_c1.PNG"
+        name="graphics2"
+        align="LEFT"
+        width="612"
+        height="151"
+        border="0"
+      /><br clear="LEFT" />コードに置き換えると、次のようになる。
+    </p>
+
+    <pre><b>uint8_t</b><span style="font-weight: normal">* _currentOffset;</span>
+<b>void</b><span style="font-weight: normal">*    _memoryEnd;</span>
+<b>void</b><span style="font-weight: normal">*    _memoryStart;</span>
+
+<b>void</b>* alloc(<b>size_t</b> size, <b>align_t</b> align) {
+
+   <b>void</b>* memory;
+
+   <b>if</b> (<span style="text-decoration: none">_currentOffset &gt;= _memoryEnd)</span>
+      return NULL;
+   _currentOffset = alignup<u>( </u>currentOffset,align);
+   memory = <span style="text-decoration: none">_currentOffset;</span>
+   _currentOffset += size;
+}</pre>
+
+    <h2
+      class="western"
+      style="margin-top: 0in; margin-bottom: 0.2in"
+      data-dl-uid="841"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      <b data-dl-uid="842" data-dl-original="true" data-dl-translated="true">フリーリスト</b>
+    </h2>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="843"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      <i data-dl-uid="844" data-dl-original="true" data-dl-translated="true"
+        ><b data-dl-uid="845" data-dl-original="true" data-dl-translated="true">フリーリストは</b></i
+      >、メモリの空きブロックのリンクリストである。通常、メモリは<i
+        data-dl-uid="846"
+        data-dl-original="true"
+        data-dl-translated="true"
+        ><b data-dl-uid="847" data-dl-original="true" data-dl-translated="true">n</b></i
+      >バイトの偶数サイズのブロックに分割されます。そして、バッファの中にあるこれらの空きブロックからなるリンクリストを構築することができます。ブロックが空いていれば、そのブロックはリストに含まれます。空きブロックがあれば、そのブロックはリストに入ります。<br
+        data-dl-uid="848"
+        data-dl-original="true"
+        data-dl-translated="true"
+      /><br
+        data-dl-uid="849"
+        data-dl-original="true"
+        data-dl-translated="true"
+      />そこで、フリーリストに含まれるどのようなタイプのブロックにも対応できるリンクリストが必要です。ブロックの中のデータについては、私たちは知りませんし、気にしません。しかし、リストポインタを何らかの方法で保存する必要があります。そこで、次のように新しい構造体<b
+        data-dl-uid="850"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >LIST_ENTRYを</b
+      >導入することにします。
+    </p>
+
+    <pre><b>typedef</b> <b>struct</b> _LIST_ENTRY {
+   <b>struct</b> <span style="text-decoration: none">LIST_ENTRY* next;</span>
+   <b>struct</b> <span style="text-decoration: none">LIST_ENTRY* prev;</span>
+}LIST_ENTRY;</pre>
+
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="858"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      LIST_ENTRY
+      を使用すると、リンクリストを構築するのに必要なフォワードリンクとバックリンクを好きな場所に保存できます。リンクされた<i
+        data-dl-uid="859"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >リストだけを</i
+      >維持することができるのです。<br
+        data-dl-uid="860"
+        data-dl-original="true"
+        data-dl-translated="true"
+      /><br
+        data-dl-uid="861"
+        data-dl-original="true"
+        data-dl-translated="true"
+      />しかし、上記のデータ構造には興味深い性質があります。もし、これをある構造体の中で使うとしたら、LIST_ENTRYポインタと親構造体のLIST_ENTRYのアドレスがあれば、その構造体を得ることができるのです。例えば
+    </p>
+
+    <pre><b>typedef</b> <b>struct</b> _FOO {
+   <b>int</b> data1;
+   <b>int</b> data2;
+   LIST_ENTRY listEntry;
+   <b>int</b> data3;
+}FOO;
+FOO bar;</pre>
+
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="0"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      そうすると、<b data-dl-uid="1" data-dl-original="true" data-dl-translated="true">&amp;barから</b
+      >FOOオブジェクトのベース位置がわかります。また、<b
+        data-dl-uid="2"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >&amp;bar-&gt;listEntryもわかって</b
+      >います。また、<b data-dl-uid="3" data-dl-original="true" data-dl-translated="true">bar-&gt;l</b
+      >istEntryのオフセットもわかっています。オフセットは、<b
+        data-dl-uid="4"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >&amp;((FOO*)0)-&gt;listEntry</b
+      >です。つまり、<b data-dl-uid="5" data-dl-original="true" data-dl-translated="true"
+        >&amp;bar-&gt;listEntry - &amp;((FOO*)0)-&gt;listEntry</b
+      >は、親構造体FOOの先頭を指しているのです。このように<b
+        data-dl-uid="6"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >CONTAINING_RECORDと</b
+      ><b data-dl-uid="7" data-dl-original="true" data-dl-translated="true">OFFSETOF</b
+      >マクロは動作します。<font
+        size="2"
+        data-dl-uid="9"
+        data-dl-original="true"
+        data-dl-translated="true"
+        ><b data-dl-uid="10" data-dl-original="true" data-dl-translated="true"
+          >CONTAINING_RECORDを</b
+        ></font
+      >
+      <font size="2" data-dl-uid="8" data-dl-original="true" data-dl-translated="true">使えば</font
+      >、<font size="2" data-dl-uid="12" data-dl-original="true" data-dl-translated="true"
+        ><b data-dl-uid="13" data-dl-original="true" data-dl-translated="true">LIST_ENTRYの</b></font
+      >
+      <font size="2" data-dl-uid="11" data-dl-original="true" data-dl-translated="true">親構造 </font
+      >体を取得することができます<font
+        size="2"
+        data-dl-uid="14"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >。<br data-dl-uid="15" data-dl-original="true" data-dl-translated="true" /><br
+          data-dl-uid="16"
+          data-dl-original="true"
+          data-dl-translated="true"
+        />さて</font
+      >、フリーリストは、メモリ内のフリーブロックのリンクリストに過ぎないのですね。次の図で説明します。
+    </p>
+
+    <p class="western" style="margin-bottom: 0.2in">
+      <img
+        src="./ma_files/osdev26_c2.PNG"
+        name="graphics3"
+        align="LEFT"
+        width="660"
+        height="190"
+        border="0"
+      /><br clear="LEFT" />
+
+      フリー・リストに関する興味深い問題は、<b
+        data-dl-uid="20"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >LIST_ENTRY</b
+      >自体をどこにどのように割り当てるかということです。最初は、これは鶏と卵の問題のように見えます。しかし、フリーリストを使用して既知のフリーブロックをリンクするだけなので、同じフリーブロックを使用して<b
+        data-dl-uid="21"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >LIST_ENTRYを</b
+      >格納すればよいのです。この章のすべての図では、<b
+        data-dl-uid="22"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >LIST_ENTRY</b
+      >を緑色の四角形で表しています。 上の図では、フリーブロック内に格納された<b
+        data-dl-uid="23"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >LIST_ENTRY </b
+      >オブジェクトを指す次ポインタだけを持つリンクリストを 1 つ用意しています。<br
+        data-dl-uid="24"
+        data-dl-original="true"
+        data-dl-translated="true"
+      /><br
+        data-dl-uid="25"
+        data-dl-original="true"
+        data-dl-translated="true"
+      />物事を簡単にするために、<b data-dl-uid="26" data-dl-original="true" data-dl-translated="true"
+        >LIST_ENTRY</b
+      >をすべてのフリーブロックの最初に格納すると便利です。すべてのブロックは同じサイズなので、ブロックが完全に使用されていない場合、<i
+        data-dl-uid="27"
+        data-dl-original="true"
+        data-dl-translated="true"
+        ><b data-dl-uid="28" data-dl-original="true" data-dl-translated="true">内部で断片化が</b></i
+      >発生する可能性があります。しかし、ブロックの割り当てと解放は非常に高速で、定数時間O(1)で実行されます。<br
+        data-dl-uid="29"
+        data-dl-original="true"
+        data-dl-translated="true"
+      /><br data-dl-uid="30" data-dl-original="true" data-dl-translated="true" /><b
+        data-dl-uid="31"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >設定<br data-dl-uid="32" data-dl-original="true" data-dl-translated="true" /><br
+          data-dl-uid="33"
+          data-dl-original="true"
+          data-dl-translated="true" /></b
+      ><span
+        style="font-weight: normal"
+        data-dl-uid="34"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >メモリバッファとそれへのポインタが必要 </span
+      >です。<span data-dl-uid="34" data-dl-translated="true"
+        >例えば、512バイトのバッファを作成して、各32バイトの割り当てブロックを格納することにしましょう。 </span
+      ><span
+        style="font-weight: normal"
+        data-dl-uid="36"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >この章の例では、メモリブロックを割り当てるために</span
+      ><b data-dl-uid="35" data-dl-original="true" data-dl-translated="true">_aligned_malloc</b>を<span
+        data-dl-uid="36"
+        data-dl-translated="true"
+        >呼び出すので、返されるメモリは常にページアライメントさ</span
+      >れます。<span data-dl-uid="36" data-dl-translated="true"
+        >デバッグを容易にするために、アロケーターをユーザーモードでビルドすることをお勧めします。</span
+      >後で<b data-dl-uid="37" data-dl-original="true" data-dl-translated="true">_aligned_malloc</b
+      ><span data-dl-uid="36" data-dl-translated="true">の呼び出しを</span>
+      <span
+        style="font-weight: normal"
+        data-dl-uid="38"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >あなた自身の </span
+      ><b data-dl-uid="39" data-dl-original="true" data-dl-translated="true">alloc_pages</b>
+      <span
+        style="font-weight: normal"
+        data-dl-uid="40"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >関数に </span
+      ><span data-dl-uid="36" data-dl-translated="true">置き換えるだけ</span>でいいのです。<span
+        data-dl-uid="40"
+        data-dl-translated="true"
+        >この関数は空いている物理ページを割り当てて、それをアドレス空間にマップする必要があります。また </span
+      >、<span
+        style="font-weight: normal"
+        data-dl-uid="42"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >ヒープアロケータとして使用</span
+      >する予定があれば、<b data-dl-uid="41" data-dl-original="true" data-dl-translated="true"
+        >free_list</b
+      >を<span data-dl-uid="42" data-dl-translated="true">ヒープストアを指す</span>ように<span
+        data-dl-uid="40"
+        data-dl-translated="true"
+        >設定するだけでも </span
+      >かまいません。<span data-dl-uid="42" data-dl-translated="true"
+        >どのような場合でも、私たちは作業するために空きメモリが必要です。</span
+      >
+    </p>
+
+    <pre><b>void</b>* free_list = _aligned_malloc (512, PAGE_SIZE);
+<b>const</b> <b>int</b> allocation_block_size = 32;</pre>
+
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="47"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      次に、フリーリストを初期化する必要があります。この例では、各ブロックは 32 バイトなので、単純に 32
+      バイトごとに LIST_ENTRY を挿入してフリーリストを作成することを思い出してください。各エントリーの
+      link-&gt;next が次の LIST_ENTRY を指すように設定されていることに注意してください。
+    </p>
+
+    <pre>
+LIST_ENTRY* link;
+uint8_t* block = (uint8_t*)free_list;
+for (<b>int</b> i = 0; i &lt; allocation_block_size - 1; i++) {
+   link = (LIST_ENTRY*) block;
+   link-&gt;next = (LIST_ENTRY*) (block + allocation_block_size);
+   block += allocation_block_size;
+}
+/* last entry should point to NULL. */
+link = (LIST_ETRY*) block;
+link-&gt;next = NULL;</pre
+    >
+
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="50"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      上記のコードでは、フリーリストを作成しています。各 LIST_ENTRY
+      は各アロケーションブロックのちょうど最初に位置していることに注意してください（この例では、各アロケーションユニットは
+      32 バイトです）。リンクリストを格納するために、空きアロケーションユニット自体を使用します。<br
+        data-dl-uid="51"
+        data-dl-original="true"
+        data-dl-translated="true"
+      /><br data-dl-uid="52" data-dl-original="true" data-dl-translated="true" /><b
+        data-dl-uid="53"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >アロケーション<br data-dl-uid="54" data-dl-original="true" data-dl-translated="true" /><br
+          data-dl-uid="55"
+          data-dl-original="true"
+          data-dl-translated="true" /></b
+      >フリーリストからブロックを削除します。最後に、ブロックを返します。
+    </p>
+
+    <pre><b>void</b>* alloc () {
+
+   <b>void</b>* allocation_unit;
+   LIST_ENTRY* link;
+
+   /* this is the first free allocation unit. */
+   allocation_unit = free_list;
+   link = (LIST_ENTRY*) free_list;
+   free_list = link-&gt;next;
+
+   return allocation_unit;
+}</pre>
+
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="59"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      注意すべきは、LIST_ENTRYを各アロケーションユニットの最初に保存していることです。代わりにアロケーションユニットの最後か、中間のどこかに格納できない理由はありません。フリーリストをどのように構成するかによって、コードは若干異なってきます。しかし、重要なのは<i
+        data-dl-uid="60"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >一貫性を</i
+      >保つことです。また、この<b data-dl-uid="61" data-dl-original="true" data-dl-translated="true"
+        >alloc</b
+      >には size
+      パラメータがないことにお気づきかもしれません。返されるアロケーションユニットはすべて同じサイズなので、これは不要と判断しました。<br
+        data-dl-uid="62"
+        data-dl-original="true"
+        data-dl-translated="true"
+      /><br data-dl-uid="63" data-dl-original="true" data-dl-translated="true" /><b
+        data-dl-uid="64"
+        data-dl-original="true"
+        data-dl-translated="true"
+        ><br data-dl-uid="65" data-dl-original="true" data-dl-translated="true" /><br
+          data-dl-uid="66"
+          data-dl-original="true"
+          data-dl-translated="true" /></b
+      >ブロックへのポインタが与えられたら、単純にそれをフリーリストに再挿入してください。
+    </p>
+
+    <pre><b>void</b> free (<b>void</b>* memory) {
+
+   <b>void</b>* allocation_unit;
+   LIST_ENTRY* link;
+
+   allocation_unit = memory;
+   link = (LIST_ENTRY*) allocation_unit;
+   link-&gt;next = (LIST_ENTRY*) free_list;
+   free_list = allocation_unit;
+}</pre>
+
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="71"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      空きリストのすべてのアロケーションユニットは、<i
+        data-dl-uid="72"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >まあ空いて</i
+      >いるので、メモリブロックを空きリストに挿入し直すことで、効果的に再アロケーションできるようになりました。メモリが空いたので、ブロックの先頭に新しい
+      LIST_ENTRY を挿入し、それを使って空きリストに戻すことができます。<br
+        data-dl-uid="73"
+        data-dl-original="true"
+        data-dl-translated="true"
+      /><br data-dl-uid="74" data-dl-original="true" data-dl-translated="true" /><b
+        data-dl-uid="75"
+        data-dl-original="true"
+        data-dl-translated="true"
+        ><br data-dl-uid="76" data-dl-original="true" data-dl-translated="true" /><br
+          data-dl-uid="77"
+          data-dl-original="true"
+          data-dl-translated="true" /></b
+      >CONTAINING_RECORDとLIST_ENTRYの親構造体を使用して、格納したい情報を拡張することができます。例えば
+    </p>
+
+    <pre>
+typedef struct _BUFCTRL {
+   int magic;
+   int extra_information;
+   LIST_ENTERY link;
+}BUFCTRL;</pre
+    >
+
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="79"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      このような構造を各アロケーションユニットの最後に追加することで、バッファオーバーランや内部メモリ構造の破損を検出することができます。
+      これはカーネルレベルのコードにおいて非常に重要です。なぜなら、カーネルコードのバグが壊滅的になるずっと前に検出する必要があるためです。
+    </p>
+    <h2
+      class="western"
+      style="margin-top: 0in; margin-bottom: 0.2in"
+      data-dl-uid="80"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      <b data-dl-uid="81" data-dl-original="true" data-dl-translated="true">フリースタック</b>
+    </h2>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="82"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      フリースタックはフリーリストと非常によく似ています。実際、フリーリストを使って実装することができます。唯一の違いはインターフェースです。フリーリストを実装するだけですが、<b
+        data-dl-uid="83"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >alloc</b
+      >と<b data-dl-uid="84" data-dl-original="true" data-dl-translated="true">free</b
+      >は少し違った書き方をします。allocate はスタックからアイテムを popping するのと同じで、free
+      はアイテムをスタックに push back
+      するのと同じです。フリースタックはフリーリストとして実装されているので、スタックから項目を<i
+        data-dl-uid="85"
+        data-dl-original="true"
+        data-dl-translated="true"
+        ><b data-dl-uid="86" data-dl-original="true" data-dl-translated="true">ポップ</b></i
+      >するにはリストの最初の要素を削除するだけでよく、スタックに項目を<i
+        data-dl-uid="87"
+        data-dl-original="true"
+        data-dl-translated="true"
+        ><b data-dl-uid="88" data-dl-original="true" data-dl-translated="true">プッシュ</b></i
+      >するにはリストに項目を挿入するだけでよいのです。
+    </p>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="89"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      フリーリストとフリースタックは、より高度なアロケータで多く使用され、より複雑なコードの中でこれらのタイプのメソッドを<i
+        data-dl-uid="90"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >インライン</i
+      >化したコードを見つけることができるかもしれません。そのため、なぜフリーリストが使われるのか、どのように動作するのか、その背後にある理論を理解することは、より複雑なコードでそれらを認識できるようにするために、より役に立ちます。<br
+        data-dl-uid="91"
+        data-dl-original="true"
+        data-dl-translated="true"
+      /><br data-dl-uid="92" data-dl-original="true" data-dl-translated="true" /><b
+        data-dl-uid="93"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >物理メモリアロケータとしてのフリーリストとフリースタック<br
+          data-dl-uid="94"
+          data-dl-original="true"
+          data-dl-translated="true" /><br
+          data-dl-uid="95"
+          data-dl-original="true"
+          data-dl-translated="true" /></b
+      >フリースタックは、<i data-dl-uid="96" data-dl-original="true" data-dl-translated="true"
+        ><b data-dl-uid="97" data-dl-original="true" data-dl-translated="true"
+          >物理メモリアロケータとして</b
+        ></i
+      >非常に有効です。ページングを有効にすると、任意の物理ページを仮想アドレス空間の任意の場所にマップすることができます。物理ページの実際の位置は、ほとんどの場合、重要ではありません。連続したメモリが必要な場合でも、<i
+        data-dl-uid="102"
+        data-dl-original="true"
+        data-dl-translated="true"
+        ><b data-dl-uid="103" data-dl-original="true" data-dl-translated="true">任意の</b></i
+      >ページを取得し、後でアドレス空間に連続的にマッピングすることができます。ページの実際の位置は重要ではないので、フリースタックとフリーリストは、各割当単位が1ページである物理ページを割り当てるための非常に高速で効率的な方法となりえます。もちろん、これはより高度な設計において、いくつかの問題を引き起こすかもしれません。たとえば、異なるページサイズ（4096
+      バイトだけではありません）をサポートしたい場合や、連続した物理メモリを必要とするハードウェアを扱いたい場合などです。これについては、後のセクションで説明する<i
+        data-dl-uid="104"
+        data-dl-original="true"
+        data-dl-translated="true"
+        ><b data-dl-uid="105" data-dl-original="true" data-dl-translated="true">ゾーンを</b></i
+      >導入することで対応できます。<br
+        data-dl-uid="106"
+        data-dl-original="true"
+        data-dl-translated="true"
+      /><br
+        data-dl-uid="107"
+        data-dl-original="true"
+        data-dl-translated="true"
+      />また、フリーリストやフリースタックの LIST_ENTRY
+      を直接フリーな物理ページに格納するため、ページングをサポートする設計では興味深い問題が発生することに注意してください。つまり、上記のコードサンプルのように、単純にメモリに書き込んだり、メモリから読み出したりすることができません。まずアドレス空間に<i
+        data-dl-uid="108"
+        data-dl-original="true"
+        data-dl-translated="true"
+        ><b data-dl-uid="109" data-dl-original="true" data-dl-translated="true">マッピング</b></i
+      >される必要があります。このため、<b
+        data-dl-uid="110"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >allocと</b
+      >
+      <b data-dl-uid="111" data-dl-original="true" data-dl-translated="true">freeの</b
+      >コードは若干複雑になります。
+    </p>
+
+    <pre><b>void</b>* alloc () {
+
+   <b>void</b>* allocation_unit;
+   LIST_ENTRY* link;
+
+   /* this is the first free allocation unit. */
+   allocation_unit = free_list;
+
+   /* map it into address space. */
+   allocation_unit = map (allocation_unit);
+
+   link = (LIST_ENTRY*) free_list;
+   free_list = link-&gt;next;
+   return allocation_unit;
+}
+<b>void</b> free (<b>void</b>* memory) {
+
+   <b>void</b>* allocation_unit;
+   LIST_ENTRY* link;
+
+   /* this becomes the top of our stack. */
+   allocation_unit = memory;
+   link = (LIST_ENTRY*) allocation_unit;
+   link-&gt;next = (LIST_ENTRY*) free_list;
+
+   /* unmap page. */
+   unmap (allocation_unit);
+
+   /* store physical address and unmap it. */
+   free_list = get_physical_address (allocation_unit);
+}</pre>
+
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="118"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      上記の例では、<b data-dl-uid="119" data-dl-original="true" data-dl-translated="true">alloc</b>は<b
+        data-dl-uid="120"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >free_list</b
+      >
+      から物理アドレスを取得します。これはリスト内の最初のアロケーションユニットであり、私たちが返したいものです。しかし、まず
+      free_list を更新して次のエントリを指すようにする必要があります。つまり、<b
+        data-dl-uid="121"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >(LIST_ENTRY*)allocation_unit</b
+      >
+      を取得する必要があるのです。しかし、これは仮想アドレスではなく物理アドレスなので、まず<b
+        data-dl-uid="122"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >mapを呼び出して</b
+      >アドレス空間にマッピングする必要があります。マッピングすると、allocation_unitが目的のページの仮想アドレスを指すので、そこから<b
+        data-dl-uid="123"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >link-&gt;nextを</b
+      >読むことができるようになりました。そして、今マップしたページの仮想アドレスを返しました。<br
+        data-dl-uid="124"
+        data-dl-original="true"
+        data-dl-translated="true"
+      /><br data-dl-uid="125" data-dl-original="true" data-dl-translated="true" /><b
+        data-dl-uid="126"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >解放</b
+      >するには、<b data-dl-uid="127" data-dl-original="true" data-dl-translated="true">メモリが</b
+      >仮想アドレスであることに注意してください。すでにマップされているので、上でやったように、そのページに新しいLIST_ENTRYを書き込めばいいのです。なお、free_listにはすでに物理アドレスが格納されているので、<b
+        data-dl-uid="128"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >link-&gt;nextの</b
+      >行は問題ない。しかし、<b data-dl-uid="131" data-dl-original="true" data-dl-translated="true"
+        >メモリの</b
+      >物理アドレス<i data-dl-uid="130" data-dl-original="true" data-dl-translated="true"
+        >（仮想ではなく</i
+      >）を指すように<b data-dl-uid="129" data-dl-original="true" data-dl-translated="true"
+        >free_listを</b
+      >更新する必要があります。そこで、新しい関数<span
+        style="font-style: normal"
+        data-dl-uid="132"
+        data-dl-original="true"
+        data-dl-translated="true"
+        ><b data-dl-uid="133" data-dl-original="true" data-dl-translated="true"
+          >get_physical_address</b
+        ></span
+      >
+      を呼び出して、物理アドレスを取得します。これで、メモリページが不要になったので、<b
+        data-dl-uid="134"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >マッピングを解除</b
+      >することができます。<br data-dl-uid="135" data-dl-original="true" data-dl-translated="true" /><br
+        data-dl-uid="136"
+        data-dl-original="true"
+        data-dl-translated="true"
+      /><b data-dl-uid="137" data-dl-original="true" data-dl-translated="true">get_physical_address</b
+      >関数は、<span
+        style="font-weight: normal"
+        data-dl-uid="138"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >仮想アドレスからページテーブルインデックスとディレクトリテーブルインデックスを取得し（仮想アドレスフォーマットを思い出してください）、ページテーブルを調べて </span
+      ><b data-dl-uid="139" data-dl-original="true" data-dl-translated="true"
+        >ページテーブルエントリ（PTE）-&gt;フレーム</b
+      >
+      <span
+        style="font-weight: normal"
+        data-dl-uid="140"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >フィールドを見つけ、これがマップされた物理アドレス </span
+      >となります。関数<span
+        style="font-weight: normal"
+        data-dl-uid="142"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >mapと </span
+      ><b data-dl-uid="143" data-dl-original="true" data-dl-translated="true">unmapは</b>、<span
+        style="font-weight: normal"
+        data-dl-uid="144"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >単に物理アドレスをマップしたりアン</span
+      >マップしたりするだけです。
+    </p>
+    <h2
+      class="western"
+      style="margin-top: 0in; margin-bottom: 0.2in"
+      data-dl-uid="145"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      <b data-dl-uid="146" data-dl-original="true" data-dl-translated="true">ビットマップ</b>
+    </h2>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="147"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      <i data-dl-uid="148" data-dl-original="true" data-dl-translated="true"
+        ><b data-dl-uid="149" data-dl-original="true" data-dl-translated="true">ビットマップは</b></i
+      >1ビットの配列で、各ビットはそれぞれのアロケーションユニットの状態を表しています。アロケーションユニットは<i
+        data-dl-uid="150"
+        data-dl-original="true"
+        data-dl-translated="true"
+        ><b data-dl-uid="151" data-dl-original="true" data-dl-translated="true">使用中</b></i
+      >（割り当て済み）か<i data-dl-uid="152" data-dl-original="true" data-dl-translated="true"
+        ><b data-dl-uid="153" data-dl-original="true" data-dl-translated="true">空き</b></i
+      >状態のどちらかです。この 2 つの状態を考えると、1
+      つのビットを使ってアロケーションユニットの状態を表すことができます。物理メモリ管理の章で初めてビットマップを紹介しましたが、ビットマップはフリーリストやフリースタックと同様、多くの高度なアロケーターの基本的な部分となっています。
+    </p>
+
+    <p class="western" style="margin-bottom: 0.2in">
+      <img
+        src="./ma_files/osdev26_c3.PNG"
+        name="graphics4"
+        align="LEFT"
+        width="552"
+        height="156"
+        border="0"
+      /><br clear="LEFT" />
+      <b data-dl-uid="157" data-dl-original="true" data-dl-translated="true"
+        >セットアップ<br data-dl-uid="158" data-dl-original="true" data-dl-translated="true" /><br
+          data-dl-uid="159"
+          data-dl-original="true"
+          data-dl-translated="true"
+      /></b>
+
+      ビットマップは、ビットマップ自体を格納するための追加スペースが必要です。また、アロケーションユニットを格納するためのメモリも必要です。
+      ビットマップは空きメモリ領域内に格納することもできますが、領域を確保する際には注意が必要です。このサンプルコードでは、__aligned_malloc
+      を再度呼び出して、ページアラインされた空きメモリを確保し、そのページ全体を空きメモリとして使用します。そして、ページ全体を空きメモリとして使用します。
+    </p>
+
+    <pre
+      style="margin-bottom: 0.2in"
+    ><b>void</b>* memory_start = __aligned_malloc(PAGE_SIZE,PAGE_SIZE);</pre>
+
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="162"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      <b data-dl-uid="163" data-dl-original="true" data-dl-translated="true"
+        ><br data-dl-uid="164" data-dl-original="true" data-dl-translated="true" /><br
+          data-dl-uid="165"
+          data-dl-original="true"
+          data-dl-translated="true" /></b
+      >アロケーションするには、ビットマップの全ビットをスキャンして、フリーのアロケーションユニットを見つけ、それを返します。スキャンを行うため、この処理の最悪値は
+      O(n) であり、フリーリストやフリースタックよりはるかに遅くなります。
+    </p>
+
+    <pre>
+void* alloc() {
+
+   index_t bit;
+
+   for (bit = 0; bit &lt; allocation_unit_count; n++)
+      if (bit_test (bit) == 0)
+         break;
+
+   if (bit == allocation_unit_count)
+      return NULL;
+
+   return (void*) (mamory_start + (bit * sizeof (allocation_unit)));
+}</pre
+    >
+
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="167"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      上記では、ビットマップ内のすべてのビットをループしています。<b
+        data-dl-uid="168"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >bit_testを</b
+      >呼び出し、ビットマップ内のビットの値を返します。もしそれが<i
+        data-dl-uid="169"
+        data-dl-original="true"
+        data-dl-translated="true"
+        ><b data-dl-uid="170" data-dl-original="true" data-dl-translated="true">0</b></i
+      >であれば、空きアロケーションユニットを見つけたことになります。何も見つからなければ、NULL
+      を返します。もし見つかったら、bitmap [bit] == 1 で、bit はビットマップのビット番号です。
+      これはアロケーションユニットの番号でもあります。つまり、アロケーションユニットは<b
+        data-dl-uid="171"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >memory_start + (bit * sizeof(allocation_unit)</b
+      >) の位置にあることになります。<br
+        data-dl-uid="172"
+        data-dl-original="true"
+        data-dl-translated="true"
+      /><br data-dl-uid="173" data-dl-original="true" data-dl-translated="true" /><b
+        data-dl-uid="174"
+        data-dl-original="true"
+        data-dl-translated="true"
+        ><br data-dl-uid="175" data-dl-original="true" data-dl-translated="true" /><br
+          data-dl-uid="176"
+          data-dl-original="true"
+          data-dl-translated="true"
+        />
+        解放</b
+      >するには、単純にアロケーションユニットの状態を表すビットを設定します。
+    </p>
+
+    <pre>
+void free(void* memory) {
+
+   index_t bit;
+
+   bit = size_of_memory / sizeof(allocation_unit).
+   set_bit (bit);
+}</pre
+    >
+
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="178"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      ビットマップの興味深い点は、フリーリストやフリースタックと異なり、同じポインタが複数回フリーになったことを検出できることです。
+      必要なのは、ビットが既にセットされているかどうかを確認することだけです。上の例と、物理メモリマネージャの章にある完全な実装を比べてみてください。
+    </p>
+    <h1
+      class="western"
+      style="margin-top: 0in; margin-bottom: 0.2in"
+      data-dl-uid="868"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      <b data-dl-uid="869" data-dl-original="true" data-dl-translated="true">3.カーネルアロケータ</b>
+    </h1>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in; font-weight: normal"
+      data-dl-uid="870"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      多くのメモリ管理システムは、複数のアロケーション技術を使用しています。このようなタイプのアロケーターを<i
+        data-dl-uid="871"
+        data-dl-original="true"
+        data-dl-translated="true"
+        ><b data-dl-uid="872" data-dl-original="true" data-dl-translated="true">ハイブリッドと</b></i
+      >呼びます。例えば、<i data-dl-uid="873" data-dl-original="true" data-dl-translated="true"
+        ><b data-dl-uid="874" data-dl-original="true" data-dl-translated="true">バディアロケータは</b></i
+      >前のセクションで説明した<i data-dl-uid="875" data-dl-original="true" data-dl-translated="true"
+        ><b data-dl-uid="876" data-dl-original="true" data-dl-translated="true">ビットマップか</b></i
+      >
+      <i data-dl-uid="877" data-dl-original="true" data-dl-translated="true"
+        ><b data-dl-uid="878" data-dl-original="true" data-dl-translated="true">フリー</b></i
+      >リストのいずれかの技法を多用します。スラブアロケータもまた、フリーリストのリストを多用します。このセクションでは、バディアロケーターを始めとして、いくつかのハイブリッドアロケーターを取り上げます。
+    </p>
+    <h2 class="western" data-dl-uid="879" data-dl-original="true" data-dl-translated="true">
+      <b data-dl-uid="880" data-dl-original="true" data-dl-translated="true">バディ・アロケーター</b>
+    </h2>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in; font-weight: normal"
+      data-dl-uid="881"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      Buddy Allocator
+      はこれから見ていく最初のハイブリッド・アロケータで、最もシンプルなものの一つです。どのように動作するかを見るために、まず256バイトのメモリバッファを2つで割ってみましょう。
+      これで128バイトの小さなバッファが2つできます。もう一度2で割ると、64バイトのバッファが4つできます。最後に、これをもう1度2で割ると、32バイトのバッファが8個できます。また、各ブロックに番号を付けます。下図をご覧ください。
+    </p>
+
+    <p class="western" style="margin-bottom: 0.2in">
+      <img
+        src="./ma_files/osdev26_c4.PNG"
+        name="graphics5"
+        align="LEFT"
+        width="615"
+        height="455"
+        border="0"
+      /><br clear="LEFT" />
+      <span
+        style="font-weight: normal"
+        data-dl-uid="179"
+        data-dl-original="true"
+        data-dl-translated="true"
+        ><br
+          data-dl-uid="180"
+          data-dl-original="true"
+          data-dl-translated="true"
+        />ブロックを2つの小さなブロックに分割するたびに（例えば、ブロック0を分割してブロック1とブロック2を得た）、これらの小さなブロックを次のように呼びます。 </span
+      ><i data-dl-uid="181" data-dl-original="true" data-dl-translated="true"
+        ><b data-dl-uid="182" data-dl-original="true" data-dl-translated="true">きみら</b></i
+      >
+      <span
+        style="font-weight: normal"
+        data-dl-uid="183"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >を互いに交換する。そのため、例えばブロック1とブロック2が </span
+      ><i data-dl-uid="184" data-dl-original="true" data-dl-translated="true"
+        ><b data-dl-uid="185" data-dl-original="true" data-dl-translated="true">きみら</b></i
+      ><span
+        style="font-weight: normal"
+        data-dl-uid="186"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >ブロック3、ブロック4は </span
+      ><i data-dl-uid="187" data-dl-original="true" data-dl-translated="true"
+        ><b data-dl-uid="188" data-dl-original="true" data-dl-translated="true">きみら</b></i
+      ><span
+        style="font-weight: normal"
+        data-dl-uid="189"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >ブロック5とブロック6は </span
+      ><i data-dl-uid="190" data-dl-original="true" data-dl-translated="true"
+        ><b data-dl-uid="191" data-dl-original="true" data-dl-translated="true">きみら</b></i
+      ><span
+        style="font-weight: normal"
+        data-dl-uid="192"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >しかし、ブロック4と5は </span
+      ><i data-dl-uid="193" data-dl-original="true" data-dl-translated="true"
+        ><b data-dl-uid="194" data-dl-original="true" data-dl-translated="true">ノット</b></i
+      >
+      <span
+        style="font-weight: normal"
+        data-dl-uid="195"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >バディ：任意のブロックがある場合、そのブロック番号を見れば、上の図のようにバディを見つけることができます。バディを見つけることで、以下のことが可能になります。 </span
+      ><i data-dl-uid="196" data-dl-original="true" data-dl-translated="true"
+        ><b data-dl-uid="197" data-dl-original="true" data-dl-translated="true">組み合わせる</b></i
+      >
+      <span
+        style="font-weight: normal"
+        data-dl-uid="198"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >を元に戻します。つまり、例えばブロック1（128バイト）をブロック3とブロック4（ともに64バイト）に分割した場合、ブロック3とブロック4は </span
+      ><i data-dl-uid="199" data-dl-original="true" data-dl-translated="true"
+        ><b data-dl-uid="200" data-dl-original="true" data-dl-translated="true">きみら</b></i
+      ><span
+        style="font-weight: normal"
+        data-dl-uid="201"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >これを知ることで、私たちは </span
+      ><i data-dl-uid="202" data-dl-original="true" data-dl-translated="true"
+        ><b data-dl-uid="203" data-dl-original="true" data-dl-translated="true">組み合わせる</b></i
+      >
+      <span
+        style="font-weight: normal"
+        data-dl-uid="204"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >ブロック3とブロック4をブロック1に戻す。つまり、大きなブロックを2つに分割し、その2つの小さなブロックを大きなブロックに戻すことができるのです。<br
+          data-dl-uid="205"
+          data-dl-original="true"
+          data-dl-translated="true" /><br
+          data-dl-uid="206"
+          data-dl-original="true"
+          data-dl-translated="true" />お気づきかもしれませんが、上記ではバッファを2分割し続けるだけでした。これによって、いくつかの興味深い性質が得られます。<br
+          data-dl-uid="207"
+          data-dl-original="true"
+          data-dl-translated="true" /><br
+          data-dl-uid="208"
+          data-dl-original="true"
+          data-dl-translated="true" /></span
+      ><b data-dl-uid="209" data-dl-original="true" data-dl-translated="true"
+        >1レベルあたりのブロック数 </b
+      ><span
+        style="font-weight: normal"
+        data-dl-uid="210"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >= 2階級<br data-dl-uid="211" data-dl-original="true" data-dl-translated="true" /></span
+      ><b data-dl-uid="212" data-dl-original="true" data-dl-translated="true">レベルブロックの大きさ</b>
+      <span
+        style="font-weight: normal"
+        data-dl-uid="213"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >= 総バッファサイズ / 1レベルあたりのブロック数<br
+          data-dl-uid="214"
+          data-dl-original="true"
+          data-dl-translated="true" /></span
+      ><b data-dl-uid="215" data-dl-original="true" data-dl-translated="true"
+        >ポインタのレベルのインデックス</b
+      >
+      <span
+        style="font-weight: normal"
+        data-dl-uid="216"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >= ポインタ / そのレベルのブロックの大きさ<br
+          data-dl-uid="217"
+          data-dl-original="true"
+          data-dl-translated="true"
+        /><br
+          data-dl-uid="218"
+          data-dl-original="true"
+          data-dl-translated="true"
+        />例えば、レベル3のブロック数は2^3 = 8であり、同じレベルのブロックのサイズは256 / 8 =
+        32バイトである。最後の例では、バッファの96バイト目にポインタがあったとします。そして、96 / 32 = 3
+        とすれば、レベル3におけるそのポインタのインデックスを得ることができます。これは、レベル3の3番目のブロックである </span
+      ><b data-dl-uid="219" data-dl-original="true" data-dl-translated="true">ブロックナイン</b>
+      <span
+        style="font-weight: normal"
+        data-dl-uid="220"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >を上図に示します。これが何を意味するかというと </span
+      ><i data-dl-uid="221" data-dl-original="true" data-dl-translated="true"
+        ><b data-dl-uid="222" data-dl-original="true" data-dl-translated="true"
+          >レベルとポインタが与えられれば、ブロック番号を計算することができる</b
+        ></i
+      >
+      <span
+        style="font-weight: normal"
+        data-dl-uid="223"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >その相棒を探すのに必要なまた、どのレベルを使用するかも </span
+      ><i data-dl-uid="224" data-dl-original="true" data-dl-translated="true"
+        ><b data-dl-uid="225" data-dl-original="true" data-dl-translated="true">割当サイズ</b></i
+      ><span
+        style="font-weight: normal"
+        data-dl-uid="226"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >例えば、ポインタが2^3バイトのブロックを指していることが分かれば、レベル3を使用することが分かる。これは、さらに次のことを意味します。 </span
+      ><i data-dl-uid="227" data-dl-original="true" data-dl-translated="true"
+        ><b data-dl-uid="228" data-dl-original="true" data-dl-translated="true"
+          >ポインタとアロケーションサイズだけで、その相棒を見つけることができます。</b
+        ></i
+      ><span
+        style="font-weight: normal"
+        data-dl-uid="229"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >.<br data-dl-uid="230" data-dl-original="true" data-dl-translated="true" /><br
+          data-dl-uid="231"
+          data-dl-original="true"
+          data-dl-translated="true"
+        />しかし、このようなものを実装してアロケーションに使うにはどうしたらよいでしょうか。メモリバッファのように見るのではなく、フリーリストのリストとして見てみましょう。
+        次の図のように、各レベルに1つずつフリーリストがあります。これらはフリーリストなので、フリーブロックだけをリンクすることになることを思い出してください。</span
+      >
+    </p>
+
+    <p class="western" style="margin-bottom: 0.2in">
+      <img
+        src="./ma_files/osdev26_c5.PNG"
+        name="graphics6"
+        align="LEFT"
+        width="603"
+        height="241"
+        border="0"
+      /><br clear="LEFT" />
+
+      <span
+        style="font-weight: normal"
+        data-dl-uid="232"
+        data-dl-original="true"
+        data-dl-translated="true"
+        ><br
+          data-dl-uid="233"
+          data-dl-original="true"
+          data-dl-translated="true" />このように空きリストを利用することで、割り当てを大幅に簡略化することができます。上図は、256バイトのブロックがなくなり、128バイトのブロックが1つ、2^nバイトのブロックが2つ空いている状態を示しています。新しい128バイトブロックを割り当てる場合は、レベル1から1つ削除すればよい。2^n
+        バイトのブロックを解放したい場合は、レベル n
+        のリストに追加するだけです。これらは空きリストなので、LIST_ENTRYを空きブロック自体に直接格納することができます。<br
+          data-dl-uid="234"
+          data-dl-original="true"
+          data-dl-translated="true" /><br
+          data-dl-uid="235"
+          data-dl-original="true"
+          data-dl-translated="true" /></span
+      ><b data-dl-uid="236" data-dl-original="true" data-dl-translated="true">セットアップ</b
+      ><span
+        style="font-weight: normal"
+        data-dl-uid="237"
+        data-dl-original="true"
+        data-dl-translated="true"
+        ><br data-dl-uid="238" data-dl-original="true" data-dl-translated="true" /><br
+          data-dl-uid="239"
+          data-dl-original="true"
+          data-dl-translated="true"
+        />まず、いくつかのマクロを定義してみましょう。これらは、先に説明した基本的なプロパティを実装したものです。</span
+      >
+    </p>
+
+    <pre style="font-weight: normal">#define MAX_LEVELS 32 /* 2^32 = 4GB. */
+#define BLOCKS_PER_LEVEL(level) (1&lt;&lt;(level))
+#define SIZE_OF_BLOCKS_AT_LEVEL(level,total_size) ((total_size) / (1&lt;&lt;(level))
+<font color="#000000"><font size="2">#define INDEX_OF_POINTER_IN_LEVEL(pointer,level,total_size) \</font></font>
+<font color="#000000">   <font size="2"><span style="font-weight: normal">((pointer) / (SIZE_OF_BLOCKS_AT_LEVEL(level,total_size)))</span></font></font></pre>
+
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="246"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      <font color="#000000" data-dl-uid="247" data-dl-original="true" data-dl-translated="true"
+        ><font size="2" data-dl-uid="248" data-dl-original="true" data-dl-translated="true"
+          ><span
+            style="font-weight: normal"
+            data-dl-uid="249"
+            data-dl-original="true"
+            data-dl-translated="true"
+            >マクロ
+          </span></font
+        ><font size="2" data-dl-uid="250" data-dl-original="true" data-dl-translated="true"
+          ><b data-dl-uid="251" data-dl-original="true" data-dl-translated="true"
+            >INDEX_OF_POINTER_IN_LEVEL
+          </b></font
+        >は<font size="2" data-dl-uid="252" data-dl-original="true" data-dl-translated="true"
+          ><span
+            style="font-weight: normal"
+            data-dl-uid="253"
+            data-dl-original="true"
+            data-dl-translated="true"
+            >完全では
+          </span></font
+        >ありません。<font data-dl-uid="252" data-dl-translated="true"
+          ><span data-dl-uid="253" data-dl-translated="true"
+            >実際に渡す必要のあるポインタは、メモリバッファの先頭からの相対的なものでなければなりません。
+          </span></font
+        >つまり、<font size="2" data-dl-uid="256" data-dl-original="true" data-dl-translated="true"
+          ><span
+            style="font-weight: normal"
+            data-dl-uid="257"
+            data-dl-original="true"
+            data-dl-translated="true"
+            >計算の内部で</span
+          ></font
+        ><font size="2" data-dl-uid="254" data-dl-original="true" data-dl-translated="true"
+          ><b data-dl-uid="255" data-dl-original="true" data-dl-translated="true"
+            >ポインタ - memory_start</b
+          ></font
+        >を<font data-dl-uid="252" data-dl-translated="true"
+          ><span data-dl-uid="253" data-dl-translated="true">使用 </span></font
+        >する必要がある<font data-dl-uid="256" data-dl-translated="true"
+          ><span data-dl-uid="257" data-dl-translated="true">ため、マクロは</span></font
+        >次のようになります。</font
+      >
+    </p>
+
+    <pre style="font-weight: normal"><font size="2">/* Corrected. */</font>
+<font size="2">#define INDEX_OF_POINTER_IN_LEVEL(pointer,level,memory_start,total_size) \</font>
+   <font size="2"><span style="font-weight: normal">(((pointer)-(memory_start)) / (SIZE_OF_BLOCKS_AT_LEVEL(level,total_size)))</span></font></pre>
+
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="263"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      <font color="#000000" data-dl-uid="264" data-dl-original="true" data-dl-translated="true"
+        ><font size="2" data-dl-uid="265" data-dl-original="true" data-dl-translated="true"
+          ><span
+            style="font-weight: normal"
+            data-dl-uid="266"
+            data-dl-original="true"
+            data-dl-translated="true"
+            ><br
+              data-dl-uid="267"
+              data-dl-original="true"
+              data-dl-translated="true"
+            />このマクロは少し複雑ですが、前節の最初の計算と比較</span
+          ></font
+        ></font
+      >すると、<font color="#000000" data-dl-uid="268" data-dl-original="true" data-dl-translated="true"
+        ><font size="2" data-dl-uid="269" data-dl-original="true" data-dl-translated="true"
+          ><b data-dl-uid="270" data-dl-original="true" data-dl-translated="true"
+            >Pointer / LevelのBlockのサイズ</b
+          ></font
+        ></font
+      >に過ぎません<font
+        color="#000000"
+        data-dl-uid="271"
+        data-dl-original="true"
+        data-dl-translated="true"
+        ><font size="2" data-dl-uid="272" data-dl-original="true" data-dl-translated="true"
+          ><span
+            style="font-weight: normal"
+            data-dl-uid="273"
+            data-dl-original="true"
+            data-dl-translated="true"
+            >。 これは後々freeするときに非常に重要に
+          </span></font
+        ></font
+      >なります。<font data-dl-uid="271" data-dl-translated="true"
+        ><font data-dl-uid="272" data-dl-translated="true"
+          ><span data-dl-uid="273" data-dl-translated="true"
+            ><br data-dl-uid="274" data-dl-translated="true" /><br
+              data-dl-uid="275"
+              data-dl-translated="true"
+            />また、作業用のメモリバッファも必要です。他の例と同様に
+          </span></font
+        ></font
+      >、<font color="#000000" data-dl-uid="276" data-dl-original="true" data-dl-translated="true"
+        ><font size="2" data-dl-uid="277" data-dl-original="true" data-dl-translated="true"
+          ><b data-dl-uid="278" data-dl-original="true" data-dl-translated="true"
+            >__aligned_malloc</b
+          ></font
+        ></font
+      >を<font data-dl-uid="271" data-dl-translated="true"
+        ><font data-dl-uid="272" data-dl-translated="true"
+          ><span data-dl-uid="273" data-dl-translated="true">呼び出します </span></font
+        ></font
+      ><font color="#000000" data-dl-uid="279" data-dl-original="true" data-dl-translated="true"
+        ><font size="2" data-dl-uid="280" data-dl-original="true" data-dl-translated="true"
+          ><span
+            style="font-weight: normal"
+            data-dl-uid="281"
+            data-dl-original="true"
+            data-dl-translated="true"
+            >。 これにより、ページアラインされた PAGE_SIZE バッファが</span
+          ></font
+        ></font
+      >得られます。
+    </p>
+
+    <pre
+      style="margin-bottom: 0.2in"
+    ><font color="#000000"><font size="2"><b>void</b></font></font><font color="#000000"><font size="2"><span style="font-weight: normal">* memory_start = __aligned_malloc(PAGE_SIZE,PAGE_SIZE);</span></font></font></pre>
+
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="289"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      <font color="#000000" data-dl-uid="290" data-dl-original="true" data-dl-translated="true"
+        >物理メモリの割り当てにバディアロケータを使用する場合、<b
+          data-dl-uid="291"
+          data-dl-original="true"
+          data-dl-translated="true"
+          >memory_start</b
+        >は 0 (メモリのベース) かメモリ<i
+          data-dl-uid="292"
+          data-dl-original="true"
+          data-dl-translated="true"
+          ><b data-dl-uid="293" data-dl-original="true" data-dl-translated="true">ゾーンの</b></i
+        >先頭 (これについては後で説明します)
+        のどちらかになるでしょう。ROM、デバイスRAM、メモリホールなどは含まれないでしょう。最後に、フリーリストが必要です。</font
+      >
+    </p>
+
+    <pre style="margin-bottom: 0.2in"><b>void</b>* free_lists[MAX_LEVELS];</pre>
+
+    <p
+      class="western"
+      style="margin-bottom: 0.2in; font-weight: normal"
+      data-dl-uid="296"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      <font color="#000000" data-dl-uid="297" data-dl-original="true" data-dl-translated="true"
+        >物理メモリマネージャの場合、メモリマップをスキャンして空きリストを作成する必要があります。上の例では、<b
+          data-dl-uid="298"
+          data-dl-original="true"
+          data-dl-translated="true"
+          >PAGE_SIZE</b
+        >バイトの空きメモリ領域が 1 つしかないので、1 つのエントリを設定するだけでよいのです。</font
+      >
+    </p>
+
+    <pre><b>void</b> <span style="font-weight: normal">setup() {</span>
+   <span style="font-weight: normal">LIST_ENTRY* link;</span>
+   <span style="font-weight: normal">index_t i;</span>
+
+   <span style="font-weight: normal">for(i = 0; i &lt; MAX_LEVELS; i++)</span>
+      <span style="font-weight: normal">InitializeListHead(&amp;free_lists[i]);</span>
+
+   <span style="font-weight: normal">link = (LIST_ENTRY*)memory_start;</span>
+   <span style="font-weight: normal">InitializeListHead(link);</span>
+   <span style="font-weight: normal">InsertTailList(&amp;free_lists[0], link);</span>
+}</pre>
+
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="309"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      <font color="#000000" data-dl-uid="310" data-dl-original="true" data-dl-translated="true"
+        ><font size="2" data-dl-uid="311" data-dl-original="true" data-dl-translated="true"
+          ><span
+            style="font-weight: normal"
+            data-dl-uid="312"
+            data-dl-original="true"
+            data-dl-translated="true"
+            >まず、すべてのフリーリストをループして初期化します。 次に
+          </span></font
+        >、<font size="2" data-dl-uid="317" data-dl-original="true" data-dl-translated="true"
+          ><b data-dl-uid="318" data-dl-original="true" data-dl-translated="true">memory_start</b></font
+        ><font size="2" data-dl-uid="315" data-dl-original="true" data-dl-translated="true"
+          ><span
+            style="font-weight: normal"
+            data-dl-uid="316"
+            data-dl-original="true"
+            data-dl-translated="true"
+            >に
+          </span></font
+        ><font size="2" data-dl-uid="313" data-dl-original="true" data-dl-translated="true"
+          ><b data-dl-uid="314" data-dl-original="true" data-dl-translated="true">LIST_ENTRY</b></font
+        >を書き込みます。 これは、<font
+          size="2"
+          data-dl-uid="319"
+          data-dl-original="true"
+          data-dl-translated="true"
+          ><span
+            style="font-weight: normal"
+            data-dl-uid="320"
+            data-dl-original="true"
+            data-dl-translated="true"
+            >以前にフリーリストを導入したときと同じトリックで、
+          </span></font
+        ><font size="2" data-dl-uid="321" data-dl-original="true" data-dl-translated="true"
+          ><b data-dl-uid="322" data-dl-original="true" data-dl-translated="true">LIST_ENTRY</b></font
+        ><font data-dl-uid="319" data-dl-translated="true"
+          ><span data-dl-uid="320" data-dl-translated="true"> を </span></font
+        ><font size="2" data-dl-uid="323" data-dl-original="true" data-dl-translated="true"
+          ><span
+            style="font-weight: normal"
+            data-dl-uid="324"
+            data-dl-original="true"
+            data-dl-translated="true"
+            >各ブロックの先頭に直接</span
+          ></font
+        >書き込むのです。<font
+          size="2"
+          data-dl-uid="327"
+          data-dl-original="true"
+          data-dl-translated="true"
+          ><span
+            style="font-weight: normal"
+            data-dl-uid="328"
+            data-dl-original="true"
+            data-dl-translated="true"
+            >これで
+          </span></font
+        ><font size="2" data-dl-uid="329" data-dl-original="true" data-dl-translated="true"
+          ><b data-dl-uid="330" data-dl-original="true" data-dl-translated="true">free_lists[0]</b></font
+        >は<font size="2" data-dl-uid="337" data-dl-original="true" data-dl-translated="true"
+          ><b data-dl-uid="338" data-dl-original="true" data-dl-translated="true">memory_start</b></font
+        >
+        <font size="2" data-dl-uid="335" data-dl-original="true" data-dl-translated="true"
+          ><span
+            style="font-weight: normal"
+            data-dl-uid="336"
+            data-dl-original="true"
+            data-dl-translated="true"
+            >の
+          </span></font
+        >先頭にある<font size="2" data-dl-uid="331" data-dl-original="true" data-dl-translated="true"
+          ><span
+            style="font-weight: normal"
+            data-dl-uid="332"
+            data-dl-original="true"
+            data-dl-translated="true"
+            >1 つの
+          </span></font
+        ><font size="2" data-dl-uid="333" data-dl-original="true" data-dl-translated="true"
+          ><b data-dl-uid="334" data-dl-original="true" data-dl-translated="true">LIST_ENTRY</b></font
+        >を指します<font size="2" data-dl-uid="339" data-dl-original="true" data-dl-translated="true"
+          >。</font
+        ></font
+      ><font data-dl-uid="310" data-dl-translated="true"
+        ><font data-dl-uid="339" data-dl-translated="true"
+          ><span data-dl-uid="340" data-dl-translated="true"
+            ><br data-dl-uid="341" data-dl-translated="true" /><br
+              data-dl-uid="342"
+              data-dl-translated="true" /></span></font
+        ><font data-dl-uid="343" data-dl-translated="true"
+          ><b data-dl-uid="344" data-dl-translated="true">free_lists[0]</b></font
+        ><font data-dl-uid="345" data-dl-translated="true"
+          ><span data-dl-uid="346" data-dl-translated="true">は特別 </span></font
+        >です。<font data-dl-uid="345" data-dl-translated="true"
+          ><span data-dl-uid="346" data-dl-translated="true"
+            >これまで紹介した図ではすべてレベル0です。
+          </span></font
+        >レベル<font data-dl-uid="345" data-dl-translated="true"
+          ><span data-dl-uid="346" data-dl-translated="true">0の図には共通点があり、 </span></font
+        ><font data-dl-uid="347" data-dl-translated="true"
+          ><i data-dl-uid="348" data-dl-translated="true"
+            ><b data-dl-uid="349" data-dl-translated="true">ブロックサイズはバッファサイズ全体</b></i
+          ></font
+        >です<font data-dl-uid="350" data-dl-translated="true"
+          ><span data-dl-uid="351" data-dl-translated="true">。 上記の例では </span></font
+        >、<font data-dl-uid="352" data-dl-translated="true"
+          ><b data-dl-uid="353" data-dl-translated="true">PAGE_SIZE</b></font
+        ><font data-dl-uid="354" data-dl-translated="true"
+          ><span data-dl-uid="355" data-dl-translated="true">バイトの </span></font
+        ><font data-dl-uid="350" data-dl-translated="true"
+          ><span data-dl-uid="351" data-dl-translated="true">バッファを割り当てたので </span></font
+        >、<font data-dl-uid="356" data-dl-translated="true"
+          ><b data-dl-uid="357" data-dl-translated="true">free_lists[0]</b></font
+        >は<font data-dl-uid="360" data-dl-translated="true"
+          ><b data-dl-uid="361" data-dl-translated="true">PAGE_SIZE</b></font
+        ><font data-dl-uid="362" data-dl-translated="true"
+          ><span data-dl-uid="363" data-dl-translated="true">バイトの </span></font
+        ><font data-dl-uid="358" data-dl-translated="true"
+          ><span data-dl-uid="359" data-dl-translated="true">1つのフリーブロックを指します </span></font
+        >。<font data-dl-uid="367" data-dl-translated="true"
+          ><span data-dl-uid="368" data-dl-translated="true">つまり </span></font
+        >、<font data-dl-uid="374" data-dl-translated="true"
+          ><b data-dl-uid="375" data-dl-translated="true">PAGE_SIZEの</b></font
+        ><font data-dl-uid="376" data-dl-translated="true"
+          ><span data-dl-uid="377" data-dl-translated="true">ブロックが1つだけ空いていて、 </span></font
+        ><font data-dl-uid="381" data-dl-translated="true"
+          ><span data-dl-uid="382" data-dl-translated="true">他には </span></font
+        ><font data-dl-uid="378" data-dl-translated="true"
+          ><i data-dl-uid="379" data-dl-translated="true"
+            ><b data-dl-uid="380" data-dl-translated="true">何も</b></i
+          ></font
+        >ないということです。<font data-dl-uid="381" data-dl-translated="true"
+          ><span data-dl-uid="382" data-dl-translated="true">これは </span></font
+        ><font data-dl-uid="383" data-dl-translated="true"
+          ><i data-dl-uid="384" data-dl-translated="true"
+            ><b data-dl-uid="385" data-dl-translated="true">正しいです</b></i
+          ></font
+        >。<font data-dl-uid="386" data-dl-translated="true"
+          ><span data-dl-uid="387" data-dl-translated="true">まだ何も割り当てていないので </span></font
+        >、<font data-dl-uid="388" data-dl-translated="true"
+          ><b data-dl-uid="389" data-dl-translated="true">PAGE_SIZE</b></font
+        ><font data-dl-uid="390" data-dl-translated="true"
+          ><span data-dl-uid="391" data-dl-translated="true"
+            >ブロックの空きメモリがあるのです!</span
+          ></font
+        ></font
+      ><font data-dl-uid="310" data-dl-translated="true"
+        ><font data-dl-uid="390" data-dl-translated="true"
+          ><span data-dl-uid="391" data-dl-translated="true"
+            ><br data-dl-uid="392" data-dl-translated="true" /><br
+              data-dl-uid="393"
+              data-dl-translated="true" /></span></font
+        ><font data-dl-uid="394" data-dl-translated="true"
+          ><b data-dl-uid="395" data-dl-translated="true">割り当て</b></font
+        ></font
+      ><font data-dl-uid="310" data-dl-translated="true"
+        ><font data-dl-uid="396" data-dl-translated="true"
+          ><span data-dl-uid="397" data-dl-translated="true"
+            ><br data-dl-uid="398" data-dl-translated="true" /><br
+              data-dl-uid="399"
+              data-dl-translated="true"
+            />さて、このアイデアは、必要な最大の割り当てサイズが見つかるまで、ブロックを 2 で分割</span
+          ></font
+        ></font
+      >し続けるというものです。<font data-dl-uid="310" data-dl-translated="true"
+        ><font data-dl-uid="396" data-dl-translated="true"
+          ><span data-dl-uid="397" data-dl-translated="true"
+            >例えば、32
+            バイトを割り当てる必要があるとします。これは2^4なので、レベル4-1=3から32バイトのブロックを取得する必要があります（レベル0から開始したことを思い出してください）。したがって、割り当て関数はバッファを取得し、32バイトのブロックが得られるまで2で割る必要があります。また、256バイトのメモリバッファを想定してみましょう。次の図を見てください。</span
+          ></font
+        ></font
+      >
+    </p>
+
+    <p class="western" style="margin-bottom: 0.2in">
+      <img
+        src="./ma_files/osdev26_d1.PNG"
+        name="graphics7"
+        align="LEFT"
+        width="596"
+        height="347"
+        border="0"
+      /><br clear="LEFT" />
+
+      <font color="#000000" data-dl-uid="400" data-dl-original="true" data-dl-translated="true"
+        ><font size="2" data-dl-uid="401" data-dl-original="true" data-dl-translated="true"
+          ><span
+            style="font-weight: normal"
+            data-dl-uid="402"
+            data-dl-original="true"
+            data-dl-translated="true"
+            >上図では、バッファから最初の32バイトのブロックを割り当てています。そのために、256バイトのバッファを2つの128バイトのブロックに分割しました。次に、最初の128バイトのブロックを2つの小さな64バイトのブロックに分割します。そして、最初の64バイトのブロックを2つの32バイトのブロックに分割します。ブロック1と2はバディ、ブロック3と4はバディ、ブロック7と8はバディであることに注意してください。分割されたブロックはグレーで表示しています。そして、ブロック7が割り当て関数から返されます。<br
+              data-dl-uid="403"
+              data-dl-original="true"
+              data-dl-translated="true"
+            /><br
+              data-dl-uid="404"
+              data-dl-original="true"
+              data-dl-translated="true"
+            />しかし、これらの分割は
+          </span></font
+        ><font size="2" data-dl-uid="405" data-dl-original="true" data-dl-translated="true"
+          ><i data-dl-uid="406" data-dl-original="true" data-dl-translated="true"
+            ><b data-dl-uid="407" data-dl-original="true" data-dl-translated="true">同じ</b></i
+          ></font
+        >
+        <font size="2" data-dl-uid="408" data-dl-original="true" data-dl-translated="true"
+          ><span
+            style="font-weight: normal"
+            data-dl-uid="409"
+            data-dl-original="true"
+            data-dl-translated="true"
+            >256バイトのバッファ</span
+          ></font
+        ><font data-dl-uid="401" data-dl-translated="true"
+          ><span data-dl-uid="402" data-dl-translated="true">上で行われて </span></font
+        >いることに留意してください。<font data-dl-uid="408" data-dl-translated="true"
+          ><span data-dl-uid="409" data-dl-translated="true"
+            >上の図は、バッファがどのように分割されるかを可視化したに過ぎません。実際のバッファは下図のようになります。</span
+          ></font
+        ></font
+      >
+    </p>
+
+    <p class="western" style="margin-bottom: 0.2in">
+      <img
+        src="./ma_files/osdev26_d2.PNG"
+        name="graphics8"
+        align="LEFT"
+        width="552"
+        height="102"
+        border="0"
+      /><br clear="LEFT" />
+
+      この2つの画像を比較して、アルゴリズムがどのようにバッファを分割しているかを見てみましょう。最初の
+      32 バイトのブロック (ブロック 7)
+      が割り当てられていることに注目してください。ブロック3を分割したため、32バイトのブロック(ブロック8)が余ってしまいました。ブロック1を分割したため、64バイトのブロック（ブロック4）が余ってしまいました。そして、ブロック0を分割したため、128バイトのブロックが余ってしまいました。これらの余ったブロックは、次にメモリを確保する必要があるときに使えるように、<i
+        data-dl-uid="413"
+        data-dl-original="true"
+        data-dl-translated="true"
+        ><b data-dl-uid="414" data-dl-original="true" data-dl-translated="true">空き</b></i
+      >ブロックになっています。このことを反映したのが、以下のフリーリストです。
+    </p>
+
+    <p class="western" style="margin-bottom: 0.2in">
+      <img
+        src="./ma_files/osdev26_d3.PNG"
+        name="graphics9"
+        align="LEFT"
+        width="413"
+        height="320"
+        border="0"
+      /><br clear="LEFT" />
+
+      出来上がったフリーリストを先の2つの図と比較してみてください。256バイトのブロックはもうないので、最初のリストは空です。
+      しかし、64バイトのブロックと32バイトのブロックが1つずつ確保されています。後で32バイトブロックをもう1つ割り当てるなら、ブロック8を取ればよいのです。64バイトブロックを2つ割り当てる必要がある場合は、ブロック4を割り当て、ブロック2をブロック5とブロック6に分割してブロック5を返せばよい（これらのブロックはセクション冒頭の図に示されている）。<br
+        data-dl-uid="418"
+        data-dl-original="true"
+        data-dl-translated="true"
+      /><br
+        data-dl-uid="419"
+        data-dl-original="true"
+        data-dl-translated="true"
+      />分割操作は再帰的なので、このようにアルゴリズムを書くことができるのです。では、まず次のようにします。
+    </p>
+
+    <pre>
+void* alloc(size_t size) {
+   index_t level = get_level(size);
+   return _alloc(level);
+}</pre
+    >
+
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="421"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      <br data-dl-uid="422" data-dl-original="true" data-dl-translated="true" />ここで、<b
+        data-dl-uid="423"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >get_levelは</b
+      >、サイズが与えられた場合、ゼロベースのレベル番号を返すだけである。つまり、サイズが32バイトの場合、256/2/2
+      = 32なので、レベルは3です。次に、再帰的関数となる<b
+        data-dl-uid="424"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >_allocを</b
+      >呼び出します。
+    </p>
+
+    <pre style="text-decoration: none"><b>void</b>* _alloc(index_t level) {
+
+   void* memory;
+   LIST_ENTRY* left;
+   LIST_ENTRY* right;
+   LIST_ENTRY* link;
+
+   if (IsListEmpty(&amp;free_lists[level]) {
+
+   }
+
+   link = RemoveHeadList(&amp;free_lists[level]);
+   memory = (void*) link;
+   return memory;
+}</pre>
+
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="427"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      <font color="#000000" data-dl-uid="428" data-dl-original="true" data-dl-translated="true"
+        ><font size="2" data-dl-uid="429" data-dl-original="true" data-dl-translated="true"
+          ><br
+            data-dl-uid="430"
+            data-dl-original="true"
+            data-dl-translated="true"
+          />そこで、そのレベルの空きリストに何かが入っていることを確認します。もしそのレベルにあれば、単純にその空きリストから割り当てればいいのです。もしそれが空であれば、もう少しやることがあります。このレベルの空きリストに新しいブロックを追加して、その中に何かがあるようにする必要があります。しかし、このブロックはどこから来るのでしょうか？上の空きリストの図を見てください。
+          例えば、「32バイトブロック」が必要なのに、「32バイトブロックの空きリスト」は空っぽだとしましょう。この32バイトのブロックは、より大きなブロックを<i
+            data-dl-uid="431"
+            data-dl-original="true"
+            data-dl-translated="true"
+            ><b data-dl-uid="432" data-dl-original="true" data-dl-translated="true">分割して</b></i
+          >作ったものです。もし、もっと下の階層（例えば、"64バイトブロックの空きリスト"）から大きなブロックをつかむことができれば、そのブロックを
+          "32バイトブロックの空きリスト
+          "で2つの新しいブロックに分割することができる。そして、それをやろうとしたときに
+          "64バイトブロック空きリスト "も空だった場合は、"128バイトブロック
+          "を試して、それを分割すればいいのです。このように、2つに分割できるブロックが得られるまで、必要に応じてどんどん上位の階層に進んでいくことができます。これが<i
+            data-dl-uid="433"
+            data-dl-original="true"
+            data-dl-translated="true"
+            ><b data-dl-uid="434" data-dl-original="true" data-dl-translated="true">再帰的</b></i
+          >ステップです。<br data-dl-uid="435" data-dl-original="true" data-dl-translated="true" /><br
+            data-dl-uid="436"
+            data-dl-original="true"
+            data-dl-translated="true"
+          />再度<i data-dl-uid="437" data-dl-original="true" data-dl-translated="true"
+            ><b data-dl-uid="438" data-dl-original="true" data-dl-translated="true">_allocを</b></i
+          >呼び出すことで、下位レベルのフリーリストからより大きなブロックを割り当てることができます。それが成功したら、2つを追加することで2つのブロックに分割し、両方をリストに挿入し直せばよいのです。最終的なコードは以下の通りです。</font
+        ></font
+      >
+    </p>
+
+    <pre style="text-decoration: none"><b>void</b>* _alloc(index_t level) {
+
+   uint8_t* memory;
+   LIST_ENTRY* left;
+   LIST_ENTRY* right;
+   LIST_ENTRY* link;
+
+   if (IsListEmpty(&amp;free_lists[level]) {
+      size_t size;
+
+      memory = _alloc(level-1);
+      if (!memory)
+         return NULL; /* out of memory. */
+
+      /* recall that entire memory size was PAGE_SIZE. In the figures,
+      we used a memory buffer of 512 bytes to keep them small. */
+      size =  <span style="font-weight: normal">SIZE_OF_BLOCKS_AT_LEVEL(level,</span><font color="#000000"><font size="2"><span style="font-weight: normal">PAGE_SIZE);</span></font></font>
+
+      /* now we split this block into two. */
+      left = (LIST_ENTRY*) memory;
+      right = (LIST_ENTRY*) (memory+size);
+
+      /* initialize them. */
+      InitializeListHead(left);
+      InitializeListHead(right);
+
+      /* insert the two new blocks. */
+      InsertTailList(&amp;free_lists[level], left);
+      InsertTailList(&amp;free_lists[level], right);
+   }
+
+   link = RemoveHeadList(&amp;free_lists[level]);
+   memory = (uint8_t*) link;
+   return (<b>void</b>*) memory;
+<font color="#000000"><font size="2">}</font></font></pre>
+
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="448"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      <b data-dl-uid="449" data-dl-original="true" data-dl-translated="true">Freeing</b
+      ><span
+        style="font-weight: normal"
+        data-dl-uid="450"
+        data-dl-original="true"
+        data-dl-translated="true"
+        ><br data-dl-uid="451" data-dl-original="true" data-dl-translated="true" /><br
+          data-dl-uid="452"
+          data-dl-original="true"
+          data-dl-translated="true"
+        />ポインタとサイズが与えられたら、上でやったように始める</span
+      >ことができます。
+    </p>
+
+    <pre style="font-weight: normal">void free(void* memory, size_t size) {
+   <span style="font-weight: normal">index_t level = get_level(size);</span>
+   <span style="font-weight: normal">return _free(memory, level);</span>
+}</pre>
+
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="456"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      <span
+        style="font-weight: normal"
+        data-dl-uid="457"
+        data-dl-original="true"
+        data-dl-translated="true"
+        ><br data-dl-uid="458" data-dl-original="true" data-dl-translated="true" />これは、 </span
+      ><span data-dl-uid="457" data-dl-translated="true">この操作が </span
+      ><i data-dl-uid="459" data-dl-original="true" data-dl-translated="true">再帰的</i
+      >であるためです。<span
+        style="font-weight: normal"
+        data-dl-uid="460"
+        data-dl-original="true"
+        data-dl-translated="true"
+      >
+        ブロックを2つに分割して </span
+      >いるところを思い出してください。<span
+        style="font-weight: normal"
+        data-dl-uid="462"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >同じように2つのブロックが空いているときに、その2つのブロックを組み合わせて、より大きなブロック</span
+      >にする<span data-dl-uid="460" data-dl-translated="true">ことが </span>できます。<span
+        data-dl-uid="462"
+        data-dl-translated="true"
+        >そして、その大きなブロックをさらに大きなブロックに結合する、というように。これが再帰的なステップです。例えば、ブロック7とブロック8を組み合わせてブロック3に戻すことができます。<br
+          data-dl-uid="463"
+          data-dl-translated="true"
+        /><br
+          data-dl-uid="464"
+          data-dl-translated="true"
+        />フリー化はアロケートより少し複雑なので、このように始めてみましょう。</span
+      >
+    </p>
+
+    <pre><b>v</b><span style="text-decoration: none"><b>oid</b></span><span style="text-decoration: none"> </span><span style="text-decoration: none"><span style="font-weight: normal">_free(</span></span><span style="text-decoration: none"><b>void</b></span><span style="text-decoration: none"><span style="font-weight: normal">* memory, index_t level) {</span></span>
+
+   <span style="font-weight: normal">LIST_ENTRY* link;</span>
+   <span style="font-weight: normal">size_t size = size_from_level(level);</span>
+
+   <span style="font-weight: normal">link = (LIST_ENTRY*) memory;</span>
+   <span style="font-weight: normal">InitializeListHead(link);</span>
+   <span style="font-weight: normal">InsertTailList(&amp;free_lists[level], link);</span>
+}</pre>
+
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="481"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      <span
+        style="font-weight: normal"
+        data-dl-uid="482"
+        data-dl-original="true"
+        data-dl-translated="true"
+        ><br
+          data-dl-uid="483"
+          data-dl-original="true"
+          data-dl-translated="true"
+        />これは良いスタートです。メモリにLIST_ENTRYを追加し、空きリストに戻すことができるようにしました。しかし、どのようにブロックを結合するのでしょうか？このブロック </span
+      ><i data-dl-uid="484" data-dl-original="true" data-dl-translated="true"
+        ><b data-dl-uid="485" data-dl-original="true" data-dl-translated="true">バディを</b></i
+      >見つける必要があります。 この方法は、<span
+        style="font-weight: normal"
+        data-dl-uid="486"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >ブロックインデックス番号を見ることであることを思い出してください。
+        今のコードは次のようになります</span
+      >。
+    </p>
+
+    <pre><b>v</b><span style="text-decoration: none"><b>oid</b></span><span style="text-decoration: none"> </span><span style="text-decoration: none"><span style="font-weight: normal">_free(</span></span><span style="text-decoration: none"><b>void</b></span><span style="text-decoration: none"><span style="font-weight: normal">* memory, index_t level) {</span></span>
+
+   <span style="font-weight: normal">LIST_ENTRY* link;</span>
+   <span style="font-weight: normal">index_t index;</span>
+   <span style="font-weight: normal">addr_t buddy;</span>
+   <span style="font-weight: normal">size_t size = size_from_level(level);</span>
+
+   <span style="font-weight: normal">index = INDEX_OF_POINTER_IN_LEVEL(memory,memory_start,PAGE_SIZE);</span>
+
+   <span style="font-weight: normal">if (index &amp; 1) == 0) buddy = (addr_t) memory + size;</span>
+   <span style="font-weight: normal">else                 buddy = (addr_t) memory � size;</span>
+
+   <span style="font-weight: normal">link = (LIST_ENTRY*) memory;</span>
+   <span style="font-weight: normal">InitializeListHead(link);</span>
+   <span style="font-weight: normal">InsertTailList(&amp;free_lists[level], link);</span>
+}</pre>
+
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="508"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      <span
+        style="font-weight: normal"
+        data-dl-uid="509"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >さて、バディが見つかったので、それがまたフリーかどうかをチェックする必要があります。もしまだ割り当てられているのなら、それらを1つの大きな空きブロックとして結合することはできません。これらのブロックはバディなので、同じサイズと同じ空きリストレベルを持っています。 </span
+      >そこで、<b data-dl-uid="510" data-dl-original="true" data-dl-translated="true"
+        >free_list [level]</b
+      ><span data-dl-uid="509" data-dl-translated="true">で空きリストを </span>
+      <span
+        style="font-weight: normal"
+        data-dl-uid="511"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >スキャンして </span
+      ><b data-dl-uid="512" data-dl-original="true" data-dl-translated="true">buddyを</b
+      >見つけることで、<span data-dl-uid="509" data-dl-translated="true">すぐに確認 </span
+      >できます。<span
+        style="font-weight: normal"
+        data-dl-uid="513"
+        data-dl-original="true"
+        data-dl-translated="true"
+      >
+        これでコードは次の</span
+      >ようになります。
+    </p>
+
+    <pre><b>v</b><span style="text-decoration: none"><b>oid</b></span><span style="text-decoration: none"> </span><span style="text-decoration: none"><span style="font-weight: normal">_free(</span></span><span style="text-decoration: none"><b>void</b></span><span style="text-decoration: none"><span style="font-weight: normal">* memory, index_t level) {</span></span>
+
+   <span style="font-weight: normal">LIST_ENTRY* link;</span>
+   <span style="font-weight: normal">LIST_ENTRY* buddy_link;</span>
+   <span style="font-weight: normal">index_t index;</span>
+   <span style="font-weight: normal">addr_t buddy;</span>
+   <span style="font-weight: normal">size_t size = size_from_level(level);</span>
+
+   <span style="font-weight: normal">index = INDEX_OF_POINTER_IN_LEVEL(memory,memory_start,PAGE_SIZE);</span>
+
+   <span style="font-weight: normal">if (index &amp; 1) == 0) buddy = (addr_t) memory + size;</span>
+   <span style="font-weight: normal">else                 buddy = (addr_t) memory � size;</span>
+
+   <font size="2"><span style="font-weight: normal">buddy_link</span></font> <font size="2">= NULL;</font>
+   <font size="2">if (! ListEmpty(&amp;free_lists[level]))</font>
+      <font size="2">buddy_link = free_list_find(buddy);</font>
+
+   <span style="font-weight: normal">link = (LIST_ENTRY*) memory;</span>
+   <span style="font-weight: normal">InitializeListHead(link);</span>
+   <span style="font-weight: normal">InsertTailList(&amp;free_lists[level], link);</span>
+
+   <span style="font-weight: normal">if ( buddy_link == buddy) {</span>
+      <span style="font-weight: normal">/* both blocks are on free list. */</span>
+   <span style="font-weight: normal">}</span>
+}</pre>
+
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="544"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      <font color="#000000" data-dl-uid="545" data-dl-original="true" data-dl-translated="true"
+        ><font size="2" data-dl-uid="546" data-dl-original="true" data-dl-translated="true"
+          ><span
+            style="font-weight: normal"
+            data-dl-uid="547"
+            data-dl-original="true"
+            data-dl-translated="true"
+            >それでは、実際にブロックをマージしてみましょう。
+          </span></font
+        ></font
+      >これは、<font data-dl-uid="545" data-dl-translated="true"
+        ><font data-dl-uid="546" data-dl-translated="true"
+          ><span data-dl-uid="547" data-dl-translated="true">現在のブロックとバディを </span></font
+        ></font
+      ><font color="#000000" data-dl-uid="548" data-dl-original="true" data-dl-translated="true"
+        ><font size="2" data-dl-uid="549" data-dl-original="true" data-dl-translated="true"
+          ><b data-dl-uid="550" data-dl-original="true" data-dl-translated="true"
+            >free_list [leve]</b
+          ></font
+        ></font
+      ><font data-dl-uid="545" data-dl-translated="true"
+        ><font data-dl-uid="546" data-dl-translated="true"
+          ><span data-dl-uid="547" data-dl-translated="true">の現在のリストから削除 </span></font
+        ></font
+      >し、それを<font
+        color="#000000"
+        data-dl-uid="554"
+        data-dl-original="true"
+        data-dl-translated="true"
+        ><font size="2" data-dl-uid="555" data-dl-original="true" data-dl-translated="true"
+          ><b data-dl-uid="556" data-dl-original="true" data-dl-translated="true"
+            >free_list [level-1]</b
+          ></font
+        ></font
+      ><font color="#000000" data-dl-uid="557" data-dl-original="true" data-dl-translated="true"> </font
+      ><font color="#000000" data-dl-uid="551" data-dl-original="true" data-dl-translated="true"
+        ><font size="2" data-dl-uid="552" data-dl-original="true" data-dl-translated="true"
+          ><span
+            style="font-weight: normal"
+            data-dl-uid="553"
+            data-dl-original="true"
+            data-dl-translated="true"
+          >
+            に
+          </span></font
+        ></font
+      ><font color="#000000" data-dl-uid="558" data-dl-original="true" data-dl-translated="true"
+        ><font size="2" data-dl-uid="559" data-dl-original="true" data-dl-translated="true"
+          ><span
+            style="font-weight: normal"
+            data-dl-uid="560"
+            data-dl-original="true"
+            data-dl-translated="true"
+            >1つのフリーブロックとして</span
+          ></font
+        ></font
+      >挿入する<font data-dl-uid="545" data-dl-translated="true"
+        ><font data-dl-uid="546" data-dl-translated="true"
+          ><span data-dl-uid="547" data-dl-translated="true">ことによって行わ </span></font
+        ></font
+      >れます。<font data-dl-uid="558" data-dl-translated="true"
+        ><font data-dl-uid="559" data-dl-translated="true"
+          ><span data-dl-uid="560" data-dl-translated="true"
+            >しかし、この大きなブロックも同様に解放できるかもしれません、まだ分かっていません。そこで、ブロックを挿入するだけでなく、これ以上解放できなくなるまで、より大きなブロックを再帰的に解放しようとします。以下は最終的なコードです。</span
+          ></font
+        ></font
+      >
+    </p>
+
+    <pre><b>v</b><span style="text-decoration: none"><b>oid</b></span><span style="text-decoration: none"> </span><span style="text-decoration: none"><span style="font-weight: normal">_free(</span></span><span style="text-decoration: none"><b>void</b></span><span style="text-decoration: none"><span style="font-weight: normal">* memory, index_t level) {</span></span>
+
+   <span style="font-weight: normal">LIST_ENTRY* link;</span>
+   <span style="font-weight: normal">LIST_ENTRY* buddy_link;</span>
+   <span style="font-weight: normal">index_t index;</span>
+   <span style="font-weight: normal">addr_t buddy;</span>
+   <span style="font-weight: normal">size_t size = size_from_level(level);</span>
+
+   <span style="font-weight: normal">index = INDEX_OF_POINTER_IN_LEVEL(memory,memory_start,PAGE_SIZE);</span>
+
+   <span style="font-weight: normal">if (index &amp; 1) == 0) buddy = (addr_t) memory + size;</span>
+   <span style="font-weight: normal">else                 buddy = (addr_t) memory � size;</span>
+
+   <font size="2"><span style="font-weight: normal">buddy_link</span></font> <font size="2">= NULL;</font>
+   <font size="2">if (! ListEmpty(&amp;free_lists[level]))</font>
+      <font size="2">buddy_link = free_list_find(buddy);</font>
+
+   <span style="font-weight: normal">link = (LIST_ENTRY*) memory;</span>
+   <span style="font-weight: normal">InitializeListHead(link);</span>
+   <span style="font-weight: normal">InsertTailList(&amp;free_lists[level], link);</span>
+
+   <span style="font-weight: normal">if ( buddy_link == buddy) {</span>
+      <span style="font-weight: normal">RemoveListEntry(link);</span>
+      <span style="font-weight: normal">RemoveListEntry(buddy_link);</span>
+      <span style="font-weight: normal">if (index &amp; 1) == 0)</span>
+         <span style="font-weight: normal">_free(link, level - 1);</span>
+      <span style="font-weight: normal">else</span>
+         <span style="font-weight: normal">_free(buddy_link, level - 1);</span>
+   <span style="font-weight: normal">}</span>
+<font color="#000000"><font size="2">}</font></font></pre>
+
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="598"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      <font color="#000000" data-dl-uid="599" data-dl-original="true" data-dl-translated="true"
+        ><font size="2" data-dl-uid="600" data-dl-original="true" data-dl-translated="true"
+          ><b data-dl-uid="601" data-dl-original="true" data-dl-translated="true"
+            >フリーリストの代わりにビットマップを使用</b
+          ></font
+        ></font
+      >
+    </p>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in; font-weight: normal"
+      data-dl-uid="602"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      <font color="#000000" data-dl-uid="603" data-dl-original="true" data-dl-translated="true"
+        ><font size="2" data-dl-uid="604" data-dl-original="true" data-dl-translated="true"
+          >バディアロケータの実装に、フリーリストの代わりにビットマップを使うことは確かに可能です。フリーリストは「空いている」ブロックしか提供しないので、それを「0」、あるレベルの他のブロックを「使用中」とマークして「1」を与えることができるのです。各レベルは、そのレベルにあるすべてのブロックの状態を示す独自のビットマップを持つことになります。コードは若干単純化されますが、割り当てや解放の際に若干の性能劣化が発生します。ビットマップを使って上記を実装する練習をしてみてください。</font
+        ></font
+      >
+    </p>
+
+    <h2 class="western" data-dl-uid="605" data-dl-original="true" data-dl-translated="true">
+      <b data-dl-uid="606" data-dl-original="true" data-dl-translated="true">スラブアロケータ</b>
+    </h2>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="607"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      この最後のアロケータは、ここで紹介するアロケータの中で最も複雑なアロケータです。バディアロケータよりもさらに、フリーリストを多用します。これはカーネルオブジェクトキャッシュアロケータであり、Mach
+      や Linux
+      のようなオペレーティングシステムで使われる一般的なアロケータです。オリジナルの設計では、カーネルオブジェクトキャッシュと構築をサポートしていました。その後、マルチプロセッサシステムでの性能を向上させるためにCPUごとのキャッシュをサポートしたり、キャッシュの使用量を向上させるためにキャッシュカラーリングをサポートするように修正・更新されました。ここでは、<i
+        data-dl-uid="608"
+        data-dl-original="true"
+        data-dl-translated="true"
+        ><b data-dl-uid="609" data-dl-original="true" data-dl-translated="true">オリジナルの</b></i
+      >設計を取り上げます。改訂された設計は、オリジナルの設計の上にもう1つ全体のレイヤーを追加し、物事をより複雑にするだけです。スラブアロケータは、設計のアーキテクチャにもよりますが、約1,000行以上となる傾向があります。このため、本文中ではプレゼンテーションのためにコードを簡略化します。<br
+        data-dl-uid="610"
+        data-dl-original="true"
+        data-dl-translated="true"
+      /><br
+        data-dl-uid="611"
+        data-dl-original="true"
+        data-dl-translated="true"
+      />まず、必要となるデータ構造を紹介することから始めます。それらについては、次に詳しく説明します。
+    </p>
+
+    <pre><b>typedef</b> <b>struct</b> _SLAB {
+   <font size="2">CACHE*          cache;</font>
+   <font size="2">LIST_ENTRY      listEntry;</font>
+   <font size="2">size_t          objectCount;</font>
+   <font size="2">size_t          usedObjects;</font>
+   <font size="2">size_t          bufferSize;</font>
+   <font size="2"><b>union</b></font> <font size="2">{</font>
+      <font size="2"><b>void</b></font><font size="2">*         freeList;</font>
+      <font size="2">LIST_ENTRY    bufferControlFreeListHead;</font>
+   <font size="2">}u;</font>
+<font color="#000000"><font size="2">}SLAB;</font></font>
+
+<font size="2"><b>typedef struct</b></font> <font size="2"><span style="font-weight: normal">_BUFCTRL {</span></font>
+   <font size="2"><b>void</b></font><font size="2"><span style="font-weight: normal">* buffer;</span></font>
+   <font size="2"><span style="font-weight: normal">SLAB* parent;</span></font>
+   <font size="2"><span style="font-weight: normal">LIST_ENTRY entry;</span></font>
+}BUFCTRL;
+
+<font size="2"><b>typedef</b></font> <font size="2"><b>struct</b></font> <font size="2">_CACHE {</font>
+   <font size="2">size_t            size;</font>
+   <font size="2"><b>int</b></font>               <font size="2">align;</font>
+   <font size="2"><b>int</b></font>               <font size="2">flags;</font>
+   <font size="2">SPIN_LOCK         lock;</font>
+   <font size="2">LIST_ENTRY        fullSlabListHead;</font>
+   <font size="2">LIST_ENTRY        partialSlabListHead;</font>
+   <font size="2">LIST_ENTRY        emptySlabListHead;</font>
+   <font size="2">LIST_ENTRY        listEntry;</font>
+}CACHE;</pre>
+
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="659"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      もし、改訂・更新版も実装するのであれば、<b
+        data-dl-uid="660"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >CPUCACHE</b
+      >構造体も導入していたでしょう。これらの構造は、最初は大変に見えるかもしれません（キャッシュ、リストの中のリスト、空きリストのリスト、BUFCTRLなど）。設計構造を見て、これらの構造が何のためにあるのかを理解できればと思います。<br
+        data-dl-uid="661"
+        data-dl-original="true"
+        data-dl-translated="true"
+      /><br data-dl-uid="662" data-dl-original="true" data-dl-translated="true" /><b
+        data-dl-uid="663"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >設計</b
+      ><span
+        style="font-weight: normal"
+        data-dl-uid="664"
+        data-dl-original="true"
+        data-dl-translated="true"
+        ><br data-dl-uid="665" data-dl-original="true" data-dl-translated="true" /><br
+          data-dl-uid="666"
+          data-dl-original="true"
+          data-dl-translated="true"
+        />やれやれ</span
+      >...。
+    </p>
+
+    <h1 class="western" data-dl-uid="667" data-dl-original="true" data-dl-translated="true">
+      <b data-dl-uid="668" data-dl-original="true" data-dl-translated="true"
+        >4.一般的なアロケータの場合</b
+      >
+    </h1>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in; font-weight: normal"
+      data-dl-uid="669"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      標準的な<i data-dl-uid="670" data-dl-original="true" data-dl-translated="true"
+        ><b data-dl-uid="671" data-dl-original="true" data-dl-translated="true">malloc</b></i
+      >と<i data-dl-uid="672" data-dl-original="true" data-dl-translated="true"
+        ><b data-dl-uid="673" data-dl-original="true" data-dl-translated="true">free</b></i
+      >
+      について一度も触れていないことにお気づきかもしれません。これまで説明したことはすべて、カーネルやユーザ空間にヒープを実装するための基礎として使うことができます。フリーリスト、ビットマップ、ブロックの結合、キャッシュなどの話題は、任意のサイズのメモリを扱う必要がある一般的なアロケータでは基本的なものです。スラブアロケータは<i
+        data-dl-uid="674"
+        data-dl-original="true"
+        data-dl-translated="true"
+        ><b data-dl-uid="675" data-dl-original="true" data-dl-translated="true">実際の</b></i
+      >カーネルヒープアロケータの例であり、いくつかのオペレーティングシステムで使用されています。このため、スラブアロケータを取り上げることにしました。しかし、ユーザー空間のアロケータは、任意のアロケーションサイズを扱えるようにしなければなりません。一般的なアロケータには、実装時に考慮しなければならない問題点や設計上の課題があります。<br
+        data-dl-uid="676"
+        data-dl-original="true"
+        data-dl-translated="true"
+      /><br
+        data-dl-uid="677"
+        data-dl-original="true"
+        data-dl-translated="true"
+      />もちろん、これらの汎用アルゴリズムはカーネルモードでも適用でき、単純なカーネルヒープを実装することができます。シンプルなアロケータが必要で、スラブアロケータのような複雑なものは必要ない場合は、<b
+        data-dl-uid="678"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >ベストフィットや</b
+      >
+      <b data-dl-uid="679" data-dl-original="true" data-dl-translated="true">ファーストフィットを</b
+      >採用する方がよいかもしれません。
+    </p>
+  </body>
+</html>
