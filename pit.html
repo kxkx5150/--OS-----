@@ -1,0 +1,1100 @@
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Cache-Control" content="no-cache" />
+    <title></title>
+    <link href="css/reference.css" rel="stylesheet" />
+  </head>
+  <body>
+    <table cellspacing="0" cellpadding="3" width="80%" border="0">
+      <tbody>
+        <tr>
+          <td class="tblhdr">Operating Systems Development Series</td>
+        </tr>
+        <tr>
+          <td align="middle" colspan="2"></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <table cellspacing="0" cellpadding="5" width="100%" border="0">
+      <tbody>
+        <tr>
+          <td>
+            <!-- Title -->
+
+            <div>
+              <span class="title">8253 Programmable Interval Timer</span>
+
+              <br />
+              <span class="author">by Mike, 2007</span>
+            </div>
+
+            <p></p>
+            <center>
+              <img src="./pit_files/Intel-P8253-5.jpg" />
+              <p><i>8253 PIT Microcontroller with all pins labled</i></p>
+            </center>
+            <p></p>
+
+            <h1 data-dl-uid="16" data-dl-original="true" data-dl-translated="true">はじめに</h1>
+
+            ようこそ!:)
+            <p data-dl-uid="17" data-dl-original="true" data-dl-translated="true">
+              このチュートリアルでは、<b
+                data-dl-uid="18"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >Intel 8253 Programmable Interval Timer (PIT)</b
+              >
+              のシステムタイミングとプログラミングについて知りた いことすべてをカバーします。
+            </p>
+            <p data-dl-uid="19" data-dl-original="true" data-dl-translated="true">
+              8253 PITは長い歴史を持ち、ほぼすべてのx86
+              PCで重要な役割を担ってきました。これは「システムクロック」であり、PC内の多くの非常に重要な機能を担っています。この...この「チップ」は、もはや独立したチップとしてではなく（正確には<b
+                data-dl-uid="20"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >DIP（Dual Inline Package</b
+              >）として）、マザーボードのサウスブリッジチップセットに統合されて配布されています。
+            </p>
+            <p data-dl-uid="21" data-dl-original="true" data-dl-translated="true">
+              しかし、8253のすべてが残っている。そのため、8253の入出力設備、ハードウェア、そしてプログラミングの方法は変わりません。このDIPと古いDIPの間には（速度以外の）違いはないので、物事をシンプルにするために古い8253のDIPを見ることにします。
+            </p>
+            <p data-dl-uid="22" data-dl-original="true" data-dl-translated="true">
+              このチュートリアルの冒頭の写真は、私たちが見てプログラミングするものを示しています。
+            </p>
+            <p data-dl-uid="23" data-dl-original="true" data-dl-translated="true">
+              <i data-dl-uid="24" data-dl-original="true" data-dl-translated="true"
+                >それではお楽しみください。）</i
+              >
+            </p>
+            <h1 data-dl-uid="25" data-dl-original="true" data-dl-translated="true">
+              プログラマブルインターバルタイマ
+            </h1>
+
+            <b data-dl-uid="26" data-dl-original="true" data-dl-translated="true"
+              >プログラマブルインターバルタイマ(PIT)</b
+            >は、プログラムされたカウントに達すると割り込みをトリガするカウンタです。<b
+              data-dl-uid="27"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >8253と</b
+            >
+            <b data-dl-uid="28" data-dl-original="true" data-dl-translated="true">8254</b
+            >マイコンは、i86アーキテクチャで使用できるPITで、i86互換システムのタイマとして使用されています。
+            <p data-dl-uid="29" data-dl-original="true" data-dl-translated="true">
+              これらのPICには3つのタイマーがあり、それぞれ異なる用途に使用されます。最初のタイマーは通常<b
+                data-dl-uid="30"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >システムクロックとして</b
+              >使用され、タイマー2はRAMリフレッシュに使用され、タイマー3はPCスピーカーに接続されています。すべての接続を確認するのは少し後なので、今はあまり詳しく説明しません。
+            </p>
+            <p data-dl-uid="31" data-dl-original="true" data-dl-translated="true">
+              その代わりに、この有名なPITの一つを詳しく見てみましょう......。8253マイクロコントローラです。
+            </p>
+            <h1 data-dl-uid="32" data-dl-original="true" data-dl-translated="true">
+              8253のハードウェア
+            </h1>
+
+            このため、まず8253のハードウェアを取り上げ、それがどのように動作し、PCの他の部分と接続されているかを学びます。
+            また、内部レジスタ、ピン配置、コマンドワードなど、ソフトウェア側で必要となる部分についても見ていきます。
+            <h2 data-dl-uid="33" data-dl-original="true" data-dl-translated="true">
+              8253のハードウェア説明
+            </h2>
+
+            8253 PITはシンプルなインターフェースで、プログラミングはそれほど難しくありません。
+            <p data-dl-uid="34" data-dl-original="true" data-dl-translated="true"></p>
+
+            <center><img src="./pit_files/8253.gif" /></center>
+
+            <p data-dl-uid="37" data-dl-original="true" data-dl-translated="true">
+              これが私たちがプログラムするチップです。
+            </p>
+            <p data-dl-uid="38" data-dl-original="true" data-dl-translated="true">
+              ここに完全なピン配置があります。このチュートリアルでは、これらのピンを参照しますので、それらが何であるかを知っておくことが重要です。
+            </p>
+            <p data-dl-uid="39" data-dl-original="true" data-dl-translated="true"></p>
+            <ul data-dl-uid="40" data-dl-original="true" data-dl-translated="true">
+              <li data-dl-uid="41" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="42" data-dl-original="true" data-dl-translated="true">D0...D7:</b
+                >8ビットデータ線。データバスに接続されており、コマンドの読み取りと送信を行うことができます。
+              </li>
+              <li data-dl-uid="43" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="44" data-dl-original="true" data-dl-translated="true"
+                  >CLK 0, CLK 1, CLK 2:</b
+                >クロック入力端子です。3つのカウンタに対応する3つのピンがあります
+              </li>
+              <li data-dl-uid="45" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="46" data-dl-original="true" data-dl-translated="true"
+                  >OUT 0, OUT 1, OUT</b
+                >2：出力データライン。3つのカウンタに対応する3つのピンがあります。
+              </li>
+              <li data-dl-uid="47" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="48" data-dl-original="true" data-dl-translated="true"
+                  >GATE 0、GATE 1、GATE 2：</b
+                >ゲートデータ線。3つのカウンタに3つのピンがあります。
+              </li>
+              <li data-dl-uid="49" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="50" data-dl-original="true" data-dl-translated="true">GND：</b>グランド
+              </li>
+              <li data-dl-uid="51" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="52" data-dl-original="true" data-dl-translated="true">Vcc：</b>入力電圧
+              </li>
+              <li data-dl-uid="53" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="54" data-dl-original="true" data-dl-translated="true">WR：</b
+                >ライトイネーブル。この線がアクティブになると、8253にデータを書き込むことを知らせます。
+              </li>
+              <li data-dl-uid="55" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="56" data-dl-original="true" data-dl-translated="true">RD</b
+                >：リード・イネーブル。このラインがアクティブのとき、8253にデータを読み出すことを知らせます。
+              </li>
+              <li data-dl-uid="57" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="58" data-dl-original="true" data-dl-translated="true"
+                  >CS：チップ・セレクト信号。</b
+                >チップ・セレクト信号
+              </li>
+              <li data-dl-uid="59" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="60" data-dl-original="true" data-dl-translated="true">A0、A1：</b
+                >アドレス・ライン。どのレジスタにアクセスしているかを判断するために使用します。
+              </li>
+            </ul>
+
+            悪くはないです。ここには、見ておかなければならない重要なピンがいくつかあります。
+            <p data-dl-uid="61" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="62" data-dl-original="true" data-dl-translated="true">D0-D7</b>ピンは、<b
+                data-dl-uid="63"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >システムのデータ・バスに</b
+              >接続されています。これらのピンは、コントローラへのデータ送信やデータ読み出しの際に、データを伝送します。
+            </p>
+            <p data-dl-uid="64" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="65" data-dl-original="true" data-dl-translated="true">Vccと</b>
+              <b data-dl-uid="66" data-dl-original="true" data-dl-translated="true">GNDで</b
+              >回路が完成します（電圧入力、グラウンド出力）。
+            </p>
+            <p data-dl-uid="67" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="68" data-dl-original="true" data-dl-translated="true">WR</b
+              >ピンは、書き込み中であることをコントローラに伝えます（データピンの入力に期待）。このピンの信号が
+              "Low "の場合、現在データを送信中です。<b
+                data-dl-uid="69"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >RD</b
+              >ピンは、これと非常によく似ていますが、代わりにデータを読み取ることをコントローラに知らせます。<b
+                data-dl-uid="70"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >CS</b
+              >ピンは、<b data-dl-uid="71" data-dl-original="true" data-dl-translated="true">RD</b
+              >ピンと<b data-dl-uid="72" data-dl-original="true" data-dl-translated="true">WR</b
+              >ピンに対するコントローラの動作を決定する特別なピンです。CSピンが "Low
+              "であれば、コントローラはRDおよびWRピンに応答し、"Low
+              "でなければ、RDおよびWRピンは無視されます。CSが "L "でない場合、それらは無視されます。<b
+                data-dl-uid="73"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >WRと</b
+              >
+              <b data-dl-uid="74" data-dl-original="true" data-dl-translated="true">RDは</b>、<b
+                data-dl-uid="75"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >システム制御バスに</b
+              >接続します。<b data-dl-uid="76" data-dl-original="true" data-dl-translated="true">CS</b
+              >ピンは、ポートi/o操作のために、システム・<b
+                data-dl-uid="77"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >アドレス・</b
+              >バスに接続します。
+            </p>
+            <p data-dl-uid="78" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="79" data-dl-original="true" data-dl-translated="true">A0</b>と<b
+                data-dl-uid="80"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >A1</b
+              >ピンは、システム・<b data-dl-uid="81" data-dl-original="true" data-dl-translated="true"
+                >アドレス</b
+              >・バスに接続され、アクセスするレジスタを決定するために使用されます。これらのピンと<b
+                data-dl-uid="82"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >WR</b
+              >、<b data-dl-uid="83" data-dl-original="true" data-dl-translated="true">RDの</b
+              >組み合わせにより、コントローラはレジスタへの読み出し、またはレジスタからの読み出しを判断することができます。
+            </p>
+            <p data-dl-uid="84" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="85" data-dl-original="true" data-dl-translated="true"
+                >CLK、OUT、GATEピンの3つのグループに分かれていることに注目してください。</b
+              ><b data-dl-uid="86" data-dl-original="true" data-dl-translated="true"
+                >8253/8254マイコンは、3つの独立したタイマーを備えて</b
+              >いるのです。
+            </p>
+            <p data-dl-uid="87" data-dl-original="true" data-dl-translated="true">
+              この仕組みについて詳しく見ていきましょう。
+            </p>
+            <h2 data-dl-uid="88" data-dl-original="true" data-dl-translated="true">
+              8253のハードウェアカウンタ
+            </h2>
+
+            8253は、3つのカウンタで構成されています。カウンタ0、カウンタ1、カウンタ2です。各カウンターには、2つの入力ピンがあります。<b
+              data-dl-uid="89"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >CLK（クロック入力</b
+            >）と<b data-dl-uid="90" data-dl-original="true" data-dl-translated="true">GATE</b
+            >、そして出力用のピンが1つ--OUTです。
+            <p data-dl-uid="92" data-dl-original="true" data-dl-translated="true">
+              3つのカウンタがあるので、システム内で異なる目的で使用されます。各カウンタは、16ビットのダウンカウンタです。
+            </p>
+            <p data-dl-uid="93" data-dl-original="true" data-dl-translated="true">
+              一般的なコンピュータは、1つ目のタイマーの<b
+                data-dl-uid="94"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >OUT</b
+              >ピンを<b data-dl-uid="95" data-dl-original="true" data-dl-translated="true"
+                >プログラマブル割り込みコントローラ（PIC</b
+              >）に接続し、クロックティックごとに割り込みを生成します。 これは通常、<b
+                data-dl-uid="96"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >システムタイマーとして</b
+              >使用されます。2つ目のカウンタは、DRAMメモリをリフレッシュするためにメモリコントローラへのタイミング信号を生成するために使用されていた。3つ目のカウンタは、PCのスピーカーにトーンを発生させるために使用されています。
+            </p>
+            <p data-dl-uid="97" data-dl-original="true" data-dl-translated="true">
+              PITは、カウンタが0になるとOUTピンを使ってこれらのデバイスに信号を送ります。
+              PITのカウンタが0になると、単に折り返して再びスタートします。
+            </p>
+            <p data-dl-uid="98" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="99" data-dl-original="true" data-dl-translated="true">CLKは</b
+              >、タイマーのクロック入力です。現在の動作モードにより、<b
+                data-dl-uid="100"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >GATE</b
+              >端子と併用される場合があります。
+              GATEの電流が、Low、Rising、Highの場合による動作は、以下のとおりです。
+            </p>
+            <p data-dl-uid="101" data-dl-original="true" data-dl-translated="true"></p>
+
+            <center data-dl-uid="102" data-dl-original="true" data-dl-translated="true">
+              <table
+                border="1"
+                bgcolor="CCCCCC"
+                data-dl-uid="103"
+                data-dl-original="true"
+                data-dl-translated="true"
+              >
+                <tbody data-dl-uid="104" data-dl-original="true" data-dl-translated="true">
+                  <tr data-dl-uid="105" data-dl-original="true" data-dl-translated="true">
+                    <th
+                      colspan="4"
+                      bgcolor="FFFFFF"
+                      data-dl-uid="106"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      GATE 入力端子動作
+                    </th>
+                  </tr>
+                  <tr
+                    bgcolor="AAAAAA"
+                    data-dl-uid="107"
+                    data-dl-original="true"
+                    data-dl-translated="true"
+                  >
+                    <td data-dl-uid="108" data-dl-original="true" data-dl-translated="true">モード</td>
+                    <td data-dl-uid="109" data-dl-original="true" data-dl-translated="true">
+                      Low または Low になる
+                    </td>
+                    <td data-dl-uid="110" data-dl-original="true" data-dl-translated="true">
+                      立ち上がり
+                    </td>
+                    <td data-dl-uid="111" data-dl-original="true" data-dl-translated="true">High</td>
+                  </tr>
+                  <tr data-dl-uid="112" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="ffffff"
+                      data-dl-uid="113"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      0
+                    </td>
+                    <td data-dl-uid="114" data-dl-original="true" data-dl-translated="true">
+                      カウントを無効にする
+                    </td>
+                    <td data-dl-uid="115" data-dl-original="true" data-dl-translated="true">-</td>
+                    <td data-dl-uid="116" data-dl-original="true" data-dl-translated="true">
+                      カウントを有効にする
+                    </td>
+                  </tr>
+                  <tr data-dl-uid="117" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="ffffff"
+                      data-dl-uid="118"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      1
+                    </td>
+                    <td data-dl-uid="119" data-dl-original="true" data-dl-translated="true">-</td>
+                    <td data-dl-uid="120" data-dl-original="true" data-dl-translated="true">
+                      カウントを開始し、次のCLKの後にOUTをリセットします。
+                    </td>
+                    <td data-dl-uid="121" data-dl-original="true" data-dl-translated="true">-</td>
+                  </tr>
+                  <tr data-dl-uid="122" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="ffffff"
+                      data-dl-uid="123"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      2
+                    </td>
+                    <td data-dl-uid="124" data-dl-original="true" data-dl-translated="true">
+                      カウントを無効化し、OUTをHighに設定します。
+                    </td>
+                    <td data-dl-uid="125" data-dl-original="true" data-dl-translated="true">
+                      カウンタを再ロードし、カウントを開始します。
+                    </td>
+                    <td data-dl-uid="126" data-dl-original="true" data-dl-translated="true">
+                      カウントをイネーブルにする
+                    </td>
+                  </tr>
+                  <tr data-dl-uid="127" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="ffffff"
+                      data-dl-uid="128"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      3
+                    </td>
+                    <td data-dl-uid="129" data-dl-original="true" data-dl-translated="true">
+                      カウンタ無効、OUT=High
+                    </td>
+                    <td data-dl-uid="130" data-dl-original="true" data-dl-translated="true">
+                      カウント開始
+                    </td>
+                    <td data-dl-uid="131" data-dl-original="true" data-dl-translated="true">
+                      カウント開始
+                    </td>
+                  </tr>
+                  <tr data-dl-uid="132" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="ffffff"
+                      data-dl-uid="133"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      4
+                    </td>
+                    <td data-dl-uid="134" data-dl-original="true" data-dl-translated="true">
+                      カウント停止
+                    </td>
+                    <td data-dl-uid="135" data-dl-original="true" data-dl-translated="true">-</td>
+                    <td data-dl-uid="136" data-dl-original="true" data-dl-translated="true">
+                      カウントを開始します。
+                    </td>
+                  </tr>
+                  <tr data-dl-uid="137" data-dl-original="true" data-dl-translated="true">
+                    <td
+                      bgcolor="ffffff"
+                      data-dl-uid="138"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                    >
+                      5
+                    </td>
+                    <td data-dl-uid="139" data-dl-original="true" data-dl-translated="true">-</td>
+                    <td data-dl-uid="140" data-dl-original="true" data-dl-translated="true">
+                      カウントを開始します。
+                    </td>
+                    <td data-dl-uid="141" data-dl-original="true" data-dl-translated="true">-</td>
+                  </tr>
+                </tbody>
+              </table>
+            </center>
+
+            <p data-dl-uid="142" data-dl-original="true" data-dl-translated="true">
+              8253のカウンターは、チャンネルとも呼ばれます。8253/8254 の PIT には 3
+              つのチャンネルがあるので、それぞれのチャンネルをもっと詳しく見てみましょう。
+            </p>
+            <h3 data-dl-uid="143" data-dl-original="true" data-dl-translated="true">チャンネル0</h3>
+
+            チャンネル0は、<b data-dl-uid="144" data-dl-original="true" data-dl-translated="true"
+              >8259 PICに</b
+            >接続され、<b data-dl-uid="145" data-dl-original="true" data-dl-translated="true"
+              >割り込み要求（IRQ</b
+            >）を発生させることができます。PITの<b
+              data-dl-uid="146"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >OUT</b
+            >ピンは、PICの<b data-dl-uid="147" data-dl-original="true" data-dl-translated="true">IR0</b
+            >ピンに接続されています。通常、BIOSはこのチャンネルを65536カウントで設定し、18.2065Hzの出力周波数を与えます。これは54.9254ミリ秒ごとにIRQ
+            0を発生させます。
+            <p data-dl-uid="148" data-dl-original="true" data-dl-translated="true">
+              ほとんどのx86マシンで使用される主要なタイマーです。クロックレート（カウンター0の<b
+                data-dl-uid="149"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >CLK</b
+              >ピンから信号）は1193181.6666...Hzで、NTSCの3分の1です。Hzで、NTSCのサブキャリア周波数の3分の1である。これは、旧来のCGA
+              PCとの互換性を保つために必要なものです。
+            </p>
+            <p data-dl-uid="150" data-dl-original="true" data-dl-translated="true">
+              チャンネル0は通常、<b data-dl-uid="151" data-dl-original="true" data-dl-translated="true"
+                >システムクロックとして</b
+              >動作するようにプログラムされていることが多い。これは、チャンネル0の<b
+                data-dl-uid="152"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >OUT</b
+              >ピンを<b data-dl-uid="153" data-dl-original="true" data-dl-translated="true">PICのIR0</b
+              >ラインに間接的に接続することで可能になる。設定するモードによっては、タイマーを適切な周波数に設定し、一定速度でPICのIR0ラインを有効にすることができます。その後、自分自身をリセットして、もう一度やり直す。PICは<b
+                data-dl-uid="154"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ハードウェア割り込みの</b
+              >処理に使うので、まず<b data-dl-uid="155" data-dl-original="true" data-dl-translated="true"
+                >PICを</b
+              >再プログラミングする必要がある。
+            </p>
+            <p data-dl-uid="156" data-dl-original="true" data-dl-translated="true">
+              最も低い番号（IR0）の割り込みに接続されているため、他のすべてのハードウェア割り込みよりも高い優先度も持っています。
+            </p>
+            <p data-dl-uid="157" data-dl-original="true" data-dl-translated="true">
+              最低周波数は、古いDOSシステム（まだ残っているのでしょうか）のコンピュータで通常使用される約18.2Hzで、最高周波数はメガヘルツ強です。
+            </p>
+            <p data-dl-uid="158" data-dl-original="true" data-dl-translated="true">
+              リアルモードOSでは、BIOSは通常IRQ0が発生した回数を0000:046Cにインクリメントし、実行中のプログラムが読み取ることができるようにします。
+            </p>
+            <h3 data-dl-uid="159" data-dl-original="true" data-dl-translated="true">チャンネル1</h3>
+
+            多くのビデオカードとBIOSは、独自の用途のために2番目のチャネルを再プログラムすることがあります。このチャンネルはもともと、メモリコントローラにDRAMメモリをリフレッシュさせるためのタイミングパルス信号を生成するために使われていました。現代では、リフレッシュはメモリコントローラによって行われるため、これは不要になりました。このため、どのような機器がこのカウンタを使用するかは保証されていません。
+            <h3 data-dl-uid="160" data-dl-original="true" data-dl-translated="true">チャンネル2</h3>
+
+            このチャンネルは、<b data-dl-uid="161" data-dl-original="true" data-dl-translated="true"
+              >PCスピーカーに</b
+            >接続して音を出します。<b data-dl-uid="162" data-dl-original="true" data-dl-translated="true"
+              >PCスピーカーは</b
+            >通常、2レベルの出力で矩形波を出すことになっています。しかし、2段階の矩形波の間を行き来することが可能です。これを<b
+              data-dl-uid="163"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >PWM(Pulse-Width Modulation</b
+            >)と呼びます。
+            <p data-dl-uid="164" data-dl-original="true" data-dl-translated="true">
+              このチャンネルは、モード3用にプログラムし、トーンの周波数レートを設定することで設定できます。
+            </p>
+            <p data-dl-uid="165" data-dl-original="true" data-dl-translated="true">
+              また、PCスピーカを直接プログラムすることもできます。<a
+                href="OSDev7.html"
+                data-dl-uid="166"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >チュートリアル7を</a
+              >見ると、PCスピーカはポート0x61にマッピングされていることがわかります。このポートは、スピーカーの動作方法を定義しています。
+            </p>
+            <ul data-dl-uid="167" data-dl-original="true" data-dl-translated="true">
+              <li data-dl-uid="168" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="169" data-dl-original="true" data-dl-translated="true">ビット0：</b
+                >設定（1）すると、スピーカーの状態はビット1に従います。
+              </li>
+              <li data-dl-uid="170" data-dl-original="true" data-dl-translated="true">
+                ビット<b data-dl-uid="171" data-dl-original="true" data-dl-translated="true">1：</b
+                >セット（1）すると、スピーカーは PIT を使用します。セット（0）しない場合、スピーカーは
+                PIT への接続を無効にします。
+              </li>
+            </ul>
+            ビット0が設定されている場合、バイトの残りの部分には、音の周波数を表すビットのパターンが含まれています。スピーカーから最大8ビットの音を発生させることができます。これはちょっとクールですが、トリッキーなことです。
+            <p data-dl-uid="172" data-dl-original="true" data-dl-translated="true">
+              また、デバイスがPITを使用しないようにすることもできることに気づくはずです。起動時にBIOSは、スピーカーがPITチャンネル2を使用するように設定し、モード3で動作させます。タイミングに問題があるため、スピーカーは
+              PIT を使用するように設定することを推奨します。
+            </p>
+            <p data-dl-uid="173" data-dl-original="true" data-dl-translated="true">以下はその例です。</p>
+
+            <blockquote>
+              <pre><div class="code">; disables the speaker, and stop using channel 2
+mov	dx, 0x61
+out	dx, 0
+ 
+; generates tone from speaker
+out	dx, 11111101b</div></pre>
+            </blockquote>
+
+            <h3 data-dl-uid="177" data-dl-original="true" data-dl-translated="true">まとめ</h3>
+
+            一度カウンターを設定すると、別の制御ワードで変更されるまで、その状態が維持されます。
+            <p data-dl-uid="178" data-dl-original="true" data-dl-translated="true">
+              これらのカウンタを使って、いくつかクールなことができそうですね。チャンネル1はもう使われていないので、安全だと判断して使うことはできません。このため、チャネル0と2に固執することをお勧めします。
+            </p>
+            <p data-dl-uid="179" data-dl-original="true" data-dl-translated="true">
+              チャンネル0は、割り込みハンドラを起動するのに使うことができます。割り込みハンドラは、カーネルが使用するカウンタをインクリメントすることができます。この特別な小さなカウンタ変数は、システムで非常に重要な役割を果たします。システムタイマです。この辺はすぐにわかると思いますので、ご心配なく;)
+            </p>
+            <p data-dl-uid="180" data-dl-original="true" data-dl-translated="true">
+              さて、ピンの構成と、異なるデバイスがタイミングをとるために使用する3つのタイマーを見てきました。次は何でしょうか？
+            </p>
+            <p data-dl-uid="181" data-dl-original="true" data-dl-translated="true">
+              これらのタイマーをプログラムするとき、初期化しなければなりません。各チャンネルは6つの異なるモードをサポートしていることを忘れないでください。これらのモードの中にはとても便利なものがあります。他のモードはそうではありません。これらのモードを理解するために、それぞれのモードを見てみましょう。
+              少し詳しくなりますが、あなたはすでに知っていたか、それを期待していたと思いますので、注意してください
+              :)
+            </p>
+            <h2 data-dl-uid="182" data-dl-original="true" data-dl-translated="true">
+              8253チャンネルモード
+            </h2>
+
+            各カウンタは、6つのモードのうち1つでプログラムできることを忘れないでください。これは、<b
+              data-dl-uid="183"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >初期化制御語（ICW</b
+            >）をコントローラに送信することで行われます。このコマンドワードのフォーマットについては、後ほど説明します。とりあえず、各モードについて見てみましょう。
+            <h3 data-dl-uid="184" data-dl-original="true" data-dl-translated="true">
+              モード0：端子カウントによる割り込み
+            </h3>
+
+            このモードでは、カウンタは初期値<b
+              data-dl-uid="185"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >COUNTに</b
+            >プログラムされ、その後、入力クロック周波数（<b
+              data-dl-uid="186"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >CLK</b
+            >信号）に応じた速度でカウントダウンします。<b
+              data-dl-uid="187"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >COUNTが</b
+            >0の時、<b data-dl-uid="188" data-dl-original="true" data-dl-translated="true"
+              >コントロールワードが</b
+            >書き込まれた後、カウンタは<b
+              data-dl-uid="189"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >OUT</b
+            >ピンを有効にし（ラインをハイにする）、接続されたデバイスに信号を送ります。カウントは<b
+              data-dl-uid="190"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >COUNTが</b
+            >プログラムされた1クロック後に開始されます。OUTラインは、カウンタが新しい値または同じ値で再ロードされるか、別の制御ワードがコントローラに書き込まれるまで、ハイのままです。
+            <p data-dl-uid="191" data-dl-original="true" data-dl-translated="true">
+              このモードは基本的に、0までカウントダウンするタイマーを設定するもので、その後、新しいカウント数を再ロードするか、新しい制御ワードを入力してカウンターを再初期化する必要がある。
+            </p>
+            <h3 data-dl-uid="192" data-dl-original="true" data-dl-translated="true">
+              モード1：ハードウェアトリガーワンショット
+            </h3>
+
+            このモードでは、カウンタはあるクロック数ごとに出力パルスを与えるようにプログラムされています。<b
+              data-dl-uid="193"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >OUT</b
+            >ラインは、<b data-dl-uid="194" data-dl-original="true" data-dl-translated="true"
+              >コントロール・ワード</b
+            >が書き込まれるとすぐにハイ・レベルに設定されます。<b
+              data-dl-uid="195"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >COUNTが</b
+            >書き込まれた後、カウンタは<b
+              data-dl-uid="196"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >GATE</b
+            >入力の立ち上がりエッジまで待ちます。パルス出力中にトリガが発生した場合、8253は再びトリガされます。<b
+              data-dl-uid="197"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >GATEの</b
+            >立ち上がりエッジが検出されてから1クロック後に、<b
+              data-dl-uid="198"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >OUTは</b
+            >LOWとなり、<b data-dl-uid="199" data-dl-original="true" data-dl-translated="true">COUNTが</b
+            >0になるまでLOWのままです。 その後、次のトリガまで<b
+              data-dl-uid="200"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >OUTは</b
+            >Highとなり、再び<b data-dl-uid="201" data-dl-original="true" data-dl-translated="true"
+              >GATE</b
+            >入力の立ち上がりエッジが検出されるまで待ちます。
+            <p data-dl-uid="202" data-dl-original="true" data-dl-translated="true"></p>
+            <h3 data-dl-uid="203" data-dl-original="true" data-dl-translated="true">
+              モード2：レート・ジェネレータ
+            </h3>
+
+            このモードは、一般的にリアルタイムシステムクロックの生成に使用される<b
+              data-dl-uid="204"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >"divide by n "</b
+            >カウンタとして設定されます。
+            <p data-dl-uid="205" data-dl-original="true" data-dl-translated="true">
+              カウンタは初期<b data-dl-uid="206" data-dl-original="true" data-dl-translated="true"
+                >COUNT</b
+              >値にプログラムされます。カウントは次のクロックサイクルで開始されます。<b
+                data-dl-uid="207"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >OUTは</b
+              >、<b data-dl-uid="208" data-dl-original="true" data-dl-translated="true">COUNTが</b
+              >1になるまでHighのままです。その後、<b
+                data-dl-uid="209"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >OUTは</b
+              >1クロックパルスの間、LOWになります。その後、<b
+                data-dl-uid="210"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >OUTは</b
+              >ハイに戻され、<b data-dl-uid="211" data-dl-original="true" data-dl-translated="true"
+                >COUNTは</b
+              >初期値にリセットされます。このプロセスは、新しい制御ワードがコントローラに送信されるまで繰り返されます。
+            </p>
+            <p data-dl-uid="212" data-dl-original="true" data-dl-translated="true">
+              ハイパルスの間隔は<b data-dl-uid="213" data-dl-original="true" data-dl-translated="true"
+                >COUNTの</b
+              >現在値に依存し、以下の式で計算されます。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">COUNT = input (Hz) / Frequency of output</div></pre>
+            </blockquote>
+
+            <p data-dl-uid="217" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="218" data-dl-original="true" data-dl-translated="true">COUNTは</b
+              >0になることはなく、nから1までしか変化しません（nはCOUNTの初期値）。
+            </p>
+            <p data-dl-uid="219" data-dl-original="true" data-dl-translated="true">
+              さて、ちょっと立ち止まってみましょう。カウンタ0がPICに接続されているのを覚えていますか？カウンタ0の<b
+                data-dl-uid="220"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >OUTラインは間接的にPICのIR0ラインに接続されて</b
+              >いる。それを知っていれば、IR0ラインがLowの時、PICは我々が定義したIRQ
+              0ハンドラーを呼び出すだろう。
+            </p>
+            <p data-dl-uid="221" data-dl-original="true" data-dl-translated="true">
+              カウンターをモード2に設定すれば、一定速度で割り込みを発生させるタイマーを設定することができる。あとは、上記の式からCOUNTの値を決定するだけです。これは、オペレーティングシステムの<b
+                data-dl-uid="222"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >システムタイマーを</b
+              >設定する際によく使用されます。結局、IRQ
+              0は、定義した周波数で、クロックティックごとに呼び出されることになります。
+            </p>
+            <p data-dl-uid="223" data-dl-original="true" data-dl-translated="true">
+              そう、Mode 2は実に重要なモードなのです。
+            </p>
+            <h3 data-dl-uid="224" data-dl-original="true" data-dl-translated="true">
+              モード3：矩形波ジェネレータ
+            </h3>
+
+            このモードは、モード2とよく似ている。<b
+              data-dl-uid="226"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >COUNTが</b
+            >奇数の場合、<b data-dl-uid="227" data-dl-original="true" data-dl-translated="true">OUTは</b
+            >(n+1)/2カウントの間、HIGHになります。<b
+              data-dl-uid="228"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >COUNTが</b
+            >偶数の場合、<b data-dl-uid="229" data-dl-original="true" data-dl-translated="true">OUTは</b
+            >(n-1)/2カウントの間、LOWとなります。
+            <p data-dl-uid="230" data-dl-original="true" data-dl-translated="true">
+              その他は、Mode 2と同じです。<b
+                data-dl-uid="231"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >COUNTの</b
+              >初期値を設定するために、Mode 2の計算式を使う必要があります。
+            </p>
+            <p data-dl-uid="232" data-dl-original="true" data-dl-translated="true">
+              スピーカーがPITを使用するように設定されている場合、通常使用するチャンネルはこのモードを使用するように設定する必要があります。
+            </p>
+            <h3 data-dl-uid="233" data-dl-original="true" data-dl-translated="true">
+              モード4：ソフトウェア・トリガ・ストロボ
+            </h3>
+
+            カウンタには初期値として<b
+              data-dl-uid="234"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >COUNTが</b
+            >設定されています。カウントは次のクロックサイクルで開始されます。<b
+              data-dl-uid="235"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >OUTは</b
+            >
+            <b data-dl-uid="236" data-dl-original="true" data-dl-translated="true">COUNTが</b
+            >0になるまでHighのままです。その後、カウンタは1クロックの間<b
+              data-dl-uid="237"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >OUTを</b
+            >Lowにします。その後、<b data-dl-uid="238" data-dl-original="true" data-dl-translated="true"
+              >OUTを</b
+            >再びHighにリセットします。
+            <h3 data-dl-uid="239" data-dl-original="true" data-dl-translated="true">
+              モード5：ハードウェアトリガーストローブ
+            </h3>
+
+            カウンターは初期値<b data-dl-uid="240" data-dl-original="true" data-dl-translated="true"
+              >COUNTに</b
+            >プログラムされています。<b
+              data-dl-uid="241"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >OUTは</b
+            >、コントローラが<b data-dl-uid="242" data-dl-original="true" data-dl-translated="true"
+              >GATE</b
+            >入力の立ち上がりエッジを検出するまでハイのままです。このとき、カウントが開始されます。<b
+              data-dl-uid="243"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >COUNTが</b
+            >0になると、<b data-dl-uid="244" data-dl-original="true" data-dl-translated="true">OUTは</b
+            >1クロックの間LOWになります。その後、<b
+              data-dl-uid="245"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >OUTは</b
+            >再びHighになります。このサイクルは、コントローラが次の<b
+              data-dl-uid="246"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >GATEの</b
+            >立ち上がりエッジを検出すると繰り返されます。
+            <h2 data-dl-uid="247" data-dl-original="true" data-dl-translated="true">8253のレジスタ</h2>
+
+            <p data-dl-uid="248" data-dl-original="true" data-dl-translated="true">
+              8253には、アクセス可能ないくつかのレジスタがあります。これらのレジスタのほとんどは、互いに非常によく似ているので、わかりやすくするために、同じ表で説明します。この表は、各レジスタと、8253の対応するラインがアクティブになったときの機能を示しています。<b
+                data-dl-uid="249"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >RDラインとWRラインが、読み取りと書き込みの動作を決定していることに注目してください。また、A0ラインとA1ラインが、どのレジスタにアクセスしているのかを決定していることにも注目してください。</b
+              >
+            </p>
+            <p data-dl-uid="250" data-dl-original="true" data-dl-translated="true">
+              <a href="OSDev7.html" data-dl-uid="251" data-dl-original="true" data-dl-translated="true"
+                >チュートリアル7の</a
+              >ポート表を見ると、<b data-dl-uid="252" data-dl-original="true" data-dl-translated="true"
+                >システムタイマは</b
+              >BIOSによってポート0x40-0x4Fにマッピングされていることがわかります。各ポートアドレスは1バイトの大きさです。
+            </p>
+            <p data-dl-uid="253" data-dl-original="true" data-dl-translated="true"></p>
+
+            <center>
+              <table border="1" bgcolor="CCCCCC">
+                <tbody>
+                  <tr>
+                    <th colspan="7" bgcolor="FFFFFF">8253 PIT Internal Registers</th>
+                  </tr>
+                  <tr bgcolor="AAAAAA">
+                    <td>Register Name</td>
+                    <td>Port Address</td>
+                    <td>RD line</td>
+                    <td>WR line</td>
+                    <td>A0 line</td>
+                    <td>A1 line</td>
+                    <td>Function</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="ffffff">Counter 0</td>
+                    <td>0x40</td>
+                    <td>1</td>
+                    <td>0</td>
+                    <td>0</td>
+                    <td>0</td>
+                    <td>Load Counter 0</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="ffffff"></td>
+                    <td></td>
+                    <td>0</td>
+                    <td>1</td>
+                    <td>0</td>
+                    <td>0</td>
+                    <td>Reads Counter 0</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="ffffff">Counter 1</td>
+                    <td>0x41</td>
+                    <td>1</td>
+                    <td>0</td>
+                    <td>0</td>
+                    <td>1</td>
+                    <td>Load Counter 1</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="ffffff"></td>
+                    <td></td>
+                    <td>0</td>
+                    <td>1</td>
+                    <td>0</td>
+                    <td>1</td>
+                    <td>Reads Counter 1</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="ffffff">Counter 2</td>
+                    <td>0x42</td>
+                    <td>1</td>
+                    <td>0</td>
+                    <td>1</td>
+                    <td>0</td>
+                    <td>Load Counter 2</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="ffffff"></td>
+                    <td></td>
+                    <td>0</td>
+                    <td>1</td>
+                    <td>1</td>
+                    <td>0</td>
+                    <td>Reads Counter 2</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="ffffff">Control Word</td>
+                    <td>0x43</td>
+                    <td>1</td>
+                    <td>0</td>
+                    <td>1</td>
+                    <td>1</td>
+                    <td>Write Control Word</td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="ffffff">NA</td>
+                    <td></td>
+                    <td>0</td>
+                    <td>1</td>
+                    <td>1</td>
+                    <td>1</td>
+                    <td>No Operation</td>
+                  </tr>
+                </tbody>
+              </table>
+            </center>
+
+            <p data-dl-uid="331" data-dl-original="true" data-dl-translated="true">
+              0x44-0x4fの他のポートアドレスは全て未定義です。
+            </p>
+            <p data-dl-uid="332" data-dl-original="true" data-dl-translated="true">
+              実行する操作に応じて、システムが正しいラインをアクティブにします。カウンタレジスタを設定する場合、まずコントローラにどのようにロードするのかを知らせる必要があります。これは、最初にコントロールワードを設定することで行われます。それでは、これらのレジスタを詳しく見ていきましょう。
+            </p>
+            <h3 data-dl-uid="333" data-dl-original="true" data-dl-translated="true">カウンタレジスタ</h3>
+
+            各カウンタレジスタには、PITがカウントダウンに使用する<b
+              data-dl-uid="334"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >COUNT</b
+            >値が格納されます。レジスタへの書き込み、読み出しは、まずPITにコントロールワードを送る必要があります。なぜ直接できないのかと思われるかもしれません。これには理由があり、データのサイズに関係しています。PITのデータラインは8本（D0-D7ピン）しかありません。しかし、カウンタレジスタはすべて16ビットで、8ビットではありません。
+            <p data-dl-uid="335" data-dl-original="true" data-dl-translated="true">
+              PITは、カウンタレジスタに書き込むデータをどのようにして知ることができるのでしょうか？カウンター・レジスタの16ビットのうち、どのバイトを設定しているのか、どうやって知ることができるのでしょうか？<b
+                data-dl-uid="336"
+                data-dl-original="true"
+                data-dl-translated="true"
+                ><i data-dl-uid="337" data-dl-original="true" data-dl-translated="true"
+                  >そうではありません。</i
+                ></b
+              >コマンドワードを送信することで、PITにデータが来ることを知らせ、そのデータをどう処理するかを知ることができます。これについては、次に説明します。
+            </p>
+            <h3 data-dl-uid="338" data-dl-original="true" data-dl-translated="true">
+              コントロールワードレジスタ
+            </h3>
+
+            この点が重要になります。
+            <p data-dl-uid="339" data-dl-original="true" data-dl-translated="true">
+              このレジスタは、コントローラの動作モードを決定し、設定するために使用される重要なレジスタです。RD、A0、A1ラインをイネーブルにすることで、このレジスタにアクセスできます。このレジスタは書き込みのみ可能で、読み出しはできません。
+            </p>
+            <p data-dl-uid="340" data-dl-original="true" data-dl-translated="true">
+              コントロールワードレジスタは、シンプルな形式を採用しています。最初は表を使おうと思っていたのですが、リスト形式の方が簡単かもしれないので、ここに書いておきます。
+            </p>
+            <p data-dl-uid="341" data-dl-original="true" data-dl-translated="true"></p>
+            <ul data-dl-uid="342" data-dl-original="true" data-dl-translated="true">
+              <li data-dl-uid="343" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="344" data-dl-original="true" data-dl-translated="true"
+                  >ビット0：（BCP）</b
+                >バイナリ・カウンタ
+              </li>
+              <ul data-dl-uid="345" data-dl-original="true" data-dl-translated="true">
+                <li data-dl-uid="346" data-dl-original="true" data-dl-translated="true">
+                  <b data-dl-uid="347" data-dl-original="true" data-dl-translated="true">0：</b>バイナリ
+                </li>
+                <li data-dl-uid="348" data-dl-original="true" data-dl-translated="true">
+                  <b data-dl-uid="349" data-dl-original="true" data-dl-translated="true">1：</b
+                  >2進数(BCD)
+                </li>
+              </ul>
+              <li data-dl-uid="350" data-dl-original="true" data-dl-translated="true">
+                ビット<b data-dl-uid="351" data-dl-original="true" data-dl-translated="true"
+                  >1～3：（M0、M1、M2）</b
+                >動作モード。それぞれの説明は、上記のセクションを参照してください。
+              </li>
+              <ul data-dl-uid="352" data-dl-original="true" data-dl-translated="true">
+                <li data-dl-uid="353" data-dl-original="true" data-dl-translated="true">
+                  <b data-dl-uid="354" data-dl-original="true" data-dl-translated="true">000：</b
+                  >モード0：割込みまたは端子カウント
+                </li>
+                <li data-dl-uid="355" data-dl-original="true" data-dl-translated="true">
+                  <b data-dl-uid="356" data-dl-original="true" data-dl-translated="true">001:</b>モード
+                  1: プログラマブルワンショット
+                </li>
+                <li data-dl-uid="357" data-dl-original="true" data-dl-translated="true">
+                  <b data-dl-uid="358" data-dl-original="true" data-dl-translated="true">010:</b>モード
+                  2: レートジェネレータ
+                </li>
+                <li data-dl-uid="359" data-dl-original="true" data-dl-translated="true">
+                  <b data-dl-uid="360" data-dl-original="true" data-dl-translated="true">011:</b
+                  >モード3：方形波発生器
+                </li>
+                <li data-dl-uid="361" data-dl-original="true" data-dl-translated="true">
+                  <b data-dl-uid="362" data-dl-original="true" data-dl-translated="true">100:</b>Mode 4:
+                  ソフトウェアトリガー ストロボ
+                </li>
+                <li data-dl-uid="363" data-dl-original="true" data-dl-translated="true">
+                  <b data-dl-uid="364" data-dl-original="true" data-dl-translated="true">101:</b>Mode 5:
+                  ハードウェアトリガー ストロボ
+                </li>
+                <li data-dl-uid="365" data-dl-original="true" data-dl-translated="true">
+                  <b data-dl-uid="366" data-dl-original="true" data-dl-translated="true">110:</b
+                  >未定義、使用しないでください。
+                </li>
+                <li data-dl-uid="367" data-dl-original="true" data-dl-translated="true">
+                  <b data-dl-uid="368" data-dl-original="true" data-dl-translated="true">111:</b
+                  >未定義、使用せず
+                </li>
+              </ul>
+              <li data-dl-uid="369" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="370" data-dl-original="true" data-dl-translated="true"
+                  >第4-5ビット：（RL0, RL1）</b
+                >リード/ロード・モード。カウンタ・レジスタへのデータの読み出し、または送信を行います
+              </li>
+              <ul data-dl-uid="371" data-dl-original="true" data-dl-translated="true">
+                <li data-dl-uid="372" data-dl-original="true" data-dl-translated="true">
+                  <b data-dl-uid="373" data-dl-original="true" data-dl-translated="true">00:</b
+                  >カウンタ値はI/Oライト動作時に内部コントロールレジスタにラッチされます。
+                </li>
+                <li data-dl-uid="374" data-dl-original="true" data-dl-translated="true">
+                  <b data-dl-uid="375" data-dl-original="true" data-dl-translated="true">01:</b
+                  >最下位バイト(LSB)のみをリードまたはロードします。
+                </li>
+                <li data-dl-uid="376" data-dl-original="true" data-dl-translated="true">
+                  <b data-dl-uid="377" data-dl-original="true" data-dl-translated="true">10</b>:
+                  最上位バイト(MSB)のみ読み出し/読み出し
+                </li>
+                <li data-dl-uid="378" data-dl-original="true" data-dl-translated="true">
+                  <b data-dl-uid="379" data-dl-original="true" data-dl-translated="true">11:</b
+                  >LSBを先に読み出し、その後MSBを読み出す。
+                </li>
+              </ul>
+              <li data-dl-uid="380" data-dl-original="true" data-dl-translated="true">
+                <b data-dl-uid="381" data-dl-original="true" data-dl-translated="true"
+                  >ビット6-7：(SC0-SC1)</b
+                >セレクトカウンタ。それぞれの説明は、上記のセクションを参照してください。
+              </li>
+
+              <ul>
+                <li><b>00:</b> Counter 0</li>
+                <li><b>01:</b> Counter 1</li>
+                <li><b>10:</b> Counter 2</li>
+                <li><b>11:</b> Illegal value</li>
+              </ul>
+            </ul>
+
+            さて、それでは、ちょっとだけ、いろいろなことをやってみましょうか？あとは、コントロール・ワード・レジスタに書き込んで、コントロール・ワードを構築し、コントローラを初期化すればいいわけですね？もちろん！ちょっとだけ...
+            <p data-dl-uid="391" data-dl-original="true" data-dl-translated="true">
+              基本的には、ある特定の目的のために<b
+                data-dl-uid="392"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >カウンタを</b
+              >初期化したい。そのため、カウンタ、カウンタのカウントモード、動作モードを設定するための制御ワードを構築する必要があります。次に、カウンタそのものを初期化します。一度初期化すれば、カウンターはそれ自体で動作することができますので、この作業は一度だけ行えばよいのです。
+            </p>
+            <p data-dl-uid="393" data-dl-original="true" data-dl-translated="true">
+              例として、すべてをまとめてみましょう。
+            </p>
+            <p data-dl-uid="394" data-dl-original="true" data-dl-translated="true">
+              すでにPICが初期化され、割り込み0ハンドラを持っていると仮定しましょう。IRQ
+              0を100Hz毎（10ミリ秒毎）に発生させるタイマーをセットアップしたいと思います。PITのチャンネル0がPICのIR0ラインに接続されていることは分かっているので、チャンネル0にこのようにプログラムすることができます。
+            </p>
+
+            <blockquote>
+              <pre><div class="code">        ; COUNT = input hz / frequency
+ 
+	mov	dx, 1193180 / 100	; 100hz, or 10 milliseconds
+ 
+	; FIRST send the command word to the PIT. Sets binary counting,
+	; Mode 3, Read or Load LSB first then MSB, Channel 0
+ 
+	mov	al, 110110b
+	out	0x43, al
+ 
+	; Now we can write to channel 0. Because we set the "Load LSB first then MSB" bit, that is
+	; the way we send it
+ 
+	mov	ax, dx
+	out	0x40, al	;LSB
+	xchg	ah, al
+	out	0x40, al	;MSB</div></pre>
+            </blockquote>
+
+            まずコントロールワードをセットアップし、次にカウンタ0レジスタに書き込んでいることに注目してください。
+            <p data-dl-uid="398" data-dl-original="true" data-dl-translated="true">
+              これだけですか！？そうです。これでカウンタ0が10ミリ秒ごとにIRQ0を発生させるようにプログラムされました。
+            </p>
+            <h1 data-dl-uid="399" data-dl-original="true" data-dl-translated="true">まとめ</h1>
+
+            8253と8254のPITは、非常に便利な小型チップです。様々なデバイスに使用することができ、様々な目的に使用することができます。
+            <p data-dl-uid="400" data-dl-original="true" data-dl-translated="true">
+              私たちのニーズでは、PCのスピーカーから信号を出力することと、最新のシステムソフトウェアで非常に重要なシステムタイマーを作ることの両方が可能です。さらに、スピーカーを直接操作し、PITとの接続を無効にする別の方法についても検討しましたが、これには利点と欠点があります。システムソフトウェアの設計者が、システムを開発する際に、異なる無限の可能性の長所と短所を判断し、優劣をつけるのは、その人次第です。
+            </p>
+            <p data-dl-uid="401" data-dl-original="true" data-dl-translated="true">
+              ここまで、標準的なx86ベースのPCマザーボードにおけるPITのピン配置とその接続について、詳しく見てきました。PIT自体は、最近のコンピュータでは、通常、マザーボードのサウスブリッジと統合されています。
+            </p>
+            <p data-dl-uid="402" data-dl-original="true" data-dl-translated="true">
+              私は、チップ自体にさらに追加することを計画しており、典型的なコンピュータシステムでどのように接続するかを正確に説明します。
+              もしかしたら、分解することもできるかもしれませんね。
+            </p>
+            <p data-dl-uid="403" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="404" data-dl-original="true" data-dl-translated="true"
+                >チュートリアル16：カーネルタイミングと例外処理では</b
+              >、<a
+                href="OSDevPic.html"
+                data-dl-uid="405"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >8259A PICと</a
+              >このチュートリアルのすべてを一緒にします。このチュートリアルでは、両方のデバイスのインターフェイスを実装し、作成します。もうちょっとだけ...
+            </p>
+            <p data-dl-uid="406" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="407" data-dl-original="true" data-dl-translated="true"
+                >カーネルランドへようこそ</b
+              >
+            </p>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </body>
+</html>
