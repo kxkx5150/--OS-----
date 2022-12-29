@@ -1,0 +1,4611 @@
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Cache-Control" content="no-cache" />
+    <title></title>
+    <link href="css/reference.css" rel="stylesheet" />
+  </head>
+  <body>
+    <table cellspacing="0" cellpadding="3" width="80%" border="0">
+      <tbody>
+        <tr>
+          <td class="tblhdr">Operating Systems Development Series</td>
+        </tr>
+        <tr>
+          <td align="middle" colspan="2"></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h1 class="western" data-dl-uid="1042" data-dl-original="true" data-dl-translated="true">
+      1.はじめに
+    </h1>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="0"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      ようこそ
+    </p>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="1"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      前章では、プロセス間通信（IPC）、保護、リソース割り当て、プロセス制御ブロック（PCB）、プロセス実行状態、プロセスアドレス空間など、プロセス管理の基本的なトピックについて詳しく説明しました。また、シングルタスクのサポートと基本的なシングルタスクの実装についても詳しく説明しました。本章では、前章の続きとして、マルチタスク、スケジューリング、セキュリティ、相互排他に重点を置いて、それぞれのトピックをより詳細に説明します。特に、以下の項目について説明します。
+    </p>
+    <ol>
+      <li>
+        <dd class="western" data-dl-uid="2" data-dl-original="true" data-dl-translated="true">
+          マルチスレッド
+        </dd>
+      </li>
+      <li>
+        <dd class="western" data-dl-uid="3" data-dl-original="true" data-dl-translated="true">
+          マルチタスクで
+        </dd>
+      </li>
+      <li>
+        <dd class="western" data-dl-uid="4" data-dl-original="true" data-dl-translated="true">
+          InitとIdleのプロセス。
+        </dd>
+      </li>
+      <li>
+        <dd class="western" data-dl-uid="5" data-dl-original="true" data-dl-translated="true">
+          カーネル/ユーザー共有データスペース。
+        </dd>
+      </li>
+      <li>
+        <dd class="western" data-dl-uid="6" data-dl-original="true" data-dl-translated="true">
+          相互排他とセマフォ。
+        </dd>
+      </li>
+      <li>
+        <dd class="western" data-dl-uid="7" data-dl-original="true" data-dl-translated="true">
+          並行プログラミング入門
+        </dd>
+      </li>
+      <li>
+        <dd class="western" data-dl-uid="8" data-dl-original="true" data-dl-translated="true">
+          スケジューリングアルゴリズム。
+        </dd>
+      </li>
+      <li>
+        <dd
+          class="western"
+          style="margin-bottom: 0.2in"
+          data-dl-uid="9"
+          data-dl-original="true"
+          data-dl-translated="true"
+        >
+          MPスタンダードへの導入。
+        </dd>
+      </li>
+    </ol>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="10"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      この章では、前の章を読んでいることを前提に、より高度な、実際の設計と実装に焦点を当てます。前章と同様、まずこれらのトピックの背後にある理論に飛び込み、その後、ユーザランドプロセスに完全なマルチスレッドを実装するデモを紹介します。また、MP
+      規格については簡単な紹介にとどめ、後日、より詳しく取り上げる予定です。MP
+      サポートを実装するには、APIC を適切にサポートする必要がありますが、これは高度なトピックです。
+    </p>
+    <h1 class="western" data-dl-uid="11" data-dl-original="true" data-dl-translated="true">
+      <b data-dl-uid="12" data-dl-original="true" data-dl-translated="true">2.プロセス状態の管理</b>
+    </h1>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in; font-weight: normal"
+      data-dl-uid="13"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      プロセスについては、シリーズを通してすでに多くのことを話してきましたので、今回はプロセスの状態とプロセスの作成についての復習にとどめます。前章では、プロセスを作成するための関数を実装しました。このデモでは、この関数を修正して、プロセスを適切に実行するための新しいタスクを作成する予定です。状態管理はプロセスのスケジューリングと密接に関係しているため、状態管理について復習しておく必要があります。
+    </p>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="14"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      プロセスの<b data-dl-uid="15" data-dl-original="true" data-dl-translated="true">状態とは</b
+      >、そのプロセスで採用されている現在の活動のことです。最低限、プロセスは、<b
+        data-dl-uid="16"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >作成</b
+      >、<b data-dl-uid="17" data-dl-original="true" data-dl-translated="true">実行</b>、実行<b
+        data-dl-uid="18"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >準備</b
+      >、<b data-dl-uid="19" data-dl-original="true" data-dl-translated="true">終了が</b
+      >可能である。すでに、これによって4つの状態が考えられる。
+    </p>
+    <ul>
+      <li>
+        <dd class="western" data-dl-uid="20" data-dl-original="true" data-dl-translated="true">
+          <b data-dl-uid="21" data-dl-original="true" data-dl-translated="true">新しい</b
+          >プロセスを作成中です。
+        </dd>
+      </li>
+      <li>
+        <dd class="western" data-dl-uid="22" data-dl-original="true" data-dl-translated="true">
+          <b data-dl-uid="23" data-dl-original="true" data-dl-translated="true">実行中</b
+          >です。プロセスが実行されています。
+        </dd>
+      </li>
+      <li>
+        <dd class="western" data-dl-uid="24" data-dl-original="true" data-dl-translated="true">
+          <b data-dl-uid="25" data-dl-original="true" data-dl-translated="true">準備完了</b
+          >プロセスの実行準備が整いました。
+        </dd>
+      </li>
+      <li>
+        <dd
+          class="western"
+          style="margin-bottom: 0.2in"
+          data-dl-uid="26"
+          data-dl-original="true"
+          data-dl-translated="true"
+        >
+          <b data-dl-uid="27" data-dl-original="true" data-dl-translated="true">終了しました</b
+          >。プロセスが終了しました。
+        </dd>
+      </li>
+    </ul>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="28"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      これは良いスタートです。
+      しかし、私たちはこれよりもっと良いことができるのです。例えば、あるプロセスを走らせていて、そのプロセスがディスクから大きなファイルを読み込む要求を出したとしよう。しかし、複数のプロセスが存在するシステムでは、ディスクはそのプロセスからの要求の処理で忙しいかもしれません。この場合、プロセスは<b
+        data-dl-uid="30"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >入出力要求が</b
+      >完了するまで<b data-dl-uid="29" data-dl-original="true" data-dl-translated="true">待つ</b
+      >必要がある。別の例として、2つのプロセスがあり、それらは<b
+        data-dl-uid="31"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >シグナルを通じて</b
+      >互いに通信しているとしよう。これは、5番目の状態である。
+    </p>
+    <ul>
+      <li>
+        <p
+          class="western"
+          style="margin-bottom: 0.2in"
+          data-dl-uid="34"
+          data-dl-original="true"
+          data-dl-translated="true"
+        >
+          <b data-dl-uid="35" data-dl-original="true" data-dl-translated="true">待機中</b
+          >。プロセスは、I/O 要求、例外、または信号の完了を待っている。
+        </p>
+      </li>
+    </ul>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="36"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      すべてを合わせると、プロセスは次のような状態を経ることになる。
+    </p>
+
+    <p class="western" style="margin-bottom: 0.2in">
+      <img
+        src="./23_files/osdev25_a.PNG"
+        name="graphics6"
+        align="LEFT"
+        width="483"
+        height="157"
+        border="0"
+      /><br clear="LEFT" />
+    </p>
+
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="37"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      <img
+        src="images/osdev25_a.PNG"
+        name="graphics6"
+        align="LEFT"
+        width="483"
+        height="157"
+        border="0"
+        data-dl-uid="38"
+        data-dl-original="true"
+        data-dl-translated="true"
+      /><br clear="LEFT" data-dl-uid="39" data-dl-original="true" data-dl-translated="true" />
+
+      上図は、現在の状態モデルを示している。<b
+        data-dl-uid="40"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >新しい</b
+      >プロセスはシステムの<b data-dl-uid="42" data-dl-original="true" data-dl-translated="true"
+        >Readyキューに</b
+      >
+      <b data-dl-uid="41" data-dl-original="true" data-dl-translated="true">入れられ</b>、<b
+        data-dl-uid="43"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >Schedulerディスパッチャが</b
+      >実行するプロセスを選択すると、そのプロセスは<b
+        data-dl-uid="44"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >Run</b
+      >状態になる。ここから、プロセスは任意の数の状態変化を取ることができる。<b
+        data-dl-uid="45"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >割り込みや</b
+      >
+      <b data-dl-uid="46" data-dl-original="true" data-dl-translated="true">例外が</b>発生した場合、<b
+        data-dl-uid="47"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >Scheduler Dispatcherは</b
+      >
+      <span
+        style="font-weight: normal"
+        data-dl-uid="48"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >他のプロセスに切り替える必要があり、この場合、プロセスは </span
+      ><b data-dl-uid="49" data-dl-original="true" data-dl-translated="true">Ready</b
+      >キューに戻されます<span
+        style="font-weight: normal"
+        data-dl-uid="50"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >。 代わりに、プロセスがファイルから読み込もうとすると、プロセスは </span
+      ><b data-dl-uid="51" data-dl-original="true" data-dl-translated="true">I/Oリクエストを</b
+      ><span data-dl-uid="50" data-dl-translated="true">開始 </span>
+      <span
+        style="font-weight: normal"
+        data-dl-uid="52"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >し、
+      </span>
+      <span
+        style="font-weight: normal"
+        data-dl-uid="54"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >リクエストが完了するまで </span
+      ><b data-dl-uid="53" data-dl-original="true" data-dl-translated="true">Waitキューに</b
+      >置かれます。<span data-dl-uid="54" data-dl-translated="true">I/O </span
+      >要求が完了すると、プロセスは<b data-dl-uid="55" data-dl-original="true" data-dl-translated="true"
+        >Ready</b
+      >キューに戻され、<span
+        style="font-weight: normal"
+        data-dl-uid="58"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >再び</span
+      ><b data-dl-uid="57" data-dl-original="true" data-dl-translated="true"
+        >Schedulerディスパッチャによって</b
+      >
+      <span
+        style="font-weight: normal"
+        data-dl-uid="56"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >選択 </span
+      >される。<span data-dl-uid="58" data-dl-translated="true"
+        >最後に、プロセスの実行中いつでも、プロセスは終了さ</span
+      >れる。
+    </p>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="59"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      <span
+        style="font-weight: normal"
+        data-dl-uid="60"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >時には </span
+      >、<span
+        style="font-weight: normal"
+        data-dl-uid="62"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >プロセスを</span
+      ><b data-dl-uid="61" data-dl-original="true" data-dl-translated="true">一時停止</b>する<span
+        data-dl-uid="60"
+        data-dl-translated="true"
+        >ことが有効な </span
+      >場合があります。<span data-dl-uid="62" data-dl-translated="true"
+        >これは、プロセスをメモリから取り出して、その状態をディスクに保存することです。これは特に、システムリソースを解放し、より高い優先度を持つ他のプロセスを実行できるようにする場合に有効です。これには、最低でもあと2つの状態が必要です。</span
+      >
+    </p>
+
+    <ul>
+      <li>
+        <dd class="western"><b>Suspend Ready</b><span style="font-weight: normal">.</span></dd>
+      </li>
+      <li>
+        <dd class="western" style="margin-bottom: 0.2in">
+          <b>Suspend Wait</b><span style="font-weight: normal">.</span>
+        </dd>
+      </li>
+    </ul>
+
+    <p
+      class="western"
+      style="margin-bottom: 0.2in; font-weight: normal"
+      data-dl-uid="69"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      これらを先ほどの図に加えると、次のようになります。
+    </p>
+
+    <p class="western" style="margin-bottom: 0.2in">
+      <img
+        src="./23_files/osdev25_b.PNG"
+        name="graphics3"
+        align="LEFT"
+        width="458"
+        height="182"
+        border="0"
+      /><br clear="LEFT" />
+
+      <span
+        style="font-weight: normal"
+        data-dl-uid="70"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >のプロセス </span
+      ><b data-dl-uid="71" data-dl-original="true" data-dl-translated="true">レディ</b>
+      <span
+        style="font-weight: normal"
+        data-dl-uid="72"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >または </span
+      ><b data-dl-uid="73" data-dl-original="true" data-dl-translated="true">待つ</b>
+      <span
+        style="font-weight: normal"
+        data-dl-uid="74"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >かもしれません </span
+      ><b data-dl-uid="75" data-dl-original="true" data-dl-translated="true">停止中</b>
+      <span
+        style="font-weight: normal"
+        data-dl-uid="76"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >は、システムのリソース需要に応じて変化します。設計の必要性に応じて、これにさらに多くの状態を追加することができますが、ほとんどの汎用オペレーティングシステムでは、上記の状態図があれば十分です。</span
+      >
+    </p>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="77"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      ここでは、<b data-dl-uid="79" data-dl-original="true" data-dl-translated="true">Ready</b
+      ><span
+        style="font-weight: normal"
+        data-dl-uid="80"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >、</span
+      ><b data-dl-uid="81" data-dl-original="true" data-dl-translated="true">Run</b
+      ><span
+        style="font-weight: normal"
+        data-dl-uid="82"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >、 </span
+      ><b data-dl-uid="83" data-dl-original="true" data-dl-translated="true">Terminatedの</b
+      ><span
+        style="font-weight: normal"
+        data-dl-uid="84"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >各状態にのみ </span
+      >注目することにする。<span data-dl-uid="84" data-dl-translated="true">しかし </span>、<span
+        style="font-weight: normal"
+        data-dl-uid="88"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >添付のデモで</span
+      ><b data-dl-uid="87" data-dl-original="true" data-dl-translated="true">スリープ</b>機能を<span
+        style="font-weight: normal"
+        data-dl-uid="86"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >適切にサポート </span
+      >するために、<b data-dl-uid="85" data-dl-original="true" data-dl-translated="true">Wait</b
+      ><span data-dl-uid="84" data-dl-translated="true">状態も実装 </span>することがあります。
+    </p>
+    <h1 class="western" data-dl-uid="89" data-dl-original="true" data-dl-translated="true">
+      <b data-dl-uid="90" data-dl-original="true" data-dl-translated="true">3.並行プログラミング</b>
+    </h1>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="91"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      この章では、プロセスの状態、状態管理、プロセス生成について説明しました。最後に、<i
+        data-dl-uid="92"
+        data-dl-original="true"
+        data-dl-translated="true"
+        ><b data-dl-uid="93" data-dl-original="true" data-dl-translated="true"
+          >マルチタスクについて</b
+        ></i
+      >説明します。 マルチタスクの中心は、次のセクションで説明する<b
+        data-dl-uid="94"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >スケジューラ・ディスパッチャ</b
+      >です。Scheduler
+      ディスパッチャは、プロセスを状態間で移動させたり、実行するプロセスをスケジュールする役割を担っています。そのため、このセクションで最初に取り上げることにしました。この後、このセクションで使用することになります。しかし、スケジューラに移る前に、複数の<b
+        data-dl-uid="95"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >スレッドが</b
+      >実行されたときにマルチタスクで何が起こるかを詳しく見ておく必要があります。
+      2つのスレッドまたはプロセスが<i data-dl-uid="96" data-dl-original="true" data-dl-translated="true"
+        ><b data-dl-uid="97" data-dl-original="true" data-dl-translated="true">同時に</b></i
+      >実行され、互いにデータを共有すると、実行の2つのスレッド間の活動を同期させることが重要になります。
+    </p>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="98"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      並<i data-dl-uid="99" data-dl-original="true" data-dl-translated="true"
+        ><b data-dl-uid="100" data-dl-original="true" data-dl-translated="true">行処理とは</b></i
+      >、プロセスの現在の状態がわからないことを意味します。複数のプロセスが並んで実行され、互いにデータを共有するとき、そのプロセスは<i
+        data-dl-uid="101"
+        data-dl-original="true"
+        data-dl-translated="true"
+        ><b data-dl-uid="102" data-dl-original="true" data-dl-translated="true">並行して</b></i
+      >実行されているといいます。<i data-dl-uid="103" data-dl-original="true" data-dl-translated="true"
+        ><b data-dl-uid="104" data-dl-original="true" data-dl-translated="true"
+          >並行プログラミングは</b
+        ></i
+      >、並行プロセスまたはスレッド間の<b
+        data-dl-uid="106"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >共有リソースへの</b
+      >アクセスを<b data-dl-uid="105" data-dl-original="true" data-dl-translated="true">同期</b
+      >するために使用される一連の技術を定義しています。
+    </p>
+    <h2 class="western" data-dl-uid="107" data-dl-original="true" data-dl-translated="true">
+      クリティカルセクションプロブレム
+    </h2>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="108"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      シングルコアのシステムでは、オペレーティングシステムは各プロセスにわずかな実行時間を割り当てる。システムは、同時に実行されている異なるプロセス間を高速に切り替えます。プロセスはいつでも中断される可能性がある。また、<b
+        data-dl-uid="109"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >並列実行を</b
+      >サポートするシステムでは、異なるプロセスからの命令を同時に実行することができる。
+    </p>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="110"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      現在のプログラミングの問題点を見るために、次のような命令を持つ2つの処理を考えてみよう。
+    </p>
+
+    <table width="382" border="1" cellpadding="4" cellspacing="0" frame="VOID">
+      <colgroup>
+        <col width="199" />
+        <col width="168" />
+      </colgroup>
+      <tbody>
+        <tr valign="TOP">
+          <td width="199">
+            <pre><b>Process A</b>
+mov eax, [count]
+inc eax
+mov [count], eax</pre>
+          </td>
+          <td width="168">
+            <pre><b>Process B</b>
+mov ebx, [count]
+dec ebx
+mov [count], ebx</pre>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="115"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      これらのプロセスを同時に実行する場合、スケジューラが2つのプロセスを切り替えるときに、何らかの順序でプロセスを<i
+        data-dl-uid="116"
+        data-dl-original="true"
+        data-dl-translated="true"
+        ><b data-dl-uid="117" data-dl-original="true" data-dl-translated="true">インターリーブ</b></i
+      >することになる。 プロセスのインターリーブの方法はさまざまだが、その1つは次のようなものだ。
+    </p>
+
+    <pre>
+mov eax, [count]
+inc eax
+mov ebx, [count]
+dec ebx
+mov [count], eax
+mov [count], ebx</pre
+    >
+
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="119"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      もし、<b data-dl-uid="120" data-dl-original="true" data-dl-translated="true">countが</b
+      >2つの異なるプロセス間で共有されるなら、ここで大きな問題に気がつくかもしれません。なぜなら、<b
+        data-dl-uid="121"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >実行順序を</b
+      >制御できないので、スケジューラが2つのプロセスを<i
+        data-dl-uid="122"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >いつ</i
+      >切り替えるかによって、異なる結果が得られる可能性があり、countの値が有効であることを保証することができないからです。どちらが先に変数を読み書きするかで結果が変わります。これは<b
+        data-dl-uid="123"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >レースコンディション</b
+      >です。
+    </p>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="124"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      レースコンディションに対抗するためには、変数が他のプロセスで使用されている間、その変数を<b
+        data-dl-uid="125"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >ガード</b
+      >する必要があります。何らかの方法で2つのプロセスを<b
+        data-dl-uid="126"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >同期さ</b
+      >せる必要があります。これは<b data-dl-uid="127" data-dl-original="true" data-dl-translated="true"
+        >クリティカルセクション問題の</b
+      >一部である。
+    </p>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="128"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      複数のプロセッサを持つシステムでは、<i
+        data-dl-uid="130"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >1</i
+      >つのプロセスを実行する際に、現在の実行状態と現在の命令ストリームがインターリーブされるため、問題は<i
+        data-dl-uid="129"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >さらに</i
+      >深刻になります。
+    </p>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="131"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      <b data-dl-uid="132" data-dl-original="true" data-dl-translated="true">問題点</b>
+    </p>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="133"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      同時に実行されるプロセスの同期を制御する方法が必要です。クリティカルセクションの要求があったとき、それが完了するまで、<i
+        data-dl-uid="134"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >1つの</i
+      >プロセッサだけがクリティカルセクション内のコードを実行することを保証しなければならない。さらに言えば、クリティカルセクションに入る間、他のプロセスやスレッドが実行されないようにしなければならない。
+    </p>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="135"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      <b data-dl-uid="136" data-dl-original="true" data-dl-translated="true">その基準</b>
+    </p>
+    <ul>
+      <li>
+        <dd class="western" data-dl-uid="137" data-dl-original="true" data-dl-translated="true">
+          <b data-dl-uid="138" data-dl-original="true" data-dl-translated="true">相互排他。</b
+          >あるプロセスがクリティカルセクションで実行されているとき、他のプロセスはクリティカルセクションで実行されていない。
+        </dd>
+      </li>
+      <li>
+        <dd class="western" data-dl-uid="139" data-dl-original="true" data-dl-translated="true">
+          <b data-dl-uid="140" data-dl-original="true" data-dl-translated="true">進行</b
+          >状況。プロセスは、そのクリティカルセクションに入るのを無制限に待つわけではありません。
+        </dd>
+      </li>
+      <li>
+        <dd
+          class="western"
+          style="margin-bottom: 0.2in"
+          data-dl-uid="141"
+          data-dl-original="true"
+          data-dl-translated="true"
+        >
+          <b data-dl-uid="142" data-dl-original="true" data-dl-translated="true"
+            >Bounded Waiting（境界付き待機）。</b
+          >そのクリティカルセクションに入る要求を出してから、実際に入るまでの時間が有限であること。
+        </dd>
+      </li>
+    </ul>
+    <h2 class="western" data-dl-uid="143" data-dl-original="true" data-dl-translated="true">セマフォ</h2>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="144"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      <b data-dl-uid="145" data-dl-original="true" data-dl-translated="true">相互排除を</b
+      >どのように実行するのか？2つのプロセス間で何らかの<b
+        data-dl-uid="146"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >協力が</b
+      >必要です。<b data-dl-uid="147" data-dl-original="true" data-dl-translated="true"
+        >プロセスAが共有リソース上で動作しているとき、プロセスBがそのリソースにアクセスする必要がある場合、プロセスBは待機</b
+      >する必要があります。しかし、<b data-dl-uid="148" data-dl-original="true" data-dl-translated="true"
+        >プロセスAがそのリソースを使い終わったら、プロセスBがそのリソースを使えるようになることを通知</b
+      >する必要があります。これが<i data-dl-uid="149" data-dl-original="true" data-dl-translated="true"
+        ><b data-dl-uid="150" data-dl-original="true" data-dl-translated="true">相互排他</b></i
+      >です。
+    </p>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="151"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      できることは、リソースが現在使用されているかどうかを追跡するために、別の変数を導入することです。この変数を<i
+        data-dl-uid="152"
+        data-dl-original="true"
+        data-dl-translated="true"
+        ><b data-dl-uid="153" data-dl-original="true" data-dl-translated="true">ロックと</b></i
+      >呼びます。そして、このロックを使って、もうひとつのリソースを追跡することができます。
+    </p>
+    <ul>
+      <li>
+        <dd class="western" data-dl-uid="154" data-dl-original="true" data-dl-translated="true">
+          ロックが1の場合、そのリソースは他のプロセスによって使用中である。
+        </dd>
+      </li>
+      <li>
+        <dd
+          class="western"
+          style="margin-bottom: 0.2in"
+          data-dl-uid="155"
+          data-dl-original="true"
+          data-dl-translated="true"
+        >
+          ロックが 0 の場合、リソースは自由に使用できる。
+        </dd>
+      </li>
+    </ul>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="156"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      このタイプのロックには特別な名前がついています。これは<i
+        data-dl-uid="157"
+        data-dl-original="true"
+        data-dl-translated="true"
+        ><b data-dl-uid="158" data-dl-original="true" data-dl-translated="true">ミューテックスと</b></i
+      >呼ばれます。ミューテックスは2つの値しか持たないので、<i
+        data-dl-uid="159"
+        data-dl-original="true"
+        data-dl-translated="true"
+        ><b data-dl-uid="160" data-dl-original="true" data-dl-translated="true"
+          >バイナリ・セマフォとも</b
+        ></i
+      >呼ば<span
+        style="font-style: normal"
+        data-dl-uid="161"
+        data-dl-original="true"
+        data-dl-translated="true"
+        ><span
+          style="font-weight: normal"
+          data-dl-uid="162"
+          data-dl-original="true"
+          data-dl-translated="true"
+          >れます</span
+        ></span
+      >。 私たちが何をする必要があるかを思い出してください。一方のプロセスが<i
+        data-dl-uid="163"
+        data-dl-original="true"
+        data-dl-translated="true"
+        ><b data-dl-uid="164" data-dl-original="true" data-dl-translated="true">待機</b></i
+      >し、もう一方のプロセスが<i data-dl-uid="165" data-dl-original="true" data-dl-translated="true"
+        ><b data-dl-uid="166" data-dl-original="true" data-dl-translated="true">シグナルを</b></i
+      >送る必要があります。これらは、この章を通じて使用する基本的な関数です。
+    </p>
+
+    <pre><b>atomic Wait</b> (<b>Semaphore</b> S) {
+while (S &lt;= 0)
+  Place process on S.Queue and block.
+  S--;
+<font face="Lucida Console, monospace">}</font>
+<b>atomic Signal</b> (<b>Semaphore</b> S) {
+  S++;
+}</pre>
+
+    <p
+      class="western"
+      style="margin-bottom: 0.2in; font-weight: normal"
+      data-dl-uid="173"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      <b data-dl-uid="174" data-dl-original="true" data-dl-translated="true">ミューテックスは</b
+      >、値が0か1しかない<i data-dl-uid="175" data-dl-original="true" data-dl-translated="true"
+        ><b data-dl-uid="176" data-dl-original="true" data-dl-translated="true">2値のセマフォに </b></i
+      >過ぎません。<i data-dl-uid="177" data-dl-original="true" data-dl-translated="true"
+        ><b data-dl-uid="178" data-dl-original="true" data-dl-translated="true">セマフォは</b></i
+      >一般化されたロックであり、制限はありません（つまり、ミューテックスが2つの値しか持たないのに対し、一般的なセマフォには制限がありません）。また、上記のコードにあるatomicキーワードに注目してください。これは、このコードが実行されるときに決して中断されないことを意味しています。つまり、1つのプロセッサ上で1ブロックのコードとして正しい順序で実行されることが<i
+        data-dl-uid="179"
+        data-dl-original="true"
+        data-dl-translated="true"
+        ><b data-dl-uid="180" data-dl-original="true" data-dl-translated="true">保証</b></i
+      >されているのです。これらは<i data-dl-uid="181" data-dl-original="true" data-dl-translated="true"
+        ><b data-dl-uid="182" data-dl-original="true" data-dl-translated="true"
+          >1つのユニットとして扱</b
+        ></i
+      >われます(それゆえ<b data-dl-uid="183" data-dl-original="true" data-dl-translated="true"
+        >アトミック</b
+      >操作と呼ばれます)。
+    </p>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in; font-weight: normal"
+      data-dl-uid="184"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      残念ながら、上に示したような単純なものではありません。<b
+        data-dl-uid="185"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >アトミック演算はハードウェアに依存する</b
+      >ため、動作させるためにはプロセッサからの支援が必要です。具体的には、<font
+        face="Lucida Console, monospace"
+        data-dl-uid="186"
+        data-dl-original="true"
+        data-dl-translated="true"
+        ><b data-dl-uid="187" data-dl-original="true" data-dl-translated="true">LOCK</b></font
+      >命令のプリフィックスを利用する必要があります。これについては、後ほど実際のコードにこれらのプリミティブを実装する際に、より詳しく説明する予定です。
+    </p>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in; font-weight: normal"
+      data-dl-uid="188"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      セマフォは導入当初は難しいので、とりあえずは使用例を見ておくのが良いと思います。マルチプロセッシングを完全にサポートするつもりなら、セマフォをたくさん使うことになるでしょうから、使い方を練習しておくことは重要です。
+    </p>
+
+    <table width="100%" border="1" cellpadding="0" cellspacing="0" rules="NONE">
+      <colgroup>
+        <col width="31*" />
+        <col width="225*" />
+      </colgroup>
+      <tbody>
+        <tr valign="TOP">
+          <td width="12%">
+            <p class="western">
+              <font color="#000000"
+                ><img
+                  src="./23_files/OSDevVid2_html_424a8468.gif"
+                  name="graphics2"
+                  align="BOTTOM"
+                  width="12"
+                  height="12"
+                  border="0"
+                />&nbsp;<font face="Verdana, sans-serif"
+                  ><font size="2"><b>Example.</b></font></font
+                ></font
+              >
+            </p>
+          </td>
+
+          <td width="88%">
+            <p
+              class="western"
+              style="margin-bottom: 0.2in; font-weight: normal"
+              data-dl-uid="195"
+              data-dl-original="true"
+              data-dl-translated="true"
+            >
+              <font color="#000000" data-dl-uid="196" data-dl-original="true" data-dl-translated="true"
+                ><font
+                  face="Verdana, sans-serif"
+                  data-dl-uid="197"
+                  data-dl-original="true"
+                  data-dl-translated="true"
+                  ><font size="2" data-dl-uid="198" data-dl-original="true" data-dl-translated="true"
+                    >このセクションの冒頭で、異なるプロセス間でスワップする際に命令フローがインターリーブされることを示しました。問題は、両方のプロセスがいつでも実行可能であることと、リソースを共有しているため、リソースの完全性を検証する方法がないことでした。2つのプロセスで共有されるグローバル変数が<b
+                      data-dl-uid="199"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                      >count</b
+                    >であるとすると、セマフォでアクセスを同期させることができます。<b
+                      data-dl-uid="200"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                      >signalと</b
+                    >
+                    <b data-dl-uid="201" data-dl-original="true" data-dl-translated="true">waitは</b>
+                    <b data-dl-uid="202" data-dl-original="true" data-dl-translated="true"
+                      >アトミックな</b
+                    >操作であることに注意してください。</font
+                  ></font
+                ></font
+              >
+            </p>
+
+            <table width="262" border="1" cellpadding="4" cellspacing="0" frame="VOID">
+              <colgroup>
+                <col width="103" />
+                <col width="143" />
+              </colgroup>
+              <tbody>
+                <tr valign="TOP">
+                  <td width="103">
+                    <pre><b>Process A</b>
+count++;
+signal (s);</pre>
+                  </td>
+                  <td width="143">
+                    <pre><b>Process B</b>
+wait (s);
+count--;
+signal (s);</pre>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <p class="western" style="margin-bottom: 0.2in"><br /><br /></p>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2 class="western" data-dl-uid="207" data-dl-original="true" data-dl-translated="true">
+      スピンロック
+    </h2>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="208"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      あるプロセスがクリティカルセクションに入ったとき、他のプロセスはクリティカル
+      セクションに入れないという相互排他が、クリティカルセクション問題の解決策の第一条件である。この機能を実装するためには、相互排他を保証できる<b
+        data-dl-uid="209"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >アトミックな</b
+      >操作を実装する何らかの方法が必要である。1つのアイデアとして、単純な変数をロックとして使用する方法がある。ロックが1であれば、あるプロセスはクリティカルセクションの内部にいることになります。そこで、最初のアイデアとして
+    </p>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="210"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      <b data-dl-uid="211" data-dl-original="true" data-dl-translated="true">int lock=0;</b>
+    </p>
+
+    <table width="292" border="1" cellpadding="4" cellspacing="0" frame="VOID">
+      <colgroup>
+        <col width="136" />
+        <col width="140" />
+      </colgroup>
+      <tbody>
+        <tr valign="TOP">
+          <td width="136">
+            <pre><font color="#000000"><font face="Lucida Console, monospace"><font size="2"><b>Process A</b></font></font></font>
+while(1) {
+  if (!lock)
+    lock = 1;
+  do_something();
+  lock=0;
+}</pre>
+          </td>
+          <td width="140">
+            <pre><font color="#000000"><font face="Lucida Console, monospace"><font size="2"><b>Process B</b></font></font></font>
+while(1) {
+  if (!lock)
+    lock = 1;
+  do_something();
+  lock=0;
+<b>}</b></pre>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="223"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      とてもシンプルです。ロックは0から始まるので、最初に実行されるプロセスはこれを検知してロックをセットします。それが終わると、ロックは解放され、2番目のプロセスがそれを使えるようになります。これはある程度うまくいくのですが、まだ大きな問題があります。例えば、プロセスAはロックが0であることを検出しましたが、プロセスAがロックを設定する前にプロセスBに割り込まれたとします。そこで、プロセスBはロックが0であることを検出し、今度はロックを設定します。つまり、プロセスBが<b
+        data-dl-uid="224"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >do_somethingの</b
+      >どこかで中断されても、プロセスAはロックがまだ0であるかのように実行を継続します！したがって、プロセスがロック変数自体を読み取ってロックしようとして中断されても、両方のプロセスが同じクリティカルセクション（この例では、クリティカルセクションは<b
+        data-dl-uid="225"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >do_somethingの</b
+      >呼び出しです）に同時に入ることができるのです。これは小さなエラーのように見えますが、すぐに伝播し、かなり多く発生することになります。
+    </p>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="226"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      つまり、ここでの問題は、ロックへのアクセスと設定が割り込まれることなく行えることを保証できないことです。この操作は<i
+        data-dl-uid="227"
+        data-dl-original="true"
+        data-dl-translated="true"
+        ><b data-dl-uid="228" data-dl-original="true" data-dl-translated="true">アトミックでは</b></i
+      >ありません。
+    </p>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="229"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      実際の原子操作なしで何が起こるかを視覚化するために、2つのスレッドがあるとしよう。最初のスレッドは文字a-zを表示し、2番目のスレッドは数字0-9を表示する。この2つのスレッドは、後で開発するスケジューラを使って同時に実行されます。以下がそのスレッドである。
+    </p>
+
+    <table width="392" border="1" cellpadding="0" cellspacing="0" frame="VOID">
+      <colgroup>
+        <col width="191" />
+        <col width="201" />
+      </colgroup>
+      <tbody>
+        <tr valign="TOP">
+          <td width="191">
+            <pre><font color="#000000"><font face="Lucida Console, monospace"><font size="2"><b>Process A</b></font></font></font>
+void task_1() {
+  char c='a';
+  while(1) {
+    DebugPutc(c++);
+    if (c&gt;'z') c='a';
+  }
+<font color="#000000"><font size="2">}</font></font></pre>
+          </td>
+          <td width="201">
+            <pre><font color="#000000"><font face="Lucida Console, monospace"><font size="2"><b>Process B</b></font></font></font>
+void task_1() {
+  char c='0';
+  while(1) {
+    DebugPutc(c++);
+    if (c&gt;'9') c='0';
+  }
+<font color="#0000ff"><font size="2">}</font></font></pre>
+            <p class="western">
+              <br />
+            </p>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="244"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      この2つのタスクが同時に実行されると、出力はインターリーブされた混乱状態になります。両プロセスが共有リソースからの読み書きを無頓着に行っているからです。先に述べたようにロックを導入したとしても、出力はあまり良くならないでしょう。この例では、共有リソースはビデオメモリと、カーソルの位置決めとスクロールを担当する<b
+        data-dl-uid="245"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >DebugPutc</b
+      >によって使用されるグローバル変数です。あるプロセスが現在の x または y
+      位置を読み取ったり、スクロールの準備をしたりすると、プロセスが中断されることがあり、位置やその他のグローバル変数が最初のプロセスに知られることなく変更される可能性があります。
+    </p>
+
+    <p class="western" style="margin-bottom: 0.2in">
+      <img
+        src="./23_files/demo25_problem.png"
+        name="graphics8"
+        align="LEFT"
+        width="400"
+        height="270"
+        border="0"
+      /><br clear="LEFT" /><i
+        >セマフォ無しのサンプル。出力がどのように乱れているかに注目してください。</i
+      >
+    </p>
+
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="247"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      ですから、これを解決するためには、単純なロック以上のものが必要です。私たちの方向性は良いのですが、ハードウェアのサポートが必要です。もし、ロック変数のテストと設定を1回の操作で行えるようにする方法があれば、決して中断されないことが保証され（つまり<b
+        data-dl-uid="248"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >アトミック</b
+      >である）、最終的に<b data-dl-uid="249" data-dl-original="true" data-dl-translated="true"
+        >相互排除</b
+      >基準を満たすことができるようになるのです。
+    </p>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="250"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      そのようなハードウェアプリミティブの1つが、<b
+        data-dl-uid="251"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >LOCK</b
+      >命令プレフィックスです。このプリフィックスは、命令実行中にシステムバスをリードとライトからロックする。データバスがロックされるため、アトミックであることが保証される。そのため、ロック変数を設定したりテストしたりする際には、単純な<b
+        data-dl-uid="252"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >LOCK XCHGや</b
+      >
+      <b data-dl-uid="253" data-dl-original="true" data-dl-translated="true">LOCK BTSを</b
+      >使用することができる。例えば
+    </p>
+
+    <pre>
+inline void acquire(int* lock) {
+  _asm{
+    mov eax,[lock]
+a:  lock bts [eax], 0
+    pause
+    jc a
+  }
+}
+
+inline void release(int* lock) {
+  _asm{
+    mov eax, [lock]
+    mov [eax], 0
+  }
+}</pre
+    >
+
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="255"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      これらの関数を呼び出すことで、ロックの取得と解放を行うことができます。
+    </p>
+
+    <table width="392" border="1" cellpadding="0" cellspacing="0" frame="VOID">
+      <colgroup>
+        <col width="191" />
+        <col width="201" />
+      </colgroup>
+      <tbody>
+        <tr valign="TOP">
+          <td width="191">
+            <pre><font color="#000000"><font face="Lucida Console, monospace"><font size="2"><b>Process A</b></font></font></font>
+void task_1() {
+  char c='a';
+  while(1) {
+    acquire(lock);
+    DebugPutc(c++);
+    release(lock);
+    if (c&gt;'z') c='a';
+  }
+<font color="#000000"><font size="2">}</font></font></pre>
+          </td>
+          <td width="201">
+            <pre><font color="#000000"><font face="Lucida Console, monospace"><font size="2"><b>Process B</b></font></font></font>
+void task_2() {
+  char c='a';
+  while(1) {
+    acquire(lock);
+    DebugPutc(c++);
+    release(lock);
+    if (c&gt;'z') c='a';
+  }
+<font color="#000000"><font size="2">}</font></font></pre>
+            <p class="western">
+              <br />
+            </p>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="270"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      <font color="#000000" data-dl-uid="271" data-dl-original="true" data-dl-translated="true"
+        ><font size="2" data-dl-uid="272" data-dl-original="true" data-dl-translated="true"
+          >そして、望ましい結果を得ることができるのです。</font
+        ></font
+      >
+    </p>
+
+    <p class="western" style="margin-bottom: 0.2in">
+      <img
+        src="./23_files/demo25_fix.png"
+        name="graphics7"
+        align="LEFT"
+        width="395"
+        height="268"
+        border="0"
+      /><br clear="LEFT" /><font color="#000000"
+        ><font size="2"
+          ><i
+            >スピンロック付きサンプルの実行。表示がきれいに整列していることに注目してください。</i
+          ></font
+        ></font
+      >
+    </p>
+
+    <h1 class="western" data-dl-uid="276" data-dl-original="true" data-dl-translated="true">
+      4.古典的な並行処理問題
+    </h1>
+    <h2 class="western" data-dl-uid="277" data-dl-original="true" data-dl-translated="true">
+      生産者・消費者問題 (境界バッファ問題)
+    </h2>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="278"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      これは、これから見る最初の古典的な並行処理問題である。2つの独立したプロセス、一方は<b
+        data-dl-uid="279"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >プロデューサと</b
+      >呼ばれ、もう一方は<b data-dl-uid="280" data-dl-original="true" data-dl-translated="true"
+        >コンシューマと</b
+      >呼ばれ ているとします。また、両方のプロセスで使用されている共有バッファがあるとします。producer
+      はデータをバッファに入れる役割を担い、consumer はデータを取り出す役割を担います。この<span
+        style="font-weight: normal"
+        data-dl-uid="284"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >問題は、producer がすでにバッファが一杯のときにデータを追加しないこと、consumer
+        が空のバッファからデータを取り出そうとしないことを確認する必要が</span
+      >あります。<span data-dl-uid="284" data-dl-translated="true"
+        >この問題は、プロデューサーとコンシューマーが複数存在する場合に、より興味深いものになります。</span
+      >
+    </p>
+
+    <table width="100%" border="1" cellpadding="0" cellspacing="0" rules="NONE">
+      <colgroup>
+        <col width="31*" />
+        <col width="225*" />
+      </colgroup>
+      <tbody>
+        <tr valign="TOP">
+          <td width="12%">
+            <p class="western">
+              <font color="#000000"
+                ><img
+                  src="./23_files/OSDevVid2_html_424a8468.gif"
+                  name="graphics4"
+                  align="BOTTOM"
+                  width="12"
+                  height="12"
+                  border="0"
+                />&nbsp;<font face="Verdana, sans-serif"
+                  ><font size="2"><b>Example.</b></font></font
+                ></font
+              >
+            </p>
+          </td>
+          <td width="88%">
+            <p class="western" style="margin-bottom: 0.2in; font-weight: normal">
+              <font color="#000000"
+                ><font face="Verdana, sans-serif"
+                  ><font size="2">
+                    これは、Bounded
+                    Buffer問題の解決策である。これは、単一のプロデューサーとコンシューマーが同時に実行されることを想定しています。</font
+                  ></font
+                ></font
+              >
+            </p>
+            <pre>
+Semaphore c = 0;
+Semaphore s = BUFFER_SIZE;</pre
+            >
+            <table width="323" border="1" cellpadding="0" cellspacing="0" rules="NONE">
+              <colgroup>
+                <col width="175" />
+                <col width="146" />
+              </colgroup>
+              <tbody>
+                <tr valign="TOP">
+                  <td width="175">
+                    <pre><font color="#000000"><font face="Lucida Console, monospace"><font size="2"><b>Producer</b></font></font></font>
+while (true) {
+   <font face="Lucida Console, monospace"><font size="2">item = produce ();</font></font>
+   <font face="Lucida Console, monospace"><font size="2">wait(s);</font></font>
+   <font face="Lucida Console, monospace"><font size="2">write(item);</font></font>
+   <font face="Lucida Console, monospace"><font size="2">signal(c);</font></font>
+}</pre>
+                  </td>
+                  <td width="146">
+                    <pre><font color="#000000"><font face="Lucida Console, monospace"><font size="2"><b>Consumer</b></font></font></font>
+while (true) {
+   <font face="Lucida Console, monospace"><font size="2"><span style="font-weight: normal">wait(c);</span></font></font>
+   <font face="Lucida Console, monospace"><font size="2"><span style="font-weight: normal">item = read();</span></font></font>
+   <font face="Lucida Console, monospace"><font size="2"><span style="font-weight: normal">signal(s);</span></font></font>
+   <font face="Lucida Console, monospace"><font size="2"><span style="font-weight: normal">consume(item);</span></font></font>
+}</pre>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <p class="western" style="margin-bottom: 0.2in"><br /><br /></p>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2 class="western" data-dl-uid="326" data-dl-original="true" data-dl-translated="true">
+      読者・作家の問題
+    </h2>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in; font-weight: normal"
+      data-dl-uid="327"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      古典的な<b data-dl-uid="328" data-dl-original="true" data-dl-translated="true"
+        >リーダ/ライタ問題は</b
+      >、あるオブジェクトが多くのプロセス間で共有され、<b
+        data-dl-uid="329"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >リーダと</b
+      >
+      <b data-dl-uid="330" data-dl-original="true" data-dl-translated="true">ライタの</b
+      >2種類のプロセスが存在する場合です。<b
+        data-dl-uid="331"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >リーダは</b
+      >共有されたデータを読みますが、変更することはありません。一方、<b
+        data-dl-uid="332"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >ライターは</b
+      >データを読み、修正することができます。<b
+        data-dl-uid="333"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >多くのリーダが同時にデータを読むことができます</b
+      >。
+    </p>
+
+    <table width="100%" border="1" cellpadding="0" cellspacing="0" rules="NONE">
+      <colgroup>
+        <col width="31*" />
+        <col width="225*" />
+      </colgroup>
+      <tbody>
+        <tr valign="TOP">
+          <td width="12%">
+            <p class="western">
+              <font color="#000000"
+                ><img
+                  src="./23_files/OSDevVid2_html_424a8468.gif"
+                  name="graphics5"
+                  align="BOTTOM"
+                  width="12"
+                  height="12"
+                  border="0"
+                />&nbsp;<font face="Verdana, sans-serif"
+                  ><font size="2"><b>Example.</b></font></font
+                ></font
+              >
+            </p>
+          </td>
+          <td width="88%">
+            <p class="western" style="margin-bottom: 0.2in; font-weight: normal">
+              <font color="#000000"
+                ><font face="Verdana, sans-serif"
+                  ><font size="2">
+                    この問題には多くの異なる解決策やバージョンがありますが、これはそのうちの一つです。ここでは、複数の読者を同時に許可するために、2つのセマフォを使用していることに注意してください。
+                  </font></font
+                ></font
+              >
+            </p>
+            <pre
+              style="font-weight: normal"
+            ><font color="#000000"><font face="Lucida Console, monospace"><font size="2">Semaphore c = 1;</font></font></font>
+<font color="#000000"><font face="Lucida Console, monospace"><font size="2">Semaphore s = 1;</font></font></font>
+<font color="#000000"><font face="Lucida Console, monospace"><font size="2">int count = 0;</font></font></font></pre>
+            <table width="267" border="1" cellpadding="0" cellspacing="0" rules="NONE">
+              <colgroup>
+                <col width="117" />
+                <col width="148" />
+              </colgroup>
+              <tbody>
+                <tr valign="TOP">
+                  <td width="117">
+                    <pre><b>Writer</b>
+while (true) {
+   <font face="Lucida Console, monospace"><font size="2">wait(c);</font></font>
+   <font face="Lucida Console, monospace"><font size="2">write();</font></font>
+   <font face="Lucida Console, monospace"><font size="2">signal(c);</font></font>
+}</pre>
+                  </td>
+                  <td width="148">
+                    <pre><b>Reader</b>
+while(true) {
+  wait(s);
+  count++;
+  if (count == 0)
+    wait(c);
+  signal(s);
+  read();
+  wait(s);
+  count--;
+  if (count == 0)
+    signal(c);
+  signal(s);
+}</pre>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <p class="western" style="margin-bottom: 0.2in"><br /><br /></p>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h1 class="western" data-dl-uid="364" data-dl-original="true" data-dl-translated="true">
+      <b data-dl-uid="365" data-dl-original="true" data-dl-translated="true">5.プロセス間通信</b>
+    </h1>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="366"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      <span
+        style="font-style: normal"
+        data-dl-uid="367"
+        data-dl-original="true"
+        data-dl-translated="true"
+        ><b data-dl-uid="368" data-dl-original="true" data-dl-translated="true"
+          >プロセス間通信（IPC</b
+        ></span
+      >）は、オペレーティングシステムがサポートする技術で、プロセスが他の実行中のプロセスと信号を送ったり、データを共有したりすることを許可するものです。IPCプロトコルを実装するための技術には様々な種類がありますが、ここでは最もよく使われるものをいくつか紹介します。
+    </p>
+    <h2 class="western" data-dl-uid="369" data-dl-original="true" data-dl-translated="true">パイプ</h2>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="370"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      パイプは、プロデューサとコンシューマの間でデータを保存するために円形のバッファを使用する基本的な技術です。プロデューサーはバッファにデータを書き込み、コンシューマーはバッファからデータを読み取ります。データのプロデューサとコンシューマは複数存在することができます。パイプには、匿名パイプと名前付きパイプの2種類があります。名前付き<b
+        data-dl-uid="371"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >パイプには</b
+      >名前が付けられ、仮想ファイルシステム内のファイルオブジェクトとして表示されます。システム内のどのプロセスも名前付きパイプを<b
+        data-dl-uid="372"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >開く</b
+      >ことができます。匿名<b data-dl-uid="373" data-dl-original="true" data-dl-translated="true"
+        >パイプは</b
+      >、親プロセスからそれを継承した子プロセスだけが開くことができる。
+    </p>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="374"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      オペレーティングシステムは、コンシューマーとプロデューサーの間で共有されるデータストリームを<b
+        data-dl-uid="375"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >保存</b
+      >し、<b data-dl-uid="376" data-dl-original="true" data-dl-translated="true">ストリームを</b
+      ><b data-dl-uid="377" data-dl-original="true" data-dl-translated="true">読み書き</b
+      >し、読むべきデータがないときにパイプから読もうとするプロセスを<b
+        data-dl-uid="378"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >ブロック</b
+      >する機能を提供する必要があります。オペレーティングシステムは、上で説明した相互排他技術を使用して、読み取りと書き込みを<b
+        data-dl-uid="379"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >同期さ</b
+      >せる必要があります。これは通常、<b
+        data-dl-uid="380"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >FIFO（First-In-First-Out）円形バッファを</b
+      >使用し、読み書きの際に<b data-dl-uid="381" data-dl-original="true" data-dl-translated="true"
+        >セマフォを使って</b
+      >アクセスを同期させることで行われます。
+    </p>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="382"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      パイプは<b data-dl-uid="383" data-dl-original="true" data-dl-translated="true"
+        >ファイルシステム・オブジェクト</b
+      >です。パイプを<b data-dl-uid="384" data-dl-original="true" data-dl-translated="true">Open</b
+      >すると、<b data-dl-uid="385" data-dl-original="true" data-dl-translated="true">File Descriptor</b
+      >ポインタが返ってきます。ですから、ファイルの<b
+        data-dl-uid="386"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >Read</b
+      >メソッドや<b data-dl-uid="387" data-dl-original="true" data-dl-translated="true">Write</b
+      >メソッドを使って、パイプをあたかもファイルのように読み書きすることができるのです。<b
+        data-dl-uid="388"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >オープンしたファイルハンドルは、子プロセスに</b
+      >継承されますので、パイプも継承されます。
+    </p>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="389"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      パイプは、ファイルシステムの記述子のように管理することができます。<b
+        data-dl-uid="390"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >プロセスパラメータブロックは</b
+      >、ファイルディスクリプタ、パイプ、その他のシステムオブジェクトへのすべてのオープンな参照を格納した<b
+        data-dl-uid="391"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >プロセスハンドルテーブルへの</b
+      >ポインタを格納します。 また、<b
+        data-dl-uid="392"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >デバイス</b
+      >ファイルをすでにサポートしているシステムで実装するのは些細なことかもしれません<span
+        style="font-weight: normal"
+        data-dl-uid="393"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >。</span
+      >
+    </p>
+    <h2 class="western" data-dl-uid="394" data-dl-original="true" data-dl-translated="true">
+      メッセージの受け渡し
+    </h2>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="395"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      基本的な考え方はとてもシンプルで、producerが<b
+        data-dl-uid="396"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >メッセージを</b
+      >送り、consumerがそれを受け取るというものです。<b
+        data-dl-uid="397"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >同期</b
+      >メッセージパッシングと<b data-dl-uid="398" data-dl-original="true" data-dl-translated="true"
+        >非同期</b
+      >メッセージパッシングのどちらをサポートするかによって、さらに問題が発生する可能性があります。また、メッセージをどのように<b
+        data-dl-uid="399"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >保存</b
+      >するか、どこで<b data-dl-uid="400" data-dl-original="true" data-dl-translated="true">管理</b
+      >するか、メッセージの<b data-dl-uid="401" data-dl-original="true" data-dl-translated="true">形式</b
+      >、メッセージが期待通りの形式で期待通りのプロセスに配信されたかどうかを確認する方法についても考えなければなりません。
+    </p>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="402"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      では、<i data-dl-uid="403" data-dl-original="true" data-dl-translated="true">メッセージとは</i
+      >いったい何なのでしょうか。メッセージは、プロセスが望むものであれば何でもいいのです。消費者と生産者は、メッセージをどのように解釈するかについて、ある種の<b
+        data-dl-uid="404"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >プロトコルに</b
+      >合意する必要があります。両者はメッセージの<b
+        data-dl-uid="405"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >データ構造を</b
+      >知っている必要があります。OS側からは、OSが<b
+        data-dl-uid="406"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >定義したメッセージ（マイクロカーネルに典型的）でない</b
+      >限り、OSはデータの形式を気にすることはありません。
+    </p>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="407"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      オペレーティングシステムは、最低限、メッセージの<b
+        data-dl-uid="409"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >送受信の</b
+      >サポートを実装する必要があります。
+    </p>
+
+    <h3 data-dl-uid="410" data-dl-original="true" data-dl-translated="true">
+      同期型メッセージパッシング
+    </h3>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="411"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      Synchronousメッセージパッシングのためには、最低限2つの関数が必要である。<b
+        data-dl-uid="412"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >Jと</b
+      >
+      <b data-dl-uid="413" data-dl-original="true" data-dl-translated="true">Kが</b
+      >プロセス識別子（PID）であると仮定する。
+    </p>
+
+    <ul>
+      <li><dd class="western">send(J, message)</dd></li>
+      <li><dd class="western" style="margin-bottom: 0.2in">receive(K, &amp;message)</dd></li>
+    </ul>
+
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="416"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      producerは<b data-dl-uid="417" data-dl-original="true" data-dl-translated="true"
+        >sendを呼び出して</b
+      >メッセージをポストします。同期メッセージパッシングでは、producerは<b
+        data-dl-uid="419"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >Jが</b
+      >メッセージを取得するために<b data-dl-uid="420" data-dl-original="true" data-dl-translated="true"
+        >receiveを</b
+      >呼び出すまで、<b data-dl-uid="418" data-dl-original="true" data-dl-translated="true"
+        >中断されたキューに</b
+      >入れられます。<b data-dl-uid="421" data-dl-original="true" data-dl-translated="true">J が </b>
+      <b data-dl-uid="422" data-dl-original="true" data-dl-translated="true">receive</b>
+      を呼び出すと、オペレーティングシステムは<b
+        data-dl-uid="423"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >J</b
+      >に送られたメッセージを直接コピーして<b
+        data-dl-uid="424"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >J を</b
+      >再開することができます。オペレーティングシステムは producer を<b
+        data-dl-uid="425"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >待ち行列</b
+      >に戻して<span
+        style="font-weight: normal"
+        data-dl-uid="426"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >、スケジューラで実行できる</span
+      >ようにします。<span data-dl-uid="426" data-dl-translated="true"
+        >同期メッセージパッシングでは、プロデューサーとコンシューマーのどちらか一方だけが同時に実行されるため、メッセージキューは必要ありません（もう一方は</span
+      ><b data-dl-uid="427" data-dl-original="true" data-dl-translated="true">中断</b>
+      <span
+        style="font-weight: normal"
+        data-dl-uid="428"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >または</span
+      ><b data-dl-uid="429" data-dl-original="true" data-dl-translated="true">待機して</b
+      >いることになります<span
+        style="font-weight: normal"
+        data-dl-uid="430"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >）</span
+      >。
+    </p>
+    <h3 data-dl-uid="431" data-dl-original="true" data-dl-translated="true">
+      <b data-dl-uid="432" data-dl-original="true" data-dl-translated="true"
+        >非同期メッセージパッシング</b
+      >
+    </h3>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in; font-weight: normal"
+      data-dl-uid="433"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      非同期メッセージパッシングも最低2つの関数が必要です。
+    </p>
+
+    <ul>
+      <li><dd class="western">send(J, message)</dd></li>
+      <li><dd class="western" style="margin-bottom: 0.2in">receive(K, &amp;message)</dd></li>
+    </ul>
+
+    <p
+      class="western"
+      style="margin-bottom: 0.2in; font-weight: normal"
+      data-dl-uid="436"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      producerは<b data-dl-uid="437" data-dl-original="true" data-dl-translated="true"
+        >sendを呼び出して</b
+      >メッセージをポストし、consumerは<b
+        data-dl-uid="438"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >receiveを呼び出して</b
+      >メッセージを取得する。非同期メッセージパッシングでは、オペレーティングシステムはプロセスごとに<b
+        data-dl-uid="439"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >メッセージキューを</b
+      >維持します。プロデューサはいつでもメッセージを<b
+        data-dl-uid="440"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >送る</b
+      >ことができ、中断されることはない。メッセージはメッセージキューの末尾にコピーされ、コンシューマはメッセージキューの先頭からメッセージを<b
+        data-dl-uid="441"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >受信</b
+      >することができる。メッセージキュー自体は<b
+        data-dl-uid="442"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >カーネルメモリに</b
+      >割り当てられ、プロセスコントロールブロックの専用ポインタがキューを指します。
+    </p>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in; font-weight: normal"
+      data-dl-uid="443"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      ここで、面白い問題が出てきた。同期<b
+        data-dl-uid="444"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >メッセージパッシングでは</b
+      >、プロセスが<b data-dl-uid="445" data-dl-original="true" data-dl-translated="true">受信を</b
+      >呼び出したとき、メッセージを送信したプロセスがない場合、他のプロセスが<b
+        data-dl-uid="446"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >送信を</b
+      >呼び出すまで、プロセスは中断されます。<b
+        data-dl-uid="447"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >非同期</b
+      >メッセージパッシングでは、2つのオプションがある。
+    </p>
+
+    <ul>
+      <li>
+        <dd class="western" data-dl-uid="448" data-dl-original="true" data-dl-translated="true">
+          <b data-dl-uid="452" data-dl-original="true" data-dl-translated="true">receiveを</b>
+          <span
+            style="font-weight: normal"
+            data-dl-uid="451"
+            data-dl-original="true"
+            data-dl-translated="true"
+            >呼び出したプロセスを </span
+          ><b data-dl-uid="450" data-dl-original="true" data-dl-translated="true">一時停止</b>
+          <span
+            style="font-weight: normal"
+            data-dl-uid="453"
+            data-dl-original="true"
+            data-dl-translated="true"
+            >したり</span
+          ><span
+            style="font-weight: normal"
+            data-dl-uid="449"
+            data-dl-original="true"
+            data-dl-translated="true"
+            >。</span
+          >
+        </dd>
+      </li>
+      <li>
+        <dd
+          class="western"
+          style="margin-bottom: 0.2in"
+          data-dl-uid="454"
+          data-dl-original="true"
+          data-dl-translated="true"
+        >
+          <b data-dl-uid="456" data-dl-original="true" data-dl-translated="true">receiveが</b
+          ><span
+            style="font-weight: normal"
+            data-dl-uid="457"
+            data-dl-original="true"
+            data-dl-translated="true"
+            >ステータスコードを </span
+          >返す<span
+            style="font-weight: normal"
+            data-dl-uid="455"
+            data-dl-original="true"
+            data-dl-translated="true"
+            >ように </span
+          >すれば、<span
+            style="font-weight: normal"
+            data-dl-uid="459"
+            data-dl-original="true"
+            data-dl-translated="true"
+            >現在のプロセスの</span
+          ><b data-dl-uid="458" data-dl-original="true" data-dl-translated="true">実行を</b
+          ><span data-dl-uid="457" data-dl-translated="true">継続 </span>することができます。
+        </dd>
+      </li>
+    </ul>
+
+    <p class="western" style="margin-bottom: 0.2in; font-weight: normal">
+      It turns out that the better approach is to offer a few more functions,
+    </p>
+    <ul>
+      <li><dd class="western">send(process, message)</dd></li>
+      <li><dd class="western">receive(process, &amp;message)</dd></li>
+      <li><dd class="western">sendrec(process, &amp;message)</dd></li>
+      <li><dd class="western" style="margin-bottom: 0.2in">notify(process, message)</dd></li>
+    </ul>
+
+    <h2 class="western" data-dl-uid="465" data-dl-original="true" data-dl-translated="true">
+      共有メモリ
+    </h2>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="466"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      同じ物理フレームを2つ以上のプロセスの仮想アドレス空間にマッピングすると、それらのプロセス間で<b
+        data-dl-uid="467"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >共有さ</b
+      >れることになります。どちらのプロセスも同じページを読み書きできるようになる（ページをマッピングする際に設定した<b
+        data-dl-uid="468"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >セキュリティ属性に</b
+      >依存する。(例えば、物理フレームをプロセスAでは読み取り/書き込みとし、プロセスBでは読み取り専用とマッピングすることができる)。<span
+        style="font-weight: normal"
+        data-dl-uid="470"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >Windowsでは、まず </span
+      ><b data-dl-uid="471" data-dl-original="true" data-dl-translated="true">CreateFile</b
+      ><span
+        style="font-weight: normal"
+        data-dl-uid="472"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >または </span
+      ><b data-dl-uid="473" data-dl-original="true" data-dl-translated="true">OpenFileを</b>
+      <span
+        style="font-weight: normal"
+        data-dl-uid="474"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >名前の付いたメモリマップドファイルオブジェクトに対して呼び出し、次に </span
+      ><b data-dl-uid="475" data-dl-original="true" data-dl-translated="true">MapViewOfFileを</b
+      ><span
+        style="font-weight: normal"
+        data-dl-uid="476"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >実行してメモリ領域をプロセスのアドレス空間にマップし、そのポインタを返します</span
+      >。
+    </p>
+    <h1 class="western" data-dl-uid="477" data-dl-original="true" data-dl-translated="true">
+      <b data-dl-uid="478" data-dl-original="true" data-dl-translated="true">6.スケジューリング</b>
+    </h1>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="479"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      スケジューラは、システムリソースの割り当てを担当する。システムリソースには、CPU、メモリ、システムデバイスなどがあります。スケジューラは一般に多数存在するが、<b
+        data-dl-uid="480"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >短期</b
+      >、<b data-dl-uid="481" data-dl-original="true" data-dl-translated="true">中期</b>、<b
+        data-dl-uid="482"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >長期の</b
+      >3つに分類される傾向がある。
+    </p>
+
+    <ol>
+      <li>
+        <dd class="western" data-dl-uid="483" data-dl-original="true" data-dl-translated="true">
+          <b data-dl-uid="484" data-dl-original="true" data-dl-translated="true">長期スケジューラは</b
+          >、プロセスをシステムに受け入れ、終了させる役割を担っている。
+        </dd>
+      </li>
+      <li>
+        <dd class="western" data-dl-uid="485" data-dl-original="true" data-dl-translated="true">
+          <b data-dl-uid="486" data-dl-original="true" data-dl-translated="true">中期スケジューラは</b
+          >、プロセスの中断と再開を担当する。
+        </dd>
+      </li>
+      <li>
+        <dd
+          class="western"
+          style="margin-bottom: 0.2in"
+          data-dl-uid="487"
+          data-dl-original="true"
+          data-dl-translated="true"
+        >
+          <b data-dl-uid="488" data-dl-original="true" data-dl-translated="true">短期スケジューラは</b
+          >、CPU時間の割り振りやプロセスのディスパッチなどを行う。
+        </dd>
+      </li>
+    </ol>
+
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="489"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      短期スケジューラは、マルチタスクシステムを実装するための核となるコンポーネントであるため、このセクションでは主に短期スケジューラについて説明します。そこで、このデモでは短期<b
+        data-dl-uid="490"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >スケジューラを</b
+      >作成することを目標とします。
+    </p>
+    <h2 class="western" data-dl-uid="491" data-dl-original="true" data-dl-translated="true">
+      スケジューリングアルゴリズム
+    </h2>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="492"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      使用できるアルゴリズムには様々なものがあり、中にはより複雑なものもあります。ここでは、より一般的なアルゴリズムを紹介しますが、デモをシンプルにするために、<b
+        data-dl-uid="493"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >ラウンドロビンの</b
+      >アプローチにこだわります。
+    </p>
+    <h3 data-dl-uid="494" data-dl-original="true" data-dl-translated="true">先着順</h3>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="495"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      <b data-dl-uid="496" data-dl-original="true" data-dl-translated="true"
+        >FCFS（First Come First Serve</b
+      >）では、ジョブは来た順に実行されます。アルゴリズムはその名の通りシンプルで、スケジューラが最初のジョブを選択し、実行させる。次に2番目。そして次のジョブを実行する、という具合です。このアルゴリズムは、「レディ・キュー」にあるジョブを、入ってきた順番に循環させる。新しいジョブは、前のジョブが終了するまで開始されません。プリエンプティブなマルチタスクにはあまり向いていません。
+    </p>
+
+    <table width="100%" border="1" cellpadding="0" cellspacing="0" rules="NONE">
+      <colgroup>
+        <col width="31*" />
+        <col width="225*" />
+      </colgroup>
+      <tbody>
+        <tr valign="TOP">
+          <td width="12%">
+            <p class="western">
+              <font color="#000000"
+                ><img
+                  src="./23_files/OSDevVid2_html_424a8468.gif"
+                  name="graphics9"
+                  align="BOTTOM"
+                  width="12"
+                  height="12"
+                  border="0"
+                />&nbsp;<font face="Verdana, sans-serif"
+                  ><font size="2"><b>Example.</b></font></font
+                ></font
+              >
+            </p>
+          </td>
+          <td width="88%">
+            <p class="western" style="margin-bottom: 0.2in">
+              <font color="#000000" data-dl-uid="504" data-dl-original="true" data-dl-translated="true"
+                ><font
+                  face="Verdana, sans-serif"
+                  data-dl-uid="505"
+                  data-dl-original="true"
+                  data-dl-translated="true"
+                  ><font size="2" data-dl-uid="506" data-dl-original="true" data-dl-translated="true"
+                    ><span
+                      style="font-weight: normal"
+                      data-dl-uid="507"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                      >以下の例では、時刻0にP1、時刻1にP2、時刻2にP3が到着し、これらのプロセスは </span
+                    >実行さ<span
+                      style="font-weight: normal"
+                      data-dl-uid="509"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                      >れるために</span
+                    ><b data-dl-uid="508" data-dl-original="true" data-dl-translated="true"
+                      >Ready待ち行列に</b
+                    >配置される。<span data-dl-uid="509" data-dl-translated="true"
+                      >P1
+                      は最初のジョブなので、アルゴリズムがこれを選択して実行する。次にP2が選択されるが、これはP1が完了した後である。P2が選択されるのは、time=5になってからである。</span
+                    ></font
+                  ></font
+                ></font
+              >
+            </p>
+            <table
+              width="274"
+              border="1"
+              bordercolor="#000000"
+              cellpadding="0"
+              cellspacing="0"
+              frame="VOID"
+              rules="ROWS"
+            >
+              <colgroup>
+                <col width="71" />
+                <col width="46" />
+                <col width="69" />
+                <col width="89" />
+              </colgroup>
+              <tbody>
+                <tr valign="TOP">
+                  <td width="71">
+                    <p class="western">Process</p>
+                  </td>
+                  <td width="46">
+                    <p class="western">Arrive</p>
+                  </td>
+                  <td width="69">
+                    <p class="western">Run time</p>
+                  </td>
+                  <td width="89">
+                    <p class="western">Service time</p>
+                  </td>
+                </tr>
+                <tr valign="TOP">
+                  <td width="71">
+                    <p class="western">P1</p>
+                  </td>
+                  <td width="46" sdval="0" sdnum="1033;">
+                    <p class="western">0</p>
+                  </td>
+                  <td width="69" sdval="5" sdnum="1033;">
+                    <p class="western">5</p>
+                  </td>
+                  <td width="89" sdval="0" sdnum="1033;">
+                    <p class="western">0</p>
+                  </td>
+                </tr>
+                <tr valign="TOP">
+                  <td width="71">
+                    <p class="western">P2</p>
+                  </td>
+                  <td width="46" sdval="1" sdnum="1033;">
+                    <p class="western">1</p>
+                  </td>
+                  <td width="69" sdval="3" sdnum="1033;">
+                    <p class="western">3</p>
+                  </td>
+                  <td width="89" sdval="5" sdnum="1033;">
+                    <p class="western">5</p>
+                  </td>
+                </tr>
+                <tr valign="TOP">
+                  <td width="71">
+                    <p class="western">P3</p>
+                  </td>
+                  <td width="46" sdval="2" sdnum="1033;">
+                    <p class="western">2</p>
+                  </td>
+                  <td width="69" sdval="8" sdnum="1033;">
+                    <p class="western">8</p>
+                  </td>
+                  <td width="89" sdval="8" sdnum="1033;">
+                    <p class="western">8</p>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <p class="western" style="margin-bottom: 0.2in"><br /><br /></p>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3 data-dl-uid="526" data-dl-original="true" data-dl-translated="true">最短の仕事を優先する</h3>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="527"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      <b data-dl-uid="528" data-dl-original="true" data-dl-translated="true">最短ジョブ優先（SJF）</b
+      >アルゴリズムでは、各ジョブの実行に必要な時間を知る方法がシステムに必要です。このアルゴリズムでは、<b
+        data-dl-uid="529"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >レディキューから</b
+      >時間差の最も小さい次のジョブを選択して実行する。このアルゴリズムには、<b
+        data-dl-uid="530"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >プロセスの飢餓という</b
+      >問題がある。時間差の小さいジョブが優先されると、<b
+        data-dl-uid="531"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >Ready Queue</b
+      >にジョブが残ってしまう可能性があります。この例は、前述の<b
+        data-dl-uid="532"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >FCFSアルゴリズムと</b
+      >非常によく似ており、時間差の計算が必要なため、実際にはほとんど実装されていません（ソフトウェアが、プロセスの実行時間を事前に知るためのオラクルになる必要があります）ので、別の例は必要ないと考えます。
+    </p>
+    <h3 data-dl-uid="533" data-dl-original="true" data-dl-translated="true">プライオリティ・キュー</h3>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="534"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      システムは、各ジョブに<b data-dl-uid="535" data-dl-original="true" data-dl-translated="true"
+        >優先順位の番号を</b
+      >割り当てることができます。そして、より高い優先順位を持つジョブが最初に選択される。これが、<b
+        data-dl-uid="536"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >優先度スケジューリング</b
+      >アルゴリズムの基本的な考え方である。優先順位をどのように決定するかは設計者次第である。
+      同様に、2つの<span
+        style="font-weight: normal"
+        data-dl-uid="537"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >優先順位</span
+      >が同じ場合にどのように対処するかも設計者次第である。デフォルトの優先順位を決めておき、それをユーザーが調整できるようにするのも一案である。2つの優先順位が同じ場合は、<b
+        data-dl-uid="538"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >FCFSや</b
+      >
+      <b data-dl-uid="539" data-dl-original="true" data-dl-translated="true">SJFを使って</b
+      >どちらを使うかを決めることができる。この<b
+        data-dl-uid="540"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >プロトコルは</b
+      >、システム管理者が割り当てることもできるし、システムリソースやメモリ制約を測定して算出することもできる。後述するように、プライオリティは他のスケジューリングアルゴリズムと一緒に使われることが多いようです。
+    </p>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="541"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      要約すると、<b data-dl-uid="542" data-dl-original="true" data-dl-translated="true"
+        >Ready Queueから</b
+      >最も優先度の高いジョブを選択すればよいということになります。<b
+        data-dl-uid="543"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >SJFと</b
+      >同様、このアルゴリズムも<b data-dl-uid="544" data-dl-original="true" data-dl-translated="true"
+        >プロセスの飢餓に</b
+      >悩まされます。<span
+        style="font-weight: normal"
+        data-dl-uid="545"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >なぜなら、より高い優先順位を持つプロセスが、より低い優先順位のプロセスを飢えさせる可能性が</span
+      >あるからです。
+    </p>
+    <h3 data-dl-uid="546" data-dl-original="true" data-dl-translated="true">ラウンドロビン</h3>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="547"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      システムは、各プロセスに<b data-dl-uid="548" data-dl-original="true" data-dl-translated="true"
+        >量子と</b
+      >呼ばれる実行時間スライスを与える。そして、システムは現在実行中のプロセスを<b
+        data-dl-uid="549"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >先取りして</b
+      >、別のプロセスを実行できるようにします。プロセスは、<b
+        data-dl-uid="550"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >Ready Queueに</b
+      >表示された順に選択されます。すべてのプロセスの実行が許可されているため、このアルゴリズムではどのプロセスも飢餓状態にはなりません。システムは、実行するプロセスが選択されたときに、そのプロセスの<b
+        data-dl-uid="552"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >実行状態を</b
+      >保存・復元するために、<b data-dl-uid="551" data-dl-original="true" data-dl-translated="true"
+        >コンテクストスワップを</b
+      >担当します。<b data-dl-uid="553" data-dl-original="true" data-dl-translated="true"
+        >コンテクストスワップについては</b
+      >、後で<b data-dl-uid="554" data-dl-original="true" data-dl-translated="true"
+        >マルチタスクについて</b
+      >説明するときに説明します。
+    </p>
+
+    <table width="100%" border="1" cellpadding="0" cellspacing="0" rules="NONE">
+      <colgroup>
+        <col width="31*" />
+        <col width="225*" />
+      </colgroup>
+      <tbody>
+        <tr valign="TOP">
+          <td width="12%">
+            <p class="western">
+              <font color="#000000"
+                ><img
+                  src="./23_files/OSDevVid2_html_424a8468.gif"
+                  name="graphics12"
+                  align="BOTTOM"
+                  width="12"
+                  height="12"
+                  border="0"
+                />&nbsp;<font face="Verdana, sans-serif"
+                  ><font size="2"><b>Example.</b></font></font
+                ></font
+              >
+            </p>
+          </td>
+          <td width="88%">
+            <p class="western" style="margin-bottom: 0.2in">
+              <font color="#000000" data-dl-uid="562" data-dl-original="true" data-dl-translated="true"
+                ><font
+                  face="Verdana, sans-serif"
+                  data-dl-uid="563"
+                  data-dl-original="true"
+                  data-dl-translated="true"
+                  ><font size="2" data-dl-uid="564" data-dl-original="true" data-dl-translated="true"
+                    ><span
+                      style="font-weight: normal"
+                      data-dl-uid="565"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                      >プロセスP1、P2、P3と時間量子5が与えられた </span
+                    >とき、<b data-dl-uid="566" data-dl-original="true" data-dl-translated="true"
+                      >ラウンドロビン（RR</b
+                    >）アルゴリズムは、<span
+                      style="font-weight: normal"
+                      data-dl-uid="567"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                      >まずP</span
+                    >1を選択して実行する。時間クオンタムが経過すると、<span
+                      data-dl-uid="567"
+                      data-dl-translated="true"
+                      >システムは</span
+                    >
+                    <span
+                      style="font-weight: normal"
+                      data-dl-uid="569"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                      >P </span
+                    >1を<b data-dl-uid="568" data-dl-original="true" data-dl-translated="true"
+                      >プリエンプト</b
+                    >します。<span data-dl-uid="569" data-dl-translated="true">P </span>1は<b
+                      data-dl-uid="570"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                      >Ready Queueの</b
+                    >
+                    <span data-dl-uid="569" data-dl-translated="true">後ろに </span
+                    >移動し、システムは<span
+                      style="font-weight: normal"
+                      data-dl-uid="573"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                      >P1の </span
+                    ><b data-dl-uid="572" data-dl-original="true" data-dl-translated="true"
+                      >コンテキストを</b
+                    ><span
+                      style="font-weight: normal"
+                      data-dl-uid="571"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                      >保存 </span
+                    >する。<span data-dl-uid="573" data-dl-translated="true"
+                      >アルゴリズムは P2 を選択し、システムは </span
+                    ><b data-dl-uid="574" data-dl-original="true" data-dl-translated="true"
+                      >コンテキストスイッチを</b
+                    >実行する<span
+                      style="font-weight: normal"
+                      data-dl-uid="575"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                      >。P2 が実行可能になる。</span
+                    ></font
+                  ></font
+                ></font
+              >
+            </p>
+            <table width="280" border="1" cellpadding="0" cellspacing="0" frame="VOID" rules="COLS">
+              <colgroup>
+                <col width="90" />
+                <col width="29" />
+                <col width="30" />
+                <col width="33" />
+                <col width="32" />
+                <col width="33" />
+                <col width="33" />
+              </colgroup>
+              <tbody>
+                <tr valign="TOP">
+                  <td width="90">
+                    <p class="western">Process</p>
+                  </td>
+                  <td width="29">
+                    <p class="western">P1</p>
+                  </td>
+                  <td width="30">
+                    <p class="western">P2</p>
+                  </td>
+                  <td width="33">
+                    <p class="western">P3</p>
+                  </td>
+                  <td width="32">
+                    <p class="western">P1</p>
+                  </td>
+                  <td width="33">
+                    <p class="western">P2</p>
+                  </td>
+                  <td width="33">
+                    <p class="western">P3</p>
+                  </td>
+                </tr>
+                <tr valign="TOP">
+                  <td width="90">
+                    <p class="western">Quantum=5</p>
+                  </td>
+                  <td width="29" sdval="0" sdnum="1033;">
+                    <p class="western">0</p>
+                  </td>
+                  <td width="30" sdval="5" sdnum="1033;">
+                    <p class="western">5</p>
+                  </td>
+                  <td width="33" sdval="10" sdnum="1033;">
+                    <p class="western">10</p>
+                  </td>
+                  <td width="32" sdval="15" sdnum="1033;">
+                    <p class="western">15</p>
+                  </td>
+                  <td width="33" sdval="20" sdnum="1033;">
+                    <p class="western">20</p>
+                  </td>
+                  <td width="33" sdval="25" sdnum="1033;">
+                    <p class="western">25</p>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <p class="western" style="margin-bottom: 0.2in"><br /><br /></p>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3 data-dl-uid="590" data-dl-original="true" data-dl-translated="true">マルチレベルキュー</h3>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="591"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      次に何を実行するかを決めるのに、1つの<b
+        data-dl-uid="592"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >Ready Queueを</b
+      >使うのではなく、<b data-dl-uid="593" data-dl-original="true" data-dl-translated="true"
+        >複数使っては</b
+      >どうだろうか。<b data-dl-uid="594" data-dl-original="true" data-dl-translated="true"
+        >多階層キューに</b
+      >まとめることで、特権レベルと別のスケジューリングアルゴリズムの両方の世界を手に入れられるというわけだ。
+    </p>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="595"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      基本的な考え方は、<b data-dl-uid="596" data-dl-original="true" data-dl-translated="true"
+        >複数のキューを</b
+      >持つということです。そして、これらのキューは<b
+        data-dl-uid="597"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >異なる優先順位の</b
+      >ためのものです。例えば、<b data-dl-uid="598" data-dl-original="true" data-dl-translated="true"
+        >5つの優先順位があるとすれば、5つのキュー</b
+      >を持つことになります。アルゴリズムは、まず、最も優先度の高いキューから優先度に基づいて実行するジョブを選択します。もし、キューに複数のジョブがある場合は、別のアルゴリズム（<b
+        data-dl-uid="599"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >RRなど</b
+      >）を使って実行するものを決めます。また、異なる優先度キューに対して、異なるスケジューリングアルゴリズ
+      ムを使用することも可能です。このアルゴリズムは、優先度<b
+        data-dl-uid="601"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >スケジューリングと</b
+      >同じ理由で、<b data-dl-uid="600" data-dl-original="true" data-dl-translated="true"
+        >プロセスを飢餓状態に</b
+      >する可能性があります。さて、すばらしいアルゴリズムができたわけですが、 プロセスの<b
+        data-dl-uid="602"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >飢餓を</b
+      >防ぐにはどうしたらよいのでしょうか。
+    </p>
+    <h3 data-dl-uid="603" data-dl-original="true" data-dl-translated="true">
+      マルチレベルフィードバックキュー
+    </h3>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in; font-weight: normal"
+      data-dl-uid="604"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      <b data-dl-uid="605" data-dl-original="true" data-dl-translated="true"
+        >多階層フィードバック待ち行列は</b
+      >、<b data-dl-uid="606" data-dl-original="true" data-dl-translated="true">多階層待ち行列を</b
+      >改良して、<b data-dl-uid="607" data-dl-original="true" data-dl-translated="true"
+        >プロセスの飢餓を</b
+      >防 止するものである。マルチレベル・キューの問題は、ある優先度 L のプロセスがキュー L
+      に挿入されたとき、優先度が L
+      よりも大きい新しいジョブを投入するだけで、プロセスを餓死させることができるということでした。つまり、ある優先度キューから別の優先度キューにプロセスを移動させることができるのです。
+    </p>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in; font-weight: normal"
+      data-dl-uid="610"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      上記の例では、優先度Lのプロセスは、ある程度時間が経過すると、より高い優先度のキューに移動することになる。これは、プロセスが最も高い優先度のキューに到達するまで続けられる。このように、プロセスが飢餓状態になることはありません。また、ジョブをより低い優先度のキューに移動させることによって、ジョブの優先度を下げることもできます。これは、重要なシステムタスクの実行が必要な場合に有効かもしれません。マルチレベルフィードバックキューの実装の難しさは、<i
+        data-dl-uid="611"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >いつ</i
+      >プロセスを
+      移動させるべきかを決定することです。これは、今日、最新のオペレーティングシステムで使用されている最も一般的な
+      アルゴリズムです。
+    </p>
+
+    <table width="100%" border="1" cellpadding="0" cellspacing="0" rules="NONE">
+      <colgroup>
+        <col width="31*" />
+        <col width="225*" />
+      </colgroup>
+      <tbody>
+        <tr valign="TOP">
+          <td width="12%">
+            <p class="western">
+              <font color="#000000"
+                ><img
+                  src="./23_files/OSDevVid2_html_424a8468.gif"
+                  name="graphics14"
+                  align="BOTTOM"
+                  width="12"
+                  height="12"
+                  border="0"
+                />&nbsp;<font face="Verdana, sans-serif"
+                  ><font size="2"><b>Example.</b></font></font
+                ></font
+              >
+            </p>
+          </td>
+          <td width="88%">
+            <p class="western" style="margin-bottom: 0.2in">
+              <font color="#000000" data-dl-uid="619" data-dl-original="true" data-dl-translated="true"
+                ><font
+                  face="Verdana, sans-serif"
+                  data-dl-uid="620"
+                  data-dl-original="true"
+                  data-dl-translated="true"
+                  ><font size="2" data-dl-uid="621" data-dl-original="true" data-dl-translated="true"
+                    ><span
+                      style="font-weight: normal"
+                      data-dl-uid="622"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                      >以下は </span
+                    >、<b data-dl-uid="623" data-dl-original="true" data-dl-translated="true"
+                      >マルチレベルキューの</b
+                    >例である。 ここでは、<span
+                      style="font-weight: normal"
+                      data-dl-uid="624"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                      >3つのキューがあり、システムプロセスが最も高い優先度を持ち、
+                      アプリケーションが最も低い優先度を持つ </span
+                    >。<span data-dl-uid="624" data-dl-translated="true"
+                      >それぞれの待ち行列からジョブを選択するために、異なるスケジューリングアルゴリズ
+                      ムを使用することができます。スケジューラは、最も優先度の高い </span
+                    ><b data-dl-uid="625" data-dl-original="true" data-dl-translated="true">空でない</b
+                    >待ち行列を<span data-dl-uid="624" data-dl-translated="true">選択 </span
+                    >し、その待ち<span
+                      style="font-weight: normal"
+                      data-dl-uid="630"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                      >行列から
+                    </span>
+                    <span
+                      style="font-weight: normal"
+                      data-dl-uid="626"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                      >別のアルゴリズム（
+                    </span>
+                    <span
+                      style="font-weight: normal"
+                      data-dl-uid="628"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                      >FCFSや</span
+                    ><b data-dl-uid="629" data-dl-original="true" data-dl-translated="true">RRなど</b
+                    >）を用いて<span data-dl-uid="630" data-dl-translated="true">ジョブを </span
+                    >選択します。<b data-dl-uid="631" data-dl-original="true" data-dl-translated="true"
+                      >多階層フィードバック待ち行列では</b
+                    >、システムは<span
+                      style="font-weight: normal"
+                      data-dl-uid="632"
+                      data-dl-original="true"
+                      data-dl-translated="true"
+                      >異なる待ち行列の間で プロセスを</span
+                    >移動させることができます。<span data-dl-uid="632" data-dl-translated="true"
+                      >たとえば、ジョブをL3→L2→L1の順に時間をかけて移動させ、それによって優先度を上げて実行できるようにするのです。したがって、プロセスの飢餓は発生しません。</span
+                    ></font
+                  ></font
+                ></font
+              >
+            </p>
+            <table width="255" border="1" cellpadding="0" cellspacing="0" frame="VOID" rules="ROWS">
+              <colgroup>
+                <col width="107" />
+                <col width="148" />
+              </colgroup>
+              <tbody>
+                <tr valign="TOP">
+                  <td width="107">
+                    <p class="western">Queue Level</p>
+                  </td>
+                  <td width="148">
+                    <p class="western">Priority Queue</p>
+                  </td>
+                </tr>
+                <tr valign="TOP">
+                  <td width="107">
+                    <p class="western">L1</p>
+                  </td>
+                  <td width="148">
+                    <p class="western">System Processes</p>
+                  </td>
+                </tr>
+                <tr valign="TOP">
+                  <td width="107">
+                    <p class="western">L2</p>
+                  </td>
+                  <td width="148">
+                    <p class="western">Batch Jobs</p>
+                  </td>
+                </tr>
+                <tr valign="TOP">
+                  <td width="107">
+                    <p class="western">L3</p>
+                  </td>
+                  <td width="148">
+                    <p class="western">Applications</p>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <p class="western" style="margin-bottom: 0.2in"><br /><br /></p>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h1 class="western" data-dl-uid="641" data-dl-original="true" data-dl-translated="true">
+      <b data-dl-uid="642" data-dl-original="true" data-dl-translated="true">7.マルチタスク</b>
+    </h1>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="643"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      この章を通して、<b data-dl-uid="644" data-dl-original="true" data-dl-translated="true">多くの</b
+      >内容を取り上げてきました。そしてついに、この章のメインテーマである<b
+        data-dl-uid="645"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >マルチタスクに</b
+      >取りかかることができます。これから、すべてをコードにまとめていきます。
+    </p>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="646"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      <b data-dl-uid="648" data-dl-original="true" data-dl-translated="true">スケジューラと</b
+      ><b data-dl-uid="649" data-dl-original="true" data-dl-translated="true">マルチタスク・</b
+      >コンポーネントは、異なる<b data-dl-uid="650" data-dl-original="true" data-dl-translated="true"
+        >状態</b
+      >間でプロセ スを選択、移動できる必要があるため、最初に<b
+        data-dl-uid="647"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >プロセスの状態管理について</b
+      >説明しました。例えば、<b data-dl-uid="651" data-dl-original="true" data-dl-translated="true"
+        >スケジューラは</b
+      >しばしばプロセスを<b data-dl-uid="652" data-dl-original="true" data-dl-translated="true"
+        >Readyから</b
+      >
+      <b data-dl-uid="653" data-dl-original="true" data-dl-translated="true">Runningに</b
+      >切り替える必要がありますが、より高度なページング技術（<b
+        data-dl-uid="654"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >ページスワップ・アルゴリズムなど</b
+      >）をサポートする予定であれば、プロセスを<b
+        data-dl-uid="655"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >Suspended</b
+      >状態から切り替えられるようにする必要があります。システムは、<b
+        data-dl-uid="656"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >Suspended</b
+      >プロセスと、まだメモリ内で完了信号を待っているプロセスを区別できる必要があります。両方のプロセスは<b
+        data-dl-uid="657"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >プロセスコントロールブロック（PCB</b
+      >）を持ち、システムリソースを使用しますが、<b
+        data-dl-uid="658"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >Suspended</b
+      >プロセスはメモリを使用しません。また、プロセスを一時停止する方法も必要でした。これは、<b
+        data-dl-uid="659"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >Wait</b
+      >状態を導入することで実現しました。このように、状態管理はマルチタスクの実装において重要な要素です。このため、最初にこれを取り上げました。
+    </p>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="660"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      次に見たのは、「<b data-dl-uid="661" data-dl-original="true" data-dl-translated="true"
+        >プロセス作成</b
+      >」です。状態管理でどのように使われるのか、詳しく調べてみました。<b
+        data-dl-uid="662"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >第24章</b
+      >では、<b data-dl-uid="663" data-dl-original="true" data-dl-translated="true">CreateProcess</b
+      >関数を実装しました。この関数は<b
+        data-dl-uid="664"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >Portable Executable (PE)</b
+      >イメージをメモリにロードし、仮想アドレス空間にマップし、ユーザーモードで実行したことを思い出してください。このセクションでは、この関数を基に新しいプロセスを作成し、<b
+        data-dl-uid="666"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >スケジューラによって</b
+      >選択されるよう<b data-dl-uid="665" data-dl-original="true" data-dl-translated="true"
+        >Ready キューに</b
+      >追加します。
+    </p>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="667"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      その後、<b data-dl-uid="668" data-dl-original="true" data-dl-translated="true"
+        >並行プログラミングの</b
+      >入門を見ました。<b data-dl-uid="669" data-dl-original="true" data-dl-translated="true"
+        >クリティカルセクション</b
+      >問題、<b data-dl-uid="670" data-dl-original="true" data-dl-translated="true">相互排他</b>、<b
+        data-dl-uid="671"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >セマフォなどの</b
+      >トピックがありました。並<b data-dl-uid="672" data-dl-original="true" data-dl-translated="true"
+        >行処理は</b
+      >、複数のプロセスやスレッドが<i data-dl-uid="673" data-dl-original="true" data-dl-translated="true"
+        ><b data-dl-uid="674" data-dl-original="true" data-dl-translated="true">非同期に</b></i
+      >実行されるときに起こります。並行プログラミングは、<i
+        data-dl-uid="676"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >非同期</i
+      >プロセス間の通信を<i data-dl-uid="675" data-dl-original="true" data-dl-translated="true"
+        >同期させる</i
+      >ためのテクニックを提供します。並行プログラミングは<i
+        data-dl-uid="677"
+        data-dl-original="true"
+        data-dl-translated="true"
+        ><b data-dl-uid="678" data-dl-original="true" data-dl-translated="true">難しい</b></i
+      >-<i data-dl-uid="679" data-dl-original="true" data-dl-translated="true">正しい</i
+      >方法はない。同時並行処理を使えば、コードにバグがあることは<i
+        data-dl-uid="680"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >確実</i
+      >で、そのほとんどは何年も何十年も表面化しないかもしれません。この章の主題がマルチタスクであることから、並行プログラミングを紹介しました。共有リソースはマルチタスクに近いので（典型的には共有ライブラリ、シグナル、メッセージパッシングという形で）、ここではその簡単な紹介を含めました。
+    </p>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="681"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      次に、<b data-dl-uid="682" data-dl-original="true" data-dl-translated="true">プロセス間通信（IPC</b
+      >）についての紹介を見ました。IPCは、最も単純なオペレーティングシステムを除いて、重要な役割を担っています。そして、マルチタスクでIPCをサポートするシステムには、本章で説明する並行プログラミングのテクニックが必要です。あなたは既に、<b
+        data-dl-uid="683"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >システムコールの</b
+      >使用を通じて、IPCの一形態を使ってきました。
+    </p>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="684"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      最後に、<b data-dl-uid="685" data-dl-original="true" data-dl-translated="true"
+        >スケジューリングアルゴリズムについて</b
+      >説明しました。スケジューラは、オペレーティングシステムの心臓部です。実行するプロセスを選択する役割を担っており、マルチタスクシステムの中核となるアルゴリズムです。
+    </p>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="686"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      さて、<i data-dl-uid="687" data-dl-original="true" data-dl-translated="true">いよいよ</i
+      >マルチタスクOSの世界に飛び込んで、物事をまとめていくことになります。
+    </p>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="688"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      ご記憶の通り、マルチタスクには3つのタイプがあります。
+    </p>
+
+    <ol>
+      <li><dd class="western">Preemptive</dd></li>
+      <li><dd class="western">Non-Preemptive</dd></li>
+      <li><dd class="western" style="margin-bottom: 0.2in">Cooperative</dd></li>
+    </ol>
+
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="692"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      今回は、プリエンプティブ・マルチタスクに焦点を当てます。
+    </p>
+    <h2 class="western" data-dl-uid="693" data-dl-original="true" data-dl-translated="true">プラン</h2>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="694"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      今回、<b data-dl-uid="695" data-dl-original="true" data-dl-translated="true"
+        >ラウンドロビン（RR）</b
+      >スケジューリングアルゴリズムを使用します。このアルゴリズムでは、選択されるプロセスにリソースとして<b
+        data-dl-uid="696"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >量子を</b
+      >割り当てることができることが必要です。そこで、<b
+        data-dl-uid="697"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >クロックが</b
+      >必要になる。システムには、さまざまな種類のクロックがあります。
+    </p>
+    <ol>
+      <li>
+        <dd class="western" data-dl-uid="698" data-dl-original="true" data-dl-translated="true">
+          プログラマブルインターバルタイマ(PIT)
+        </dd>
+      </li>
+      <li>
+        <dd class="western" data-dl-uid="699" data-dl-original="true" data-dl-translated="true">
+          アドバンスト・プログラマブル・インタラプト・コントローラ（APIC）タイマ
+        </dd>
+      </li>
+      <li>
+        <dd class="western" data-dl-uid="700" data-dl-original="true" data-dl-translated="true">
+          リアルタイムクロック(RTC)
+        </dd>
+      </li>
+      <li>
+        <dd class="western" data-dl-uid="701" data-dl-original="true" data-dl-translated="true">
+          ハイパフォーマンスイベントタイマー（HPET）
+        </dd>
+      </li>
+      <li>
+        <dd
+          class="western"
+          style="margin-bottom: 0.2in"
+          data-dl-uid="702"
+          data-dl-original="true"
+          data-dl-translated="true"
+        >
+          etc..
+        </dd>
+      </li>
+    </ol>
+
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="703"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      このデモでは、すでにサポートされているPITを使用する予定です。そこで、私たちは、使用するスケジューリングアルゴリズムとクロックを用意しました。第24章では、<b
+        data-dl-uid="704"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >PCB（Process Control Block</b
+      >）と<b data-dl-uid="705" data-dl-original="true" data-dl-translated="true"
+        >TCB（Thread Control Block</b
+      >）を紹介しました。TCBを拡張して、現在のスレッドの状態を保存し、ユーザーモードからカーネルモードに切り替えるために必要な情報を含めることにします。
+    </p>
+
+    <pre>
+typedef struct _thread {
+   uint32_t    esp;
+   uint32_t    ss;
+   uint32_t    kernelEsp;
+   uint32_t    kernelSs;
+   struct _process*  parent;
+   uint32_t    priority;
+   int         state;
+   ktime_t     sleepTimeDelta;
+}thread;</pre
+    >
+
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="707"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      スレッドに関連するタスクを作成するには、いくつかの低レベルのものが必要です。<b
+        data-dl-uid="708"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >スタックは</b
+      >現在の<b data-dl-uid="709" data-dl-original="true" data-dl-translated="true"
+        >レジスタコンテキストを</b
+      >格納します。上の構造体の<b data-dl-uid="710" data-dl-original="true" data-dl-translated="true"
+        >esp</b
+      >フィールドに指されたスタックにレジスタコンテキストを格納することになります。<b
+        data-dl-uid="711"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >スケジューラは</b
+      >、タスクの<b data-dl-uid="712" data-dl-original="true" data-dl-translated="true">作成</b
+      >、タスクの<b data-dl-uid="713" data-dl-original="true" data-dl-translated="true">管理</b
+      >、タスクの<b data-dl-uid="714" data-dl-original="true" data-dl-translated="true">切り替えを</b
+      >担当します。次のセクションで、これらのそれぞれをより詳しく見ていきます。例によって、すべてのサンプルコードは本章の最後にあるデモプログラムで使用されています。
+    </p>
+    <h2 class="western" data-dl-uid="715" data-dl-original="true" data-dl-translated="true">
+      レディキュー
+    </h2>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="716"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      まず、これらのタスクを格納する場所が必要です。タスクはカーネルメモリアロケータによって非ページドプールから動的に割り当てる必要があります。しかし、このシリーズではカーネルアロケータを実装していないので、私たちの実装では配列を使用するように制限されています。円形キューを使用すると、<b
+        data-dl-uid="718"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >ラウンドロビンスケジューリングに</b
+      >必要な<b data-dl-uid="717" data-dl-original="true" data-dl-translated="true">先入れ先出しの</b
+      >機能を実装することができます。このアイデアは、キューの先頭の要素を削除して後ろに追いやるだけで、次のタスクに移ることができるようにするためです。つまり、新しいタスクが待ち行列の先頭になるわけです。
+    </p>
+
+    <pre>
+thread   _readyQueue  [THREAD_MAX];
+int      _queue_last, _queue_first;
+thread   _idleThread;
+thread*  _currentTask;
+thread   _currentThreadLocal;
+
+/* clear queue. */
+void clear_queue() {
+        _queue_first = 0;
+        _queue_last  = 0;
+}
+
+/* insert thread. */
+bool queue_insert(thread t) {
+        _readyQueue[_queue_last % THREAD_MAX] = t;
+        _queue_last++;
+        return true;
+}
+
+/* remove thread. */
+thread queue_remove() {
+        thread t;
+        t = _readyQueue[_queue_first % THREAD_MAX];
+        _queue_first++;
+        return t;
+}
+
+/* get top of queue. */
+thread queue_get() {
+        return _readyQueue[_queue_first % THREAD_MAX];
+}</pre
+    >
+
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="720"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      この例では、準備のできたタスクのためのキューを1つだけ実装しています。
+      タスクは、キューをシャッフルすることでいつでも削除・追加することができます。<b
+        data-dl-uid="721"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >currentTask</b
+      >ポインタに注目してください。第25章では、このポインタは常に_currentThreadLocalを指し<span
+        style="font-weight: normal"
+        data-dl-uid="723"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >、現在実行中のスレッドのローカルコピーを保存して</span
+      >います。<span data-dl-uid="723" data-dl-translated="true"
+        >私たちのISRは、このポインタを使用してスレッド状態を保存および復元します。次のセクションでISRを見ます。</span
+      >
+    </p>
+    <h2 class="western" data-dl-uid="724" data-dl-original="true" data-dl-translated="true">
+      割込みサービスルーチン(ISR)
+    </h2>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="725"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      さて、最初のタスクは、タイマーがトリガーされるたびにスケジューラが呼び出されるようにすることです。ハードウェア割り込みは、割り込みコントローラによって発生することを思い出してください。もちろん、他にも<b
+        data-dl-uid="728"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >マルチプロセッサ（MP</b
+      >）やCPU間IRQで使われる<b data-dl-uid="727" data-dl-original="true" data-dl-translated="true"
+        >Advanced PIC（APIC</b
+      >）などもありますが、シンプルにするために、このシリーズではレガシーPICインターフェースのみをサポートしました。PICは、PITから送られてくるIR#0信号のように、ハードウェアデバイスがPICに信号を送ると、CPUに信号を送ります。PICは次に別の信号、この場合はCPUのIRQラインを立ち上げてCPUに通知する。どのIRQが呼ばれるかは、PICをどのようにプログラムしたかによります。IR#0をISR33にマップするようにPICをプログラムしたことを思い出してください。これは、PITが発火するたびに、CPUは現在のコードの実行を停止し、戻り値のcs、eip、フラグを現在のスタックにプッシュし、<b
+        data-dl-uid="729"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >割り込み記述子テーブル（IDT</b
+      >）にインストールしたISR、すなわち<b
+        data-dl-uid="730"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >IDT[33]</b
+      >を呼び出すことを意味する。
+    </p>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="731"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      つまり、タイマISRを割り込みベクタ33にインストール済みなのです。これはプロテクテッドモードを設定したときに行ったことです。これはハードウェア割り込みを有効にするために必要なことです。それはそれでいいのですが、私たちがやりたいのはそれを<i
+        data-dl-uid="732"
+        data-dl-original="true"
+        data-dl-translated="true"
+        ><b data-dl-uid="733" data-dl-original="true" data-dl-translated="true">上書き</b></i
+      >することです。
+    </p>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="734"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      これは、<i data-dl-uid="735" data-dl-original="true" data-dl-translated="true"
+        ><b data-dl-uid="736" data-dl-original="true" data-dl-translated="true"
+          >割り込みチェーニングによって</b
+        ></i
+      >行われます。以前の章で割込みチェーニングを紹介しましたが、実際に実行することはありませんでした。
+      今までは、ですが。私たちがすべきことは、古いISRを取得し、私たち自身のISRをインストールすることです。では、それをやってみましょう。
+    </p>
+
+    <pre>
+/* register isr */
+old_isr = getvect(32);
+setvect (32, scheduler_isr, 0x80);</pre
+    >
+
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="738"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      単純なことです。<b data-dl-uid="741" data-dl-original="true" data-dl-translated="true">IDTの</b
+      >話をしたときに、<b data-dl-uid="739" data-dl-original="true" data-dl-translated="true"
+        >getvectと</b
+      >
+      <b data-dl-uid="740" data-dl-original="true" data-dl-translated="true">setvectを</b
+      >実装しました。<b data-dl-uid="742" data-dl-original="true" data-dl-translated="true">IDT[32]</b
+      >にインストールしたのは、<b data-dl-uid="743" data-dl-original="true" data-dl-translated="true"
+        >PIT</b
+      >ISRがそこにあったためです。つまり、<b
+        data-dl-uid="744"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >old_isrに</b
+      >保存して、新しいISRである<b data-dl-uid="745" data-dl-original="true" data-dl-translated="true"
+        >scheduler_isrを</b
+      >インストールするのです。
+    </p>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="746"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      このように、PITが起動するたびに、代わりに<b
+        data-dl-uid="747"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >scheduler_isrが</b
+      >呼び出されるようになります。さて、ここからが難しいところですが、ISRを書くことです。ISRが何をする必要があるのか、いつ呼ばれるのかを考えてみましょう。<i
+        data-dl-uid="748"
+        data-dl-original="true"
+        data-dl-translated="true"
+        ><b data-dl-uid="749" data-dl-original="true" data-dl-translated="true">ISRは</b></i
+      >いつでも呼び出すことができます。しかし、<i
+        data-dl-uid="750"
+        data-dl-original="true"
+        data-dl-translated="true"
+        ><b data-dl-uid="751" data-dl-original="true" data-dl-translated="true"
+          >タスクが実行されているときは常に呼び出さ</b
+        ></i
+      >れます。必要なことは、現在のレジスタの状態を保存し、スケジューラを呼び出すことだけです。PICに<b
+        data-dl-uid="752"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >EOI(End-Of-Interrupt</b
+      >)を送ることを忘れないでください。
+    </p>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="753"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      まず、このデモのために実装されたISRを紹介し、次にそのISRが行っていることの詳細を説明するために、一つずつ分解していきます。
+    </p>
+
+    <pre>
+__declspec(naked) void _cdecl scheduler_isr () {
+        _asm {
+        ;
+        ; clear interrupts and save context.
+        ;
+        cli
+        pushad
+        ;
+        ; if no current task, just return.
+        ;
+        mov eax, [_currentTask]
+        cmp eax, 0
+        jz  interrupt_return
+        ;
+        ; save selectors.
+        ;
+        push ds
+        push es
+        push fs
+        push gs
+        ;
+        ; switch to kernel segments.
+        ;
+        mov ax, 0x10
+        mov ds, ax
+        mov es, ax
+        mov fs, ax
+        mov gs, ax
+        ;
+        ; save esp.
+        ;
+        mov eax, [_currentTask]
+        mov [eax], esp
+        ;
+        ; call scheduler.
+        ;
+        call scheduler_tick
+        ;
+        ; restore esp.
+        ;
+        mov eax, [_currentTask]
+        mov esp, [eax]
+        ;
+        ; Call tss_set_stack (kernelSS, kernelESP).
+        ; This code will be needed later for user tasks.
+        ;
+        push dword ptr [eax+8]
+        push dword ptr [eax+12]
+        call tss_set_stack
+        add esp, 8
+        ;
+        ; send EOI and restore context.
+        ;
+        pop gs
+        pop fs
+        pop es
+        pop ds
+interrupt_return:
+        ;
+        ; test if we need to call old ISR.
+        ;
+        mov eax, old_isr
+        cmp eax, 0
+        jne chain_interrupt
+        ;
+        ; if old_isr is null, send EOI and return.
+        ;
+        mov al,0x20
+        out 0x20,al
+        popad
+        iretd
+        ;
+        ; if old_isr is valid, jump to it. This calls
+        ; our PIT timer interrupt handler.
+        ;
+chain_interrupt:
+        popad
+        jmp old_isr
+        }
+}</pre
+    >
+
+    <p class="western" style="margin-bottom: 0.2in">
+      ISR は現在のレジスタ・コンテキストを保存し、現在のタスクのスタック・ポイン
+      タを保存する役割を担っています。その後、スケジューラを呼び出し、現在のタスクのスタックポインタを復元し、前に保存したレジスタコンテキストを復元しています。ISRが戻っても、すべて復元されているので、タスクは問題なく実行し続けることができます。ISRは一見複雑に見えますが、実際はどうなのでしょうか？バラバラに詳しく見ていきましょう。他の
+      ISR
+      と同様に、最初に行うのは現在のレジスタの状態をスタックに保存することです。つまり、ISRはこのように始まります。
+    </p>
+
+    <pre>
+__declspec(naked) void _cdecl scheduler_isr () {
+        _asm {
+        cli
+        pushad
+
+        popad
+        iretd
+        }
+}</pre
+    >
+
+    <p class="western" style="margin-bottom: 0.2in">
+      PITによってインストールされたISRの上にISRをインストールするので、ここで非常に注意する必要があります。つまり、scheduler_isr
+      はクロックティックごとに呼び出されることになります。setvect
+      を呼び出してインストールすると、レディキューにタスクがないうちに PIT
+      が発火する可能性があります。実行するタスクがないときは、何もすることがないので、ISR
+      が戻ってくればいいのです。また、割り込みを無効化しても、元に戻さないことにお気づきでしょうか。これは問題ありません。現在実行中のタスクは、FLAGSレジスタを通じて割り込みを有効にします。FLAGSレジスタは常に保持されているので、IRETDを発行すると、戻ったときにFLAGS.IFが有効になり、割り込みが再び有効になります。このISRは次のようになります。
+    </p>
+
+    <pre>
+__declspec(naked) void _cdecl scheduler_isr () {
+        _asm {
+        cli
+        pushad
+        ;
+        ; if no current task, just return.
+        ;
+        mov eax, [_currentTask]
+        cmp eax, 0
+        jz  interrupt_return
+
+        ;
+        ; &lt;actual ISR code here&gt;
+        ;
+
+interrupt_return:
+        popad
+        iretd
+        }
+}</pre
+    >
+
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="756"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      最後に、PITハードウェアが<b data-dl-uid="757" data-dl-original="true" data-dl-translated="true"
+        >scheduler_isrを呼び出して</b
+      >いるため、PITドライバのISRが呼び出されることがないことを念頭に置く必要があります。私たちは、<b
+        data-dl-uid="758"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >割り込みを連鎖</b
+      >させたいと考えています。つまり、先にインストールされていた古いISRがあれば、それを実行する機会を与えたいのです。
+      これは、そのISRに<b data-dl-uid="759" data-dl-original="true" data-dl-translated="true">ジャンプ</b
+      >する（呼び出さない）ことで行われます。他のISRを呼び出す場合、ISRが別の割り込みを連鎖させるか、<b
+        data-dl-uid="760"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >EOI（End-Of-Interrupt）</b
+      >コマンドを発行して<b data-dl-uid="761" data-dl-original="true" data-dl-translated="true">連鎖を</b
+      >断ち切るかを念頭に置いておく必要があります。別の ISR
+      を呼び出す場合、技術的にはまだ割り込みの処理中なので、EOI を送信する必要はなく、IRETD
+      も必要ありません。しかし、別の ISR
+      を呼び出さず、元のプロセスに制御を戻す場合は、両方が必要です。そこで、ISR は次のようになります。
+    </p>
+
+    <pre>
+__declspec(naked) void _cdecl scheduler_isr () {
+        _asm {
+        ;
+        ; clear interrupts and save context.
+        ;
+        cli
+        pushad
+        ;
+        ; if no current task, just return.
+        ;
+        mov eax, [_currentTask]
+        cmp eax, 0
+        jz  interrupt_return
+
+        ;
+        ; &lt;actual ISR code here&gt;
+        ;
+
+interrupt_return:
+        ;
+        ; test if we need to call old ISR.
+        ;
+        mov eax, old_isr
+        cmp eax, 0
+        jne chain_interrupt
+        ;
+        ; if old_isr is null, send EOI and return.
+        ;
+        mov al,0x20
+        out 0x20,al
+        popad
+        iretd
+        ;
+        ; if old_isr is valid, jump to it. This calls
+        ; our PIT timer interrupt handler.
+        ;
+chain_interrupt:
+        popad
+        jmp old_isr
+        }
+}</pre
+    >
+
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="763"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      実際にタスク処理を行うISRの本体は、以下の部分です。
+    </p>
+
+    <pre>
+        ;
+        ; save selectors.
+        ;
+        push ds
+        push es
+        push fs
+        push gs
+        ;
+        ; switch to kernel segments.
+        ;
+        mov ax, 0x10
+        mov ds, ax
+        mov es, ax
+        mov fs, ax
+        mov gs, ax
+        ;
+        ; save esp.
+        ;
+        mov eax, [_currentTask]
+        mov [eax], esp
+        ;
+        ; call scheduler.
+        ;
+        call scheduler_tick
+        ;
+        ; restore esp.
+        ;
+        mov eax, [_currentTask]
+        mov esp, [eax]
+        ;
+        ; Call tss_set_stack (kernelSS, kernelESP).
+        ; This code will be needed later for user tasks.
+        ;
+        push dword ptr [eax+8]
+        push dword ptr [eax+12]
+        call tss_set_stack
+        add esp, 8
+        ;
+        ; srestore context.
+        ;
+        pop gs
+        pop fs
+        pop es
+        pop ds</pre
+    >
+
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="765"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      <font color="#000000" data-dl-uid="766" data-dl-original="true" data-dl-translated="true"
+        ><font size="2" data-dl-uid="767" data-dl-original="true" data-dl-translated="true"
+          >まず、セグメントレジスタをスタックにプッシュします。(この前に PUSHAD
+          を実行したことを思い出してください。また、ISR が最初に呼び出されたとき、CPU は CS、EIP、および
+          EFLAGS をスタックにプッシュしました)。これらの
+        </font></font
+      ><font color="#000000" data-dl-uid="773" data-dl-original="true" data-dl-translated="true"
+        ><font size="2" data-dl-uid="774" data-dl-original="true" data-dl-translated="true"
+          ><b data-dl-uid="775" data-dl-original="true" data-dl-translated="true"
+            >レジスタがスタックにプッシュされた順序は、後に stackFrame 構造体で使用する順序と一致して</b
+          ></font
+        ></font
+      >います。<font color="#000000" data-dl-uid="776" data-dl-original="true" data-dl-translated="true"
+        ><font size="2" data-dl-uid="777" data-dl-original="true" data-dl-translated="true">
+          次に、これらのセグメントレジスタを
+        </font></font
+      >、<font color="#000000" data-dl-uid="778" data-dl-original="true" data-dl-translated="true"
+        ><font size="2" data-dl-uid="779" data-dl-original="true" data-dl-translated="true"
+          ><b data-dl-uid="780" data-dl-original="true" data-dl-translated="true"
+            >グローバル記述子テーブル（GDT</b
+          ></font
+        ></font
+      ><font data-dl-uid="776" data-dl-translated="true"
+        ><font data-dl-uid="777" data-dl-translated="true"
+          >）からずっと前に設定したカーネルモードセレクタに設定
+        </font></font
+      >します。 これは、<font
+        color="#000000"
+        data-dl-uid="781"
+        data-dl-original="true"
+        data-dl-translated="true"
+        ><font size="2" data-dl-uid="782" data-dl-original="true" data-dl-translated="true"
+          >現在実行中のタスクがカーネルモードのタスクであると仮定していないために行わ
+        </font></font
+      >れるのです。<font
+        color="#000000"
+        data-dl-uid="783"
+        data-dl-original="true"
+        data-dl-translated="true"
+        ><font size="2" data-dl-uid="784" data-dl-original="true" data-dl-translated="true"
+          ><b data-dl-uid="785" data-dl-original="true" data-dl-translated="true"
+            >タスクがユーザーモードの場合、DS、ES、FS、GSは0x10ではなく、0x23の</b
+          ></font
+        ></font
+      >ままです。<font
+        color="#000000"
+        data-dl-uid="786"
+        data-dl-original="true"
+        data-dl-translated="true"
+        ><font size="2" data-dl-uid="787" data-dl-original="true" data-dl-translated="true">
+          スレッドスタックに元のタスクセレクタを保存しておいたので、今調整する
+        </font></font
+      >ことができます。<font data-dl-uid="786" data-dl-translated="true"
+        ><font data-dl-uid="787" data-dl-translated="true"
+          >ユーザーモードタスクから来た場合、CPUは自動的にSSとCSをタスクステートセグメント（TSS）から設定するので、これらはすでに適切に設定されています。スタックについては、もう少し後で詳しく見ていきます。最後に
+        </font></font
+      >、<font color="#000000" data-dl-uid="788" data-dl-original="true" data-dl-translated="true"
+        ><font size="2" data-dl-uid="789" data-dl-original="true" data-dl-translated="true"
+          ><b data-dl-uid="790" data-dl-original="true" data-dl-translated="true"
+            >ESPの現在値を_currentTask-&gt;esp</b
+          ></font
+        ></font
+      ><font color="#000000" data-dl-uid="791" data-dl-original="true" data-dl-translated="true"> </font
+      ><font color="#000000" data-dl-uid="792" data-dl-original="true" data-dl-translated="true"
+        ><font size="2" data-dl-uid="793" data-dl-original="true" data-dl-translated="true"
+          >に保存し、
+        </font></font
+      ><font color="#000000" data-dl-uid="794" data-dl-original="true" data-dl-translated="true"
+        ><font size="2" data-dl-uid="795" data-dl-original="true" data-dl-translated="true"
+          ><b data-dl-uid="796" data-dl-original="true" data-dl-translated="true"
+            >scheduler_tickを</b
+          ></font
+        ></font
+      >呼び出します<font
+        color="#000000"
+        data-dl-uid="797"
+        data-dl-original="true"
+        data-dl-translated="true"
+        ><font size="2" data-dl-uid="798" data-dl-original="true" data-dl-translated="true"
+          >。</font
+        ></font
+      >
+    </p>
+
+    <p class="western" style="margin-bottom: 0.2in">
+      _currentTask 、ISRは常に現在実行中のタスクが何であれ、それを指していると仮定
+      します。スケジューラがタスクを変更した場合、その新しいタスクが新しい「現在」実行中のタスクになります。新しいタスクであっても、ESPをその新しいタスクの
+      _currentTask->esp フィールドに リストアするだけ
+      です。最初に新しいスレッドのスタックにレジスタコンテキストを保存したので、それらをそれぞれのレジスタにポップオフして戻します。また
+      、ずっと前に実装したtss_set_stack も呼び出します
+      。これは、戻るタスクがユーザーモードタスクである場合にのみ有用です。私たちが行うのは、新しいタスクのカーネルスタックを更新してTSSに設定することです。今度のデモでは、カーネルスレッドのみを実行し、それぞれが1つのカーネルスタックを持つので、これはまだ適用されません。しかし、ユーザーレベルのスレッドは、ユーザー空間とカーネル空間の両方で実行されるため、1つではなく2つのスタックを持つことを覚えておいてください。次の数章では、アドレス空間の管理とユーザ空間について説明します。
+    </p>
+
+    <p class="western" style="margin-bottom: 0.2in">
+      では、どのようにタスクを切り替えるのか？スケジューラが呼び出されたときに、_currenTaskポインタが変化したらどうなるか、ちょっと考えてみましょう。新しいタスクのレジスタコンテキストとスタックポインタは同じように保存されているので、scheduler_tick関数の内部でこのポインタを変更するだけで、ISRは自動的に新しいタスクのレジスタコンテキストとスタックをロードすることになるのです。つまり、タスクの切り替えは、このポインタを更新するのと同じくらい簡単なのです。
+    </p>
+
+    <h2 class="western">Switching Tasks</h2>
+    <p class="western" style="margin-bottom: 0.2in">
+      つまり、タスクを切り替えるには、ポインタを更新するだけでよいのです。ラウンドロビンスケジューリングでは、実行中のタスクを格納するためにキューを使用することができます。キューはすでに先入れ先出しで動作しているので、必要なのは現在のタスクを削除して再び挿入し、プッシュバックすることだけです。これによって、コードが大幅に簡素化されます。
+    </p>
+
+    <pre>
+/* schedule next task. */
+void dispatch () {
+
+        /* We do Round Robin here, just remove and insert.
+        Note _currentTask pointer always points to
+        _currentThreadLocal. So just update _currentThreadLocal. */
+        queue_remove();
+        queue_insert(_currentThreadLocal);
+        _currentThreadLocal = queue_get();
+}
+
+/* gets called for each clock tick. */
+void scheduler_tick () {
+
+        /* just run dispatcher. */
+        dispatch();
+}}</pre
+    >
+
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="1044"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      以上です。上記は<b data-dl-uid="1045" data-dl-original="true" data-dl-translated="true"
+        >ラウンドロビンスケジューリングを</b
+      >実装しており、一定<b data-dl-uid="1046" data-dl-original="true" data-dl-translated="true">量</b
+      >経過後にタスクの入れ替えを行います。タスクは先に実装した<b
+        data-dl-uid="1047"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >Ready Queueに</b
+      >格納されます。これで残るは、タスクの作成だけです。
+    </p>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="1048"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      上記は複数のスレッドに対して有効ですが、異なるプロセスに属するスレッドに対しては有効ではありません。典型的な解決策は、現在のスレッドの親プロセスと新しいスレッドを比較することです。もしそれらが同じプロセスに属していれば、ディスパッチャは単に戻ることができます。異なるプロセスに属している場合、ディスパッチャは
+      VMM
+      を呼び出して、新しいプロセスのアドレス空間に切り替える必要があります。サンプルコードをシンプルに保つために、この章ではこれを避けることにしました。しかし、次の章でアドレス空間管理をより詳しく説明するときに、これをサポートする予定です。
+    </p>
+
+    <h2 class="western" data-dl-uid="1049" data-dl-original="true" data-dl-translated="true">
+      タスクの作成
+    </h2>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="1050"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      例えば、<b data-dl-uid="1051" data-dl-original="true" data-dl-translated="true">スケジュール</b
+      >関数が<b data-dl-uid="1052" data-dl-original="true" data-dl-translated="true">_currentTask</b
+      >ポインタを別のタスクに更新したとしましょう。そこで、この関数がISRに戻ったとき、ISRはIRETDを発行する前に、この新しいタスクからスタックとレジスタのコンテキストをセットします。これはうまくいきますが、タスクがすでにスタックとレジスタコンテキストをスタック上に持っている場合のみです。
+    </p>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="1053"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      そこで、初回のタスク作成時に設定する必要があります。そこで、基本的なスタックフレームを設定し、タスクの<b
+        data-dl-uid="1054"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >espと</b
+      >
+      <b data-dl-uid="1055" data-dl-original="true" data-dl-translated="true">eipを</b>スタックと<b
+        data-dl-uid="1056"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >エントリ</b
+      >ポイント関数に設定します。スタックフレームは、私たちのISRが期待するものでなければなりません。ISRに戻ると、まずPOP
+      GS、POP FS、POP ES、POP DSを行い、次にPUSHAとIRETDを行います。 PUSHAはEAX, EBX, ECX, EDX, ESI, EDI,
+      ESP,
+      EBPをpopします。そして、IRETDはEIP、CS、FLAGSをポップします。つまり、これがタスクが作成されたときの最初のスタックフレームでなければなりません。
+    </p>
+
+    <pre>
+typedef struct _stackFrame {
+  uint32_t gs;
+  uint32_t fs;
+  uint32_t es;
+  uint32_t ds;
+  uint32_t eax;
+  uint32_t ebx;
+  uint32_t ecx;
+  uint32_t edx;
+  uint32_t esi;
+  uint32_t edi;
+  uint32_t esp;
+  uint32_t ebp;
+  uint32_t eip;
+  uint32_t cs;
+  uint32_t flags;
+}stackFrame;
+
+task  task_create (uint32_t entry, uint32_t esp) {
+  thread t;
+  stackFrame* frame = ((stackFrame*) esp);
+  frame-&gt;flags = 0x202;
+  frame-&gt;cs    = 8;
+  frame-&gt;eip   = (uint32_t)entry;
+  frame-&gt;ebp   = 0;
+  frame-&gt;esp   = 0;
+  frame-&gt;edi   = 0;
+  frame-&gt;esi   = 0;
+  frame-&gt;edx   = 0;
+  frame-&gt;ecx   = 0;
+  frame-&gt;ebx   = 0;
+  frame-&gt;eax   = 0;
+  frame-&gt;ds    = 0x10;
+  frame-&gt;es    = 0x10;
+  frame-&gt;fs    = 0x10;
+  frame-&gt;gs    = 0x10;
+  t.esp = (uint32_t) frame;
+  t.ss = 0x10;
+  return t;
+}</pre
+    >
+
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="800"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      これは、1つのタスク（<i data-dl-uid="801" data-dl-original="true" data-dl-translated="true"
+        ><b data-dl-uid="802" data-dl-original="true" data-dl-translated="true">初期タスク</b></i
+      >）を除いて、ほとんどのタスクで動作します。
+      作成したISRは、現在実行中のコードがタスクの中にある場合のみ動作します。これはまた別の鶏と卵の問題です。これを回避するには、特別なタスクオブジェクトを作成し、マルチタスクを開始する準備ができたときにそれを実行する必要があります。
+    </p>
+
+    <pre>
+static thread _idleTask;
+void task_execute(thread t) {
+  _asm{
+    mov esp, t.esp
+    pop gs
+    pop fs
+    pop es
+    pop ds
+    popad
+    iretd
+  }
+}
+
+/* initialize scheduler. */
+void scheduler_initialize(void) {
+
+        /* clear ready queue. */
+        clear_queue();
+
+        /* clear process list. */
+        init_process_list();
+
+        /* create idle thread and add it. */
+        _idleThread = thread_create(idle_task, (uint32_t) create_kernel_stack(), true);
+
+        /* set current thread to idle task and add it. */
+        _currentThreadLocal = _idleThread;
+        _currentTask        = &amp;_currentThreadLocal;
+        queue_insert(_idleThread);
+
+        /* register isr */
+        old_isr = getvect(32);
+        setvect (32, scheduler_isr, 0x80);
+}
+
+/* idle task. */
+void idle_task() {
+  while(1) _asm pause;
+}</pre
+    >
+
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="804"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      <font color="#000000" data-dl-uid="805" data-dl-original="true" data-dl-translated="true"
+        ><font size="2" data-dl-uid="806" data-dl-original="true" data-dl-translated="true"
+          >上記はすべてをまとめています。アイドルタスクを作成し、キューに追加し、ISRをインストールし、最初のタスクを実行します。初期タスクが実行されると、PITが発生するたびにISRが呼び出され、必要に応じてスケジューラを呼び出して現在のタスクを更新します。</font
+        ></font
+      >
+    </p>
+
+    <h1 class="western" data-dl-uid="807" data-dl-original="true" data-dl-translated="true">
+      <b data-dl-uid="808" data-dl-original="true" data-dl-translated="true">8.MPの紹介</b>
+    </h1>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in; font-weight: normal"
+      data-dl-uid="809"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      他のプロセッサの起動や<b data-dl-uid="812" data-dl-original="true" data-dl-translated="true"
+        >IPI（Inter-Processor Interrupts</b
+      >）の標準的なインタフェースを提供するために設計された<b
+        data-dl-uid="811"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >MP（Multi-Processor）仕様について</b
+      >、<i data-dl-uid="810" data-dl-original="true" data-dl-translated="true">ごく</i
+      >簡単に紹介します。これは、並行プログラミングの難易度を一気にエスカレートさせるので、高度なトピックだと考えています。今回のスケジューラは1つのタスクしか実行しませんが、MPを使えば、タスクに対して独立したCPUのスケジューリングを担当する低レベルのスケジューラを実装でき、複数のタスクを同時に実行することが可能になります。MPについてもっと知りたい方は、MP仕様書をご覧になることをお勧めします。なお、MPが使用するIOAPIC、LAPIC、ICIは、お使いのシステムが既にサポートしている必要があります。
+    </p>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in; font-weight: normal"
+      data-dl-uid="813"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      <b data-dl-uid="814" data-dl-original="true" data-dl-translated="true"
+        >マルチプロセッシングには、SMP（Symmetric Multiprocessing</b
+      >）と<b data-dl-uid="815" data-dl-original="true" data-dl-translated="true"
+        >ASP（Asymmetric Multiprocessing</b
+      >）があります。SMPでは、すべてのプロセッサが同じタイプであるのに対し、ASPではそうではありません。デスクトップではASPは非常に珍しいため、ほとんどのシステムはSMPのみをサポートしている。しかし、MP規格は両方に対応し、さらに拡張の余地があるため、より多様な種類のマシンに対応でき、OSも様々な種類のシステムに対応できるようになっています。
+    </p>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in; font-weight: normal"
+      data-dl-uid="816"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      システムが最初に起動するとき、ハードウェアは<b
+        data-dl-uid="817"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >ブートストラッププロセッサ（BSP</b
+      >）を選択し、起動する唯一のプロセッサとして動作させます。BSPは、最初に起動するプロセッサであり、最後にシャットダウンするプロセッサでなければなりません。オペレーティングシステムは、BSPから他の<b
+        data-dl-uid="819"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >アプリケーションプロセッサ（AP</b
+      >）に<b data-dl-uid="818" data-dl-original="true" data-dl-translated="true">STARTUP IPIを</b
+      >送信して起動することができる。
+      他のAPは、BSPまたは他のAPのいずれかによって起動させることができる。<b
+        data-dl-uid="820"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >STARTUP IPI</b
+      >（および<b data-dl-uid="821" data-dl-original="true" data-dl-translated="true">INIT IPI</b
+      >）は、オペレーティングシステムが他のプロセッサを起動するために送信するものです。
+    </p>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in; font-weight: normal"
+      data-dl-uid="822"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      オペレーティングシステムは、システムが MP をサポートしているかどうかを検出するために、まず<b
+        data-dl-uid="823"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >MP フローティングポインタ</b
+      >構造体を検索する必要があります。 この構造体は、<b
+        data-dl-uid="825"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >MP コンフィグレーションテーブルの</b
+      >
+      <b data-dl-uid="824" data-dl-original="true" data-dl-translated="true">物理</b
+      >アドレスを格納しています。コンフィギュレーションテーブルは<b
+        data-dl-uid="826"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >読み取り専用</b
+      >で、<b data-dl-uid="827" data-dl-original="true" data-dl-translated="true"
+        >ローカルAPIC（LAPC）のメモリマップドアドレス、プロセッサエントリ（プロセッサLAPIC
+        IDを含む）、IOAPICエントリ（IOAPICベースメモリマップドアドレスを含む）、バス、割込み設定エントリが</b
+      >格納されます。オペレーティングシステムは、BSPのLAPIC
+      IDを記憶して、それが最後にシャットダウンされるようにしなければなりません。
+    </p>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in; font-weight: normal"
+      data-dl-uid="828"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      他の AP をウェイクアップするためには、BSP LAPIC または他の AP LAPIC を介して<b
+        data-dl-uid="829"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >INIT IPI</b
+      >を送信すればよい。LAPICのメモリマップドレジスタは、MPコンフィギュレーションテーブルのプロセッサ情報に格納されています。その後、そのAPに<b
+        data-dl-uid="830"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >STARTUP IPI</b
+      >を送信し、実行を開始する必要があります。本当にそれだけです。INIT IPIでAPが<b
+        data-dl-uid="831"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >リセット</b
+      >されます。STARTUP IPIは、リアル・モードで指定した場所で実行を開始させます。
+      オペレーティング・システムは、BSPで行ったように、APIをプロテクト・モードまたはロング・モードで設定するためのリアル・モードのスタブ・ルーチンを提供する必要があります。
+    </p>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in; font-weight: normal"
+      data-dl-uid="832"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      以上、マルチプロセッサの簡単な紹介をしましたが、いかがでしたでしょうか。他のプロセッサ（またはプロセッサコア）を起動するのはかなり簡単で、スケジューラを実装した後に
+      SMP を実験することをお勧めします。MP については、APIC
+      を実装した後のチュートリアルで、より詳しく説明する予定です。私たちはただ、今興味をお持ちの方のために、ちょっとした概要と方向性を示したかっただけなのです。
+    </p>
+
+    <h2 class="western" data-dl-uid="841" data-dl-original="true" data-dl-translated="true">
+      ボークスグラフィックスアダプタ（BGA）
+    </h2>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="842"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      本章の主要なトピックに集中できるよう、コードをできるだけシンプルにするため、システムがISA用に構成されていることを前提にBGAを使用することにしました。<i
+        data-dl-uid="843"
+        data-dl-original="true"
+        data-dl-translated="true"
+        ><b data-dl-uid="844" data-dl-original="true" data-dl-translated="true"
+          >このコードは Bochs 固有の</b
+        ></i
+      >ものであり、実際のシステムでは動作しません。実際のシステムでは、PCIバスインフラをスキャンする必要がありますが、これはより高度な章でのトピックとなるかもしれません。
+    </p>
+
+    <pre>#define VBE_DISPI_IOPORT_INDEX          0x01CE
+#define VBE_DISPI_IOPORT_DATA           0x01CF
+#define VBE_DISPI_INDEX_XRES            0x1
+#define VBE_DISPI_INDEX_YRES            0x2
+#define VBE_DISPI_INDEX_BPP             0x3
+#define VBE_DISPI_INDEX_ENABLE          0x4
+#define VBE_DISPI_DISABLED              0x00
+#define VBE_DISPI_ENABLED               0x01
+#define VBE_DISPI_LFB_ENABLED           0x40
+
+void VbeBochsWrite(uint16_t index, uint16_t value) {
+   outportw (VBE_DISPI_IOPORT_INDEX, index);
+   outportw (VBE_DISPI_IOPORT_DATA, value);
+}
+
+void VbeBochsSetMode (uint16_t xres, uint16_t yres, uint16_t bpp) {
+   VbeBochsWrite (VBE_DISPI_INDEX_ENABLE, VBE_DISPI_DISABLED);
+   VbeBochsWrite (VBE_DISPI_INDEX_XRES, xres);
+   VbeBochsWrite (VBE_DISPI_INDEX_YRES, yres);
+   VbeBochsWrite (VBE_DISPI_INDEX_BPP, bpp);
+   VbeBochsWrite (VBE_DISPI_INDEX_ENABLE, VBE_DISPI_ENABLED | VBE_DISPI_LFB_ENABLED);   
+<font color="#000000"><font size="2">}</font></font></pre>
+
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="848"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      <font color="#000000" data-dl-uid="849" data-dl-original="true" data-dl-translated="true"
+        ><font size="2" data-dl-uid="850" data-dl-original="true" data-dl-translated="true"
+          >ビデオモードを設定
+        </font></font
+      >するには、<font
+        color="#000000"
+        data-dl-uid="851"
+        data-dl-original="true"
+        data-dl-translated="true"
+        ><font size="2" data-dl-uid="852" data-dl-original="true" data-dl-translated="true"
+          ><b data-dl-uid="853" data-dl-original="true" data-dl-translated="true"
+            >VbeBochsSetMode</b
+          ></font
+        ></font
+      >を<font data-dl-uid="849" data-dl-translated="true"
+        ><font data-dl-uid="850" data-dl-translated="true">呼び出すだけ </font></font
+      >です<font color="#000000" data-dl-uid="854" data-dl-original="true" data-dl-translated="true"
+        ><font size="2" data-dl-uid="855" data-dl-original="true" data-dl-translated="true"
+          >。
+        </font></font
+      ><font color="#000000" data-dl-uid="860" data-dl-original="true" data-dl-translated="true"
+        ><font size="2" data-dl-uid="861" data-dl-original="true" data-dl-translated="true"
+          >この例では
+        </font></font
+      >、<font color="#000000" data-dl-uid="856" data-dl-original="true" data-dl-translated="true"
+        ><font size="2" data-dl-uid="857" data-dl-original="true" data-dl-translated="true"
+          ><b data-dl-uid="858" data-dl-original="true" data-dl-translated="true">800x600x32</b></font
+        ></font
+      ><font color="#000000" data-dl-uid="859" data-dl-original="true" data-dl-translated="true"> </font
+      ><font data-dl-uid="860" data-dl-translated="true"
+        ><font data-dl-uid="861" data-dl-translated="true"
+          >がよくサポートされているようなので
+        </font></font
+      >、これを使用しています。<font
+        color="#000000"
+        data-dl-uid="866"
+        data-dl-original="true"
+        data-dl-translated="true"
+        ><font size="2" data-dl-uid="867" data-dl-original="true" data-dl-translated="true"
+          >ISA の
+        </font></font
+      ><font color="#000000" data-dl-uid="862" data-dl-original="true" data-dl-translated="true"
+        ><font size="2" data-dl-uid="863" data-dl-original="true" data-dl-translated="true"
+          ><b data-dl-uid="864" data-dl-original="true" data-dl-translated="true"
+            >リニアフレームバッファ (LFB)</b
+          ></font
+        ></font
+      ><font color="#000000" data-dl-uid="865" data-dl-original="true" data-dl-translated="true"> </font
+      ><font data-dl-uid="866" data-dl-translated="true"
+        ><font data-dl-uid="867" data-dl-translated="true">は、あらかじめ定義された </font></font
+      ><font color="#000000" data-dl-uid="868" data-dl-original="true" data-dl-translated="true"
+        ><font size="2" data-dl-uid="869" data-dl-original="true" data-dl-translated="true"
+          ><b data-dl-uid="870" data-dl-original="true" data-dl-translated="true">0xe0000000</b></font
+        ></font
+      >の場所にあります<font
+        color="#000000"
+        data-dl-uid="871"
+        data-dl-original="true"
+        data-dl-translated="true"
+        ><font size="2" data-dl-uid="872" data-dl-original="true" data-dl-translated="true"
+          >。しかし、ページングを有効にしているので、LFB
+          を使用するために仮想アドレス空間にマップする必要が</font
+        ></font
+      >あります。<font data-dl-uid="871" data-dl-translated="true"
+        ><font data-dl-uid="872" data-dl-translated="true"
+          >デモでは、仮想的に0x200000にマッピングすることにします。マッピングは、LFBのサイズをページ数で計算し、VMMを呼び出して各ページをマッピングすることで行われます。</font
+        ></font
+      >
+    </p>
+
+    <pre>void* VbeBochsMapLFB () {
+
+/* BGA LFB is at LFB_PHYSICAL for ISA systems. */
+#define LFB_PHYSICAL 0xE0000000
+#define LFB_VIRTUAL  0x200000
+
+  /* map LFB into current process address space. */
+  int pfcount = WIDTH*HEIGHT*BYTES_PER_PIXEL/4096;
+  int c;
+  for (c = 0;c &lt;= pfcount; c++)
+    vmmngr_mapPhysicalAddress (vmmngr_get_directory(),LFB_VIRTUAL + c * 0x1000,LFB_PHYSICAL + c * 0x1000, 3);
+
+  /* return pointer to LFB. */
+  return (void*) LFB_VIRTUAL;
+<font color="#000000"><font size="2">}</font></font></pre>
+
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="876"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      <font color="#000000" data-dl-uid="877" data-dl-original="true" data-dl-translated="true"
+        ><font size="2" data-dl-uid="878" data-dl-original="true" data-dl-translated="true"
+          >上記の関数で、0x200000に書き込めば、LFBに描画できるようになりました。ディスプレイ上のゴミの可能性を一掃するために、次にそれをクリアします。多くのピクセルを描画する必要があるので、この関数は32ビットモードに最適化するようにしています。この関数は、画面を白にします。</font
+        ></font
+      >
+    </p>
+
+    <pre>void fillScreen32 () {
+  uint32_t* lfb = (uint32_t*) LFB_VIRTUAL;
+  for (uint32_t c=0; c&lt;WIDTH*HEIGHT; c++)
+    lfb[c] = 0xffffffff;
+<font color="#000000"><font size="2">}</font></font></pre>
+
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="882"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      <font color="#000000" data-dl-uid="883" data-dl-original="true" data-dl-translated="true"
+        ><font size="2" data-dl-uid="884" data-dl-original="true" data-dl-translated="true"
+          >32 Bits Per Pixel モードでは、画素の色は赤、緑、青の 8
+          ビットで構成されています。上位8ビットは今回の目的では無視されますが、通常、透明度の値として使用されます。3つの矩形をレンダリングし、3つの色の強度を循環させるために、3つの別々のタスクを使用します。ディスプレイの異なる場所にレンダリングするので、並行処理の問題を心配する必要はありません。
+          ディスプレイメモリは共有されていますが、各タスクは別々の部分にレンダリングします。</font
+        ></font
+      >
+    </p>
+
+    <pre>void rect32 (int x, int y, int w, int h, int col) {
+  uint32_t* lfb = (uint32_t*) LFB_VIRTUAL;
+  for (uint32_t k = 0; k &lt; h; k++)
+    for (uint32_t j = 0; j &lt; w; j++)
+      lfb[(j+x) + (k+y) * WIDTH] = col;
+<font color="#000000"><font size="2">}</font></font></pre>
+
+    <table width="907" border="1" cellpadding="0" cellspacing="0" frame="VOID">
+      <colgroup>
+        <col width="332" />
+        <col width="304" />
+        <col width="270" />
+      </colgroup>
+      <tbody>
+        <tr valign="TOP">
+          <td width="332">
+            <pre>void kthread_1() {
+  int col = 0;
+  bool dir = true;
+  while(1) {
+    rect32(200,250,100,100,col &lt;&lt; 16);
+    if (dir){
+      if (col++ == 0xfe)
+        dir=false;
+    }else
+      if (col-- == 1)
+        dir=true;
+ }
+<font color="#000000"><font face="Lucida Console, monospace"><font size="2">}</font></font></font></pre>
+          </td>
+          <td width="304">
+            <pre>void kthread_2 () {
+  int col = 0;
+  bool dir = true;
+  while(1) {
+    rect32(350,250,100,100,col &lt;&lt; 8);
+    if (dir){
+      if (col++ == 0xfe)
+        dir=false;
+    }else
+      if (col-- == 1)
+        dir=true;
+  }
+<font color="#0000ff"><font size="2">}</font></font></pre>
+          </td>
+          <td width="270">
+            <pre>void kthread_3 () {
+  int col = 0;
+  bool dir = true;
+  while(1) {
+    rect32(500,250,100,100,col);
+    if (dir) {
+      if (col++ == 0xfe)
+        dir=false;
+    }else
+      if (col-- == 1)
+        dir=true;
+  }
+<font color="#0000ff"><font size="2">}</font></font></pre>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2 class="western" data-dl-uid="898" data-dl-original="true" data-dl-translated="true">
+      スレッドスタック
+    </h2>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="899"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      <font color="#000000" data-dl-uid="900" data-dl-original="true" data-dl-translated="true"
+        ><font size="2" data-dl-uid="901" data-dl-original="true" data-dl-translated="true"
+          >通常、スレッドは2つの独立したスタックを持っています。1つはユーザーモードで実行するときのもので、もう1つはカーネルモードで実行するときのものです。スレッドがユーザモードで実行されているとき、CPU
+          は
+        </font></font
+      ><font color="#000000" data-dl-uid="914" data-dl-original="true" data-dl-translated="true"
+        ><font size="2" data-dl-uid="915" data-dl-original="true" data-dl-translated="true"
+          ><b data-dl-uid="916" data-dl-original="true" data-dl-translated="true"
+            >タスクステートセグメント（TSS</b
+          ></font
+        ></font
+      >）の<font color="#000000" data-dl-uid="902" data-dl-original="true" data-dl-translated="true"
+        ><font size="2" data-dl-uid="903" data-dl-original="true" data-dl-translated="true"
+          ><b data-dl-uid="904" data-dl-original="true" data-dl-translated="true">esp0</b></font
+        ></font
+      ><font color="#000000" data-dl-uid="905" data-dl-original="true" data-dl-translated="true"> </font
+      ><font color="#000000" data-dl-uid="906" data-dl-original="true" data-dl-translated="true"
+        ><font size="2" data-dl-uid="907" data-dl-original="true" data-dl-translated="true"
+          >と
+        </font></font
+      ><font color="#000000" data-dl-uid="908" data-dl-original="true" data-dl-translated="true"
+        ><font size="2" data-dl-uid="909" data-dl-original="true" data-dl-translated="true"
+          ><b data-dl-uid="910" data-dl-original="true" data-dl-translated="true">ss0</b></font
+        ></font
+      ><font color="#000000" data-dl-uid="911" data-dl-original="true" data-dl-translated="true"> </font
+      ><font color="#000000" data-dl-uid="912" data-dl-original="true" data-dl-translated="true"
+        ><font size="2" data-dl-uid="913" data-dl-original="true" data-dl-translated="true"
+          >フィールドを
+        </font></font
+      ><font data-dl-uid="900" data-dl-translated="true"
+        ><font data-dl-uid="901" data-dl-translated="true"
+          >取得することによってカーネルスタックに切り替えることを思い出して
+        </font></font
+      >ください。<font
+        color="#000000"
+        data-dl-uid="917"
+        data-dl-original="true"
+        data-dl-translated="true"
+        ><font size="2" data-dl-uid="918" data-dl-original="true" data-dl-translated="true">
+          スケジューラは TSS を新しいスレッドのカーネルモードスタックに更新する責任を負って
+        </font></font
+      >います。<font data-dl-uid="917" data-dl-translated="true"
+        ><font data-dl-uid="918" data-dl-translated="true"
+          >しかし、第25章では、すべてのスレッドがカーネル空間で実行されるため、TSSが参照されることはない。つまり
+        </font></font
+      >、第25章のスレッドは、<font
+        color="#000000"
+        data-dl-uid="919"
+        data-dl-original="true"
+        data-dl-translated="true"
+        ><font size="2" data-dl-uid="920" data-dl-original="true" data-dl-translated="true"
+          ><b data-dl-uid="921" data-dl-original="true" data-dl-translated="true"
+            >カーネルモードスタックという1つのスタックしか持って</b
+          ></font
+        ></font
+      >いないの<font color="#000000" data-dl-uid="922" data-dl-original="true" data-dl-translated="true"
+        ><font size="2" data-dl-uid="923" data-dl-original="true" data-dl-translated="true"
+          >です</font
+        ></font
+      >。
+    </p>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="924"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      <font color="#000000" data-dl-uid="925" data-dl-original="true" data-dl-translated="true"
+        ><font size="2" data-dl-uid="926" data-dl-original="true" data-dl-translated="true"
+          >次の2つの章では、アドレス空間管理をカバーする際に、ユーザモードスレッドをサ
+          ポートする予定です。将来のアドレス空間アロケータを使って、各ユーザモードスレッドのためにユーザ空間にスタック空間を確保する予定です。つまり
+        </font></font
+      >、<font color="#000000" data-dl-uid="927" data-dl-original="true" data-dl-translated="true"
+        ><font size="2" data-dl-uid="928" data-dl-original="true" data-dl-translated="true"
+          ><b data-dl-uid="929" data-dl-original="true" data-dl-translated="true"
+            >スレッドはユーザモードスタックとカーネルモードスタックの</b
+          ></font
+        ></font
+      >両方を持つことになります<font
+        color="#000000"
+        data-dl-uid="930"
+        data-dl-original="true"
+        data-dl-translated="true"
+        ><font size="2" data-dl-uid="931" data-dl-original="true" data-dl-translated="true"
+          >。</font
+        ></font
+      >
+    </p>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="932"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      <font color="#000000" data-dl-uid="933" data-dl-original="true" data-dl-translated="true"
+        ><font size="2" data-dl-uid="934" data-dl-original="true" data-dl-translated="true"
+          >スレッドは
+        </font></font
+      >、<font color="#000000" data-dl-uid="935" data-dl-original="true" data-dl-translated="true"
+        ><font size="2" data-dl-uid="936" data-dl-original="true" data-dl-translated="true"
+          ><b data-dl-uid="937" data-dl-original="true" data-dl-translated="true"
+            >現在の特権レベル（CPL）</b
+          ></font
+        ></font
+      ><font color="#000000" data-dl-uid="938" data-dl-original="true" data-dl-translated="true"> </font
+      ><font color="#000000" data-dl-uid="939" data-dl-original="true" data-dl-translated="true"
+        ><font size="2" data-dl-uid="940" data-dl-original="true" data-dl-translated="true"></font></font
+      >が0の<font data-dl-uid="933" data-dl-translated="true"
+        ><font data-dl-uid="934" data-dl-translated="true"
+          >コードを実行するときに、カーネルモードスタックを使用
+        </font></font
+      >する。<font data-dl-uid="939" data-dl-translated="true"
+        ><font data-dl-uid="940" data-dl-translated="true">CPUは、CPLが</font></font
+      ><font color="#000000" data-dl-uid="947" data-dl-original="true" data-dl-translated="true"
+        ><font size="2" data-dl-uid="948" data-dl-original="true" data-dl-translated="true"
+          ><b data-dl-uid="949" data-dl-original="true" data-dl-translated="true">TSSからの</b></font
+        ></font
+      ><font color="#000000" data-dl-uid="941" data-dl-original="true" data-dl-translated="true"
+        ><font size="2" data-dl-uid="942" data-dl-original="true" data-dl-translated="true"
+          ><b data-dl-uid="943" data-dl-original="true" data-dl-translated="true"
+            >要求特権レベル（RPL）</b
+          ></font
+        ></font
+      ><font color="#000000" data-dl-uid="944" data-dl-original="true" data-dl-translated="true"> </font
+      ><font color="#000000" data-dl-uid="945" data-dl-original="true" data-dl-translated="true"
+        ><font size="2" data-dl-uid="946" data-dl-original="true" data-dl-translated="true">
+        </font></font
+      >よりも小さい<font data-dl-uid="939" data-dl-translated="true"
+        ><font data-dl-uid="940" data-dl-translated="true">場合、自動的にこれをロード</font></font
+      >します。言い換えると、<font
+        color="#000000"
+        data-dl-uid="950"
+        data-dl-original="true"
+        data-dl-translated="true"
+        ><font size="2" data-dl-uid="951" data-dl-original="true" data-dl-translated="true"
+          >ユーザーモードのスレッドが実行されていて、PITが発射さ
+        </font></font
+      >れたとします。<font data-dl-uid="950" data-dl-translated="true"
+        ><font data-dl-uid="951" data-dl-translated="true">CPUは </font></font
+      >、<font color="#000000" data-dl-uid="952" data-dl-original="true" data-dl-translated="true"
+        ><font size="2" data-dl-uid="953" data-dl-original="true" data-dl-translated="true"
+          ><b data-dl-uid="954" data-dl-original="true" data-dl-translated="true">SS=TSS.ss0</b></font
+        ></font
+      ><font color="#000000" data-dl-uid="955" data-dl-original="true" data-dl-translated="true"> </font
+      ><font color="#000000" data-dl-uid="956" data-dl-original="true" data-dl-translated="true"
+        ><font size="2" data-dl-uid="957" data-dl-original="true" data-dl-translated="true"
+          >、
+        </font></font
+      ><font color="#000000" data-dl-uid="958" data-dl-original="true" data-dl-translated="true"
+        ><font size="2" data-dl-uid="959" data-dl-original="true" data-dl-translated="true"
+          ><b data-dl-uid="960" data-dl-original="true" data-dl-translated="true"
+            >ESP=TSS.esp0を</b
+          ></font
+        ></font
+      ><font data-dl-uid="950" data-dl-translated="true"
+        ><font data-dl-uid="951" data-dl-translated="true">設定 </font></font
+      >します<font color="#000000" data-dl-uid="961" data-dl-original="true" data-dl-translated="true"
+        ><font size="2" data-dl-uid="962" data-dl-original="true" data-dl-translated="true"
+          >。そして
+        </font></font
+      >、<font color="#000000" data-dl-uid="963" data-dl-original="true" data-dl-translated="true"
+        ><font size="2" data-dl-uid="964" data-dl-original="true" data-dl-translated="true"
+          ><b data-dl-uid="965" data-dl-original="true" data-dl-translated="true"
+            >リターンCSとIPをこの新しいスタックにプッシュ</b
+          ></font
+        ></font
+      ><font color="#000000" data-dl-uid="967" data-dl-original="true" data-dl-translated="true"
+        ><font size="2" data-dl-uid="968" data-dl-original="true" data-dl-translated="true"
+          >し、ISRを呼び出します（
+        </font></font
+      ><font color="#000000" data-dl-uid="966" data-dl-original="true" data-dl-translated="true"> </font
+      ><font data-dl-uid="967" data-dl-translated="true"
+        ><font data-dl-uid="968" data-dl-translated="true"> </font></font
+      >）。<font data-dl-uid="967" data-dl-translated="true"
+        ><font data-dl-uid="968" data-dl-translated="true">ISRが </font></font
+      >終了すると、<font
+        color="#000000"
+        data-dl-uid="969"
+        data-dl-original="true"
+        data-dl-translated="true"
+        ><font size="2" data-dl-uid="970" data-dl-original="true" data-dl-translated="true"
+          ><b data-dl-uid="971" data-dl-original="true" data-dl-translated="true">IRET</b></font
+        ></font
+      >（<font color="#000000" data-dl-uid="972" data-dl-original="true" data-dl-translated="true">
+      </font
+      ><font color="#000000" data-dl-uid="973" data-dl-original="true" data-dl-translated="true"
+        ><font size="2" data-dl-uid="974" data-dl-original="true" data-dl-translated="true"></font></font
+      ><font data-dl-uid="967" data-dl-translated="true"
+        ><font data-dl-uid="968" data-dl-translated="true">）を実行 </font></font
+      ><font data-dl-uid="973" data-dl-translated="true"
+        ><font data-dl-uid="974" data-dl-translated="true"
+          >し、ユーザモードコードとスタックに</font
+        ></font
+      >戻ります。
+    </p>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="975"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      このため、<font color="#000000" data-dl-uid="976" data-dl-original="true" data-dl-translated="true"
+        ><font size="2" data-dl-uid="977" data-dl-original="true" data-dl-translated="true"
+          >ユーザーレベルのスレッドには、最低でも
+        </font></font
+      ><font color="#000000" data-dl-uid="978" data-dl-original="true" data-dl-translated="true"
+        ><font size="2" data-dl-uid="979" data-dl-original="true" data-dl-translated="true"
+          ><i data-dl-uid="980" data-dl-original="true" data-dl-translated="true"
+            ><b data-dl-uid="981" data-dl-original="true" data-dl-translated="true">2つの</b></i
+          ></font
+        ></font
+      ><font color="#000000" data-dl-uid="983" data-dl-original="true" data-dl-translated="true"
+        ><font size="2" data-dl-uid="984" data-dl-original="true" data-dl-translated="true"
+          >独立したスタック（
+        </font></font
+      ><font color="#000000" data-dl-uid="982" data-dl-original="true" data-dl-translated="true"> </font
+      ><font data-dl-uid="983" data-dl-translated="true"
+        ><font data-dl-uid="984" data-dl-translated="true"> </font></font
+      >）が<font data-dl-uid="976" data-dl-translated="true"
+        ><font data-dl-uid="977" data-dl-translated="true">必要 </font></font
+      >です。<font data-dl-uid="983" data-dl-translated="true"
+        ><font data-dl-uid="984" data-dl-translated="true"
+          >最初のスタックはカーネル空間にマッピングされなければならず、もう1つはプログラムが実行中にアクセスできるようにユーザー空間にマッピングされなければなりません。カーネルレベルのスレ
+        </font></font
+      >ッドは、<font color="#000000" data-dl-uid="985" data-dl-original="true" data-dl-translated="true"
+        ><font size="2" data-dl-uid="986" data-dl-original="true" data-dl-translated="true"
+          ><i data-dl-uid="987" data-dl-original="true" data-dl-translated="true"
+            ><b data-dl-uid="988" data-dl-original="true" data-dl-translated="true">1つの</b></i
+          ></font
+        ></font
+      ><font color="#000000" data-dl-uid="990" data-dl-original="true" data-dl-translated="true"
+        ><font size="2" data-dl-uid="991" data-dl-original="true" data-dl-translated="true"
+          >スタック（</font
+        ></font
+      ><font color="#000000" data-dl-uid="989" data-dl-original="true" data-dl-translated="true"> </font
+      ><font data-dl-uid="990" data-dl-translated="true"
+        ><font data-dl-uid="991" data-dl-translated="true"></font></font
+      ><font data-dl-uid="983" data-dl-translated="true"
+        ><font data-dl-uid="984" data-dl-translated="true">）だけを必要と </font></font
+      >します。
+    </p>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="992"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      <font color="#000000" data-dl-uid="993" data-dl-original="true" data-dl-translated="true"
+        ><font size="2" data-dl-uid="994" data-dl-original="true" data-dl-translated="true"
+          >アドレス空間アロケータがないので、ユーザモードのスタックをうまく割り当てることができず、ユーザレベルのスレッドを（ハックせずに）サポートできません。また、適切なカーネルモードアロケータがまだないので、カーネルレベルのスタックの割り当てをうまくサポートすることもできません。これらは次の章か次の章のトピックになります。</font
+        ></font
+      >
+    </p>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="995"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      <font color="#000000" data-dl-uid="996" data-dl-original="true" data-dl-translated="true"
+        ><font size="2" data-dl-uid="997" data-dl-original="true" data-dl-translated="true"
+          >そこで、第25章で行うことにしたのは、カーネルメモリに領域を確保し、4kブロックごとに独立したスタックとして割り当てることでした。</font
+        ></font
+      >
+    </p>
+
+    <pre>
+void* create_kernel_stack() {
+
+        physical_addr       p;
+        virtual_addr        location;
+        void*               ret;
+
+        /* we are reserving this area for 4k kernel stacks. */
+#define KERNEL_STACK_ALLOC_BASE 0xe0000000
+
+        /* allocate a 4k frame for the stack. */
+        p = (physical_addr) pmmngr_alloc_block();
+        if (!p) return 0;
+
+        /* next free 4k memory block. */
+        location = KERNEL_STACK_ALLOC_BASE + _kernel_stack_index * PAGE_SIZE;
+
+        /* map it into kernel space. */
+        vmmngr_mapPhysicalAddress (vmmngr_get_directory(), location, p, 3);
+
+        /* we are returning top of stack. */
+        ret = (void*) (location + PAGE_SIZE);
+
+        /* prepare to allocate next 4k if we get called again. */
+        _kernel_stack_index++;
+
+        /* and return top of stack. */
+        return ret;
+}</pre
+    >
+
+    <h2 class="western" data-dl-uid="999" data-dl-original="true" data-dl-translated="true">
+      バックトゥスリープ()
+    </h2>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="1000"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      フロッピーディスクの読み出し動作を遅らせるために、非常に基本的な<b
+        data-dl-uid="1001"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >スリープ</b
+      >関数を実装したことを思い出すかもしれません。この実装は、単に時間を浪費するために<b
+        data-dl-uid="1002"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >ビジーループに</b
+      >入るだけでした。今度は、これをスレッドシステムに採用することができます。
+    </p>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="1003"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      基本的な考え方は、<b data-dl-uid="1004" data-dl-original="true" data-dl-translated="true"
+        >sleepは</b
+      >関数を呼び出したスレッドを<b data-dl-uid="1005" data-dl-original="true" data-dl-translated="true"
+        >一時停止さ</b
+      >せるべきだということです。つまり、現在のスレッドの状態をREADYからBLOCKに調整し、タスクの切り替えを強制する必要があるのです。スケジューラは、ブロックされたスレッドを適切に処理するために、そのスレッドを追跡する必要があります。これは通常、他のオペレーティング・システム・コンポーネントからの<b
+        data-dl-uid="1006"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >シグナ ルによって</b
+      >行われます。例えば、あるスレッドがデバイスの準備完了を待っている場合、そのスレッドはブロックされるかもしれません。この場合、システムはそのスレッドがドライバからシグナルを受信するまで待つ必要があります。それまでは、スケジューラは他のスレッドの実行に移行する必要があります。このデモを比較的シンプルにするために、私たちは少し違う方法を選びました。
+    </p>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="1007"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      スケジューラには、ブロックされたスレッドをチェックしながら、新たに実行するスレッドを選択するためのロジックコードが含まれています。次のスレッドがブロックされている場合、そのスレッドのスリープ時間デルタをデクリメントし、スリープ時間デルタがゼロになった時点でそのスレッドをアウェイクさせるのです。
+    </p>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="1009"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      このデモでは sleep を使っていませんが、ディスクドライバのコードは sleep
+      に依存しています。そのため、ディスクデバイスから読み込もうとするスレッドは適切にスリープできるようになりました。
+    </p>
+    <h2 class="western" data-dl-uid="1010" data-dl-original="true" data-dl-translated="true">
+      メインプログラム
+    </h2>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="1011"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      最後に、メインプログラムを見ていきます。第25章のデモでは、スタックをカーネル空間に移動し、ブートローダから渡されたブートパラメータブロックのスタティックコピーを作成した後に再調整しています。その後、前述のサービスを利用して、ビデオモードの設定、スケジューラの初期化、3つのスレッドの作成とレディキューへの追加を行っています。スレッドはカーネル空間で実行されるので、それらに割り当てられたカーネルスタックのみを持ち、これは<b
+        data-dl-uid="1012"
+        data-dl-original="true"
+        data-dl-translated="true"
+        >create_kernel_stack</b
+      >
+      を呼び出して割り当てます。
+    </p>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="1013"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      また、24 章のプロセス生成・管理コードを完全に書き直し、25
+      章で作成したスレッドシステムと互換性を持たせています。しかし、次の章で行うユーザモードスタックの割り当てをサポートするまでは完成していません。
+    </p>
+
+    <pre>
+void _cdecl kmain (multiboot_info* bootinfo) {
+
+        /* store kernel size and copy bootinfo. */
+        _asm mov        word ptr [kernelSize], dx
+        memcpy(&amp;_bootinfo, bootinfo, sizeof(multiboot_info));
+
+        /* adjust stack. */
+        _asm lea esp, dword ptr [_kernel_stack+8096]
+        init (&amp;_bootinfo);
+
+        /* set video mode and map framebuffer. */
+        VbeBochsSetMode(WIDTH,HEIGHT,BPP);
+        VbeBochsMapLFB();
+        fillScreen32 ();
+
+        /* init scheduler. */
+        scheduler_initialize ();
+
+        /* create kernel threads. */
+        queue_insert (thread_create(kthread_1, (uint32_t) create_kernel_stack(),true));
+        queue_insert (thread_create(kthread_2, (uint32_t) create_kernel_stack(),true));
+        queue_insert (thread_create(kthread_3, (uint32_t) create_kernel_stack(),true));
+
+        /* execute idle thread. */
+        execute_idle();
+
+        /* this should never get executed. */
+        for (;;) _asm {cli
+                hlt};
+}</pre
+    >
+
+    <h1 class="western" data-dl-uid="1015" data-dl-original="true" data-dl-translated="true">
+      10.まとめ
+    </h1>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="1016"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      この章では、スケジューリングアルゴリズム、SMP
+      の概要、並列プログラミング、そして実際に動作するプリエンプティブラウンドロビンスケジューラーを実装してみました。また、Bochs
+      Graphics Adapter (BDA) を用いた高解像度ビデオモード、状態管理、およびいくつかの IPC
+      技術の導入についても少し触れました。
+    </p>
+    <p
+      class="western"
+      style="margin-bottom: 0.2in"
+      data-dl-uid="1017"
+      data-dl-original="true"
+      data-dl-translated="true"
+    >
+      次の章では、カーネルとユーザモードのアロケータ、アドレス空間の割り当て、
+      ページスワップ、ページフォルト処理など、メモリ割り当てのアルゴリズムについて、
+      最後に説明します。フリーリストとスタックアロケータ、SLAB アロケータ（およびその変種）、Zone と
+      Arena アロケータ、Buddy アロケータ、ユーザ空間管理、再帰的ページディレクトリ、
+      ページファイルとスワップ空間、および場合によってはその他のトピックが含まれる予定
+      です。この章からの資料を発展させて、ユーザーモードのプロセスロードをサポートする予定です。これから出てくる資料の量が多いので、これは1つか2つの別々の章になるかもしれません。
+    </p>
+  </body>
+</html>
