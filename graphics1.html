@@ -1,0 +1,1088 @@
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Cache-Control" content="no-cache" />
+    <title></title>
+    <link href="css/reference.css" rel="stylesheet" />
+  </head>
+  <body>
+    <table cellspacing="0" cellpadding="3" width="80%" border="0">
+      <tbody>
+        <tr>
+          <td class="tblhdr">Operating Systems Development Series</td>
+        </tr>
+        <tr>
+          <td align="middle" colspan="2"></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <table border="0" cellpadding="5" cellspacing="0" width="100%">
+      <tbody>
+        <tr>
+          <td>
+            <div>
+              <span class="title">Graphics 1</span>
+
+              <br />
+              <span class="author">by Mike, 2007</span>
+            </div>
+
+            <h1 data-dl-uid="8" data-dl-original="true" data-dl-translated="true">はじめに</h1>
+
+            <p data-dl-uid="9" data-dl-original="true" data-dl-translated="true">ようこそ</p>
+            <p data-dl-uid="10" data-dl-original="true" data-dl-translated="true">
+              待って、何？もうグラフィック？そうなんです、これからOSの超カッコイイGUIを開発するんです!:)そうではありませんが、その方向でスタートします。
+            </p>
+            <p data-dl-uid="11" data-dl-original="true" data-dl-translated="true">
+              この章は、グラフィックス・プログラミングを扱うミニシリーズの最初の章です。Vesa VBE、Video
+              BIOS、そしてVGAのための直接的なハードウェアプログラミング、さらにSVGAのコンセプトもカバーする予定です。また、2Dベクターレンダリングや画像を含むグラフィックの概念やレンダリングについても取り上げる予定です。もしかしたら、もう少し後に3Dも扱うかもしれません。
+            </p>
+            <p data-dl-uid="12" data-dl-original="true" data-dl-translated="true">
+              楽しみですか？OS開発シリーズからスピンオフしたこのミニシリーズには、たくさんのクールな素材が登場します！しかし、コンピュータグラフィックスの素晴らしい世界に飛び込む前に、基本ルールを決めておく必要があります。コンピュータグラフィックスには、さまざまな方法と方向性があります。コンピュータグラフィックスというのは複雑なテーマです。1つの章ではカバーしきれません。しかし、それは可能です。ただ、1章ではとてもとても長い章になってしまいます。
+            </p>
+            <p data-dl-uid="13" data-dl-original="true" data-dl-translated="true">
+              このため、段階的に説明することにしました。最初の章では、リアルモードまたはv86モードでグラフィックスを扱うことをカバーします。第2章では、Video
+              BIOS Extensions (VBE)とSuper
+              VGAを取り上げます。第3章は、グラフィックスパイプラインの直接ハードウェアプログラミングをカバーする、より小さなミニシリーズの最初の章となります。VGAとSuper
+              VGAのトピックもあります。
+            </p>
+            <p data-dl-uid="14" data-dl-original="true" data-dl-translated="true">
+              この章では、リアルモードビデオBIOSを使用したリアルモードグラフィックスを扱うことから始めましょう...
+            </p>
+
+            <h1 data-dl-uid="15" data-dl-original="true" data-dl-translated="true">基本概念</h1>
+
+            <h2 data-dl-uid="16" data-dl-original="true" data-dl-translated="true">概要</h2>
+            <p data-dl-uid="17" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="18" data-dl-original="true" data-dl-translated="true"
+                >コンピュータグラフィックス(CG)</b
+              >について説明する必要はないでしょう。CGは、コンピュータ、アニメーション、ビデオゲームなどの業界に革命を起こしました。コンピュータ・グラフィックスの分野は、コンピュータ・ディスプレイ上でグラフィック効果を生み出す能力の開発、創造、継続を包括している。
+              1Dグラフィックスから、2D、3D、そして4Dグラフィックス・シミュレーション・ソフトウェアまである。
+            </p>
+
+            <h2 data-dl-uid="19" data-dl-original="true" data-dl-translated="true">歴史</h2>
+
+            <p data-dl-uid="20" data-dl-original="true" data-dl-translated="true">
+              コンピュータグラフィックス産業は、1960年代の「<b
+                data-dl-uid="21"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >旋風</b
+              >」のような初期のプロジェクトから始まった。「旋風」は、ビデオディスプレイ出力を使用する最初のコンピュータで、<b
+                data-dl-uid="22"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ブラウン管（CRT）</b
+              >技術の導入に貢献した。この「Whirlwind」は、最終的にSAGE（Air Force Semi Automatic Ground
+              Environment）コンピュータシステムの開発につながった。なお、CRTの最も古いものは、1897年にフェルディナンド・ブラウンが開発した<i
+                data-dl-uid="23"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ブラウン管と</i
+              >呼ばれるものである。
+            </p>
+            <p data-dl-uid="24" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="25" data-dl-original="true" data-dl-translated="true"
+                >SIGGRAPH (Special Interest Group on GRAPHics and Interactive Techniques</b
+              >) は、<b data-dl-uid="26" data-dl-original="true" data-dl-translated="true"
+                >ACM (Association for Computing Machinery) のSIGGRAPH</b
+              >グループによって運営されている。1969年にAndy van
+              Dam氏によって始められたこのグループは、世界中でSIGGRAPHコンファレンスを開催しています。これらの会議には、エンジニアリング、グラフィックス、映画、ビデオゲーム業界の企業から数千人の専門家が参加しています。
+            </p>
+            <p data-dl-uid="27" data-dl-original="true" data-dl-translated="true">
+              グラフィックス・ハードウェアの進歩に伴い、より強力なグラフィックス・デザインが可能になり、<b
+                data-dl-uid="28"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >液晶ディスプレイ（</b
+              >LCD）などのディスプレイ技術の出現により、CRTの使用は減少し始めた。
+            </p>
+            <p data-dl-uid="29" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="30" data-dl-original="true" data-dl-translated="true"
+                >ビデオディスプレイターミナル（VDT</b
+              >）は、<b data-dl-uid="31" data-dl-original="true" data-dl-translated="true"
+                >ビデオディスプレイユニット（VDU）</b
+              >とも呼ばれ、初期のディスプレイ端末である。
+            </p>
+
+            <h2 data-dl-uid="32" data-dl-original="true" data-dl-translated="true">陰極線管（CRT）</h2>
+
+            <p class="center">
+              <img src="./graphics1_files/crt.png" alt="" />
+            </p>
+
+            <h3 data-dl-uid="35" data-dl-original="true" data-dl-translated="true">概要</h3>
+            <p data-dl-uid="36" data-dl-original="true" data-dl-translated="true">
+              CRTは、電子銃と蛍光体ターゲットからなる真空管である。赤、緑、青の3色の電子ビームの強度を変化させることにより、画像を表示する。これらの電子線は、まず<b
+                data-dl-uid="38"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >シャドウマスク</b
+              >層を通過して、蛍光体を塗布したスクリーンに照射される。
+            </p>
+
+            <h3 data-dl-uid="39" data-dl-original="true" data-dl-translated="true">問題点</h3>
+            <p data-dl-uid="40" data-dl-original="true" data-dl-translated="true">
+              CRTモニターは、少量のX線を放射することがある。また、ディスプレイを常に再スキャンしているため、<b
+                data-dl-uid="41"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >低リフレッシュレート</b
+              >（60Hz以下）ではフリッカーが見られることがある。また、CRTには有毒な蛍光体が含まれている場合があります。このため、米国環境保護庁（EPA）は、CRTを適切なリサイクル施設に買い取らせなければならないという規則を作りました。最後に、CRTはガラスの真空パックでできているため、外側のガラスが破損すると、CRTが内破することがあります。
+              この場合、ガラスが外側に飛び散り、危険な速度で破損することがあります。最近のブラウン管は、この飛散を防ぐために、一定の対策がとられています。
+            </p>
+            <p data-dl-uid="42" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="43" data-dl-original="true" data-dl-translated="true"
+                >ソフトウェアでCRTの周波数を制御することが可能です。</b
+              >周波数が高くなると、CRTの動作速度が速くなり、CRTが破裂する可能性が高くなります。このため、<b
+                data-dl-uid="44"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >CRTコントローラー(CRTC</b
+              >)を使用する際には、十分な注意が必要です。しかし、最近のCRTはこれを防ぐための保護機能を備えています。
+            </p>
+
+            <h1 data-dl-uid="45" data-dl-original="true" data-dl-translated="true">VGA</h1>
+
+            <h2 data-dl-uid="46" data-dl-original="true" data-dl-translated="true">概要</h2>
+            <p data-dl-uid="47" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="48" data-dl-original="true" data-dl-translated="true"
+                >VGA（Video Graphics Array</b
+              >）は、1987年にIBMが販売したアノログコンピュータディスプレイの規格である。MDA、CGA、EGAが使用していたISA（Industry
+              Standard
+              Architecture）ボードに搭載されていた数十個のロジックチップを1つのチップとして開発されたため「アレイ」と呼ばれるようになった。これが1枚のISAボードに収まっていたため、マザーボードへの接続が非常に容易だった。
+            </p>
+            <p data-dl-uid="49" data-dl-original="true" data-dl-translated="true">
+              VGAは、ビデオバッファ、ビデオDAC、CRTコントローラ、シーケンサユニット、グラフィックスコントローラ、アトリビュートコントローラで構成されています。
+              これらの構成要素については、後の章で詳しく説明します。
+            </p>
+
+            <h3 data-dl-uid="50" data-dl-original="true" data-dl-translated="true">ビデオ・バッファ</h3>
+            <p data-dl-uid="51" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="52" data-dl-original="true" data-dl-translated="true">ビデオバッファ</b
+              >は、ビデオメモリとしてマッピングされたメモリのセグメントです。どの領域のメモリをビデオメモリにマッピングするかは、変更することができます。起動時、BIOSはビデオメモリを0xA0000.にマッピングします。(チュートリアル7のリアルモードアドレスマップを覚えていますか？)
+              メモリマッピングについては、この章の少し後で、より詳しく説明します。
+            </p>
+
+            <h3 data-dl-uid="53" data-dl-original="true" data-dl-translated="true">ビデオDAC</h3>
+            <p data-dl-uid="54" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="55" data-dl-original="true" data-dl-translated="true"
+                >ビデオデジタルアナログコンバータ（</b
+              >DAC）には、ビデオデータをアナログビデオ信号に変換し、ディスプレイに送信するために使用されるカラーパレットが含まれています。この信号は、赤、緑、青の強度をアナログ形式で示します。後で詳しく説明しますので、まだ理解できなくても心配いりません。
+            </p>
+
+            <h3 data-dl-uid="56" data-dl-original="true" data-dl-translated="true">CRTコントローラ</h3>
+            <p data-dl-uid="57" data-dl-original="true" data-dl-translated="true">
+              水平・垂直同期信号のタイミング、ビデオバッファのアドレス指定、カーソルやアンダーラインのタイミングを生成するコントローラです。
+              詳細は、VGAのハードウェアを説明するときに、後ほど詳しく説明します。
+            </p>
+
+            <h3 data-dl-uid="58" data-dl-original="true" data-dl-translated="true">シーケンサ</h3>
+            <p data-dl-uid="59" data-dl-original="true" data-dl-translated="true">
+              シーケンサは、ビデオメモリの基本的なメモリタイミングと再生バッファフェッチを制御するためのキャラクタクロックを生成します。
+              これにより、システムはアクティブな表示間隔中にメモリにアクセスすることができます。
+              なお、ここではまだ詳細な説明は行いません。
+            </p>
+
+            <h3 data-dl-uid="60" data-dl-original="true" data-dl-translated="true">
+              グラフィックスコントローラ
+            </h3>
+            <p data-dl-uid="61" data-dl-original="true" data-dl-translated="true">
+              ビデオメモリと<b data-dl-uid="62" data-dl-original="true" data-dl-translated="true"
+                >アトリビュートコントローラ</b
+              >、ビデオメモリとCPUの間のインターフェイスです。アクティブな表示時間帯には、ビデオバッファ（ビデオメモリ）からメモリデータが送られ、アトリビュートコントローラに送られる。グラフィックモードでは、このデータはパラレルからシリアルのビットプレーンデータに変換されて送信されます。テキストモードでは、パラレルデータだけを送信します。
+            </p>
+            <p data-dl-uid="63" data-dl-original="true" data-dl-translated="true">
+              まだ理解できなくても心配しないでください。ここではあまり詳しく説明するつもりはありません。後でビデオドライバの開発について説明するときに、すべてを詳しく説明します。とりあえず、覚えておいてください。グラフィックコントローラは、ビデオメモリからのパラレルデータからディスプレイをリフレッシュします。これは、ディスプレイがアクティブな時間に基づいて自動的に行われます。つまり、ビデオメモリ（デフォルトでは0xA0000にマッピング）に書き込むことで、現在のモードによっては、実質的にビデオディスプレイに書き込むことになるのです。これは、文字を印刷するときに重要です。
+            </p>
+            <p data-dl-uid="64" data-dl-original="true" data-dl-translated="true">
+              グラフィックスコントローラで使用されるアドレス範囲を変更することが可能であることを忘れないでください。初期化の際、BIOSはビデオメモリを0xA0000にマップするために、まさにこれを行います。
+            </p>
+
+            <h2 data-dl-uid="65" data-dl-original="true" data-dl-translated="true">ビデオモード</h2>
+            <p data-dl-uid="66" data-dl-original="true" data-dl-translated="true">
+              ビデオモード」とは、表示の仕様のことです。つまり、ビデオメモリの参照方法と、そのデータをビデオアダプタでどのように表示するかを記述している。
+            </p>
+            <p data-dl-uid="67" data-dl-original="true" data-dl-translated="true">
+              VGAは2種類のモードをサポートしています。APAグラフィックス」と「テキスト」の2種類です。
+            </p>
+            <h3 data-dl-uid="68" data-dl-original="true" data-dl-translated="true">APAグラフィックス</h3>
+            <p data-dl-uid="69" data-dl-original="true" data-dl-translated="true">
+              APA（All Points
+              Addressable）とは、ビデオモニタやドットマトリクスなど、画素配列で構成されたデバイスにおいて、各セルを個別に参照できる表示モードのことである。ビデオディスプレイの場合、すべてのセルが「画素」を表し、すべての画素を直接操作することができる。このため、ほとんどすべてのグラフィックモードがこの方式を採用しています。このピクセルバッファを変更することで、画面上の個々のピクセルを効果的に変更することができます。
+            </p>
+            <p data-dl-uid="70" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="71" data-dl-original="true" data-dl-translated="true">画素（ピクセル</b>
+            </p>
+            <p data-dl-uid="72" data-dl-original="true" data-dl-translated="true">
+              ピクセル」は、ディスプレイ上で表現できる最小の単位です。ディスプレイ上では、色の最小単位を表します。つまり、基本的には1つのドットです。各ピクセルの大きさは、現在の解像度とビデオモードに大きく依存します。
+            </p>
+            <h3 data-dl-uid="73" data-dl-original="true" data-dl-translated="true">テキストモード</h3>
+            <p data-dl-uid="74" data-dl-original="true" data-dl-translated="true">
+              テキストモードは、画面上のコンテンツが、APAのようにピクセルではなく、文字で内部的に表現される表示モードである。
+            </p>
+            <p data-dl-uid="75" data-dl-original="true" data-dl-translated="true">
+              テキストモードを実装しているビデオコントローラは、2つのバッファを使用します。キャラクタマップは、表示する個々の文字に対応する画素を表し、バッファは、各セルにどのような文字があるのかを表します。キャラクタマップバッファを変更することで、文字そのものを変更し、新しい文字セットを作成することができます。各セルの中にある文字を表すスクリーンバッファを変更することで、画面上に表示される文字を実質的に変更することができます。テキストモードによっては、属性を設定することができ、文字の色や、点滅、下線、反転、明るさなどを設定することができます。
+            </p>
+
+            <h2 data-dl-uid="76" data-dl-original="true" data-dl-translated="true">MDA、CGA、EGA</h2>
+            <p data-dl-uid="77" data-dl-original="true" data-dl-translated="true">
+              VGAは、MDA、CGA、EGAをベースにしていることに留意してください。VGAは、これらのアダプタが提供するモードの多くをサポートしています。これらのモードを理解することは、VGAをよりよく理解するために役立ちます。
+            </p>
+
+            <h3 data-dl-uid="78" data-dl-original="true" data-dl-translated="true">MDA</h3>
+            <p data-dl-uid="79" data-dl-original="true" data-dl-translated="true">
+              私が生まれる前の1981年に、IBMはPC用の標準的なビデオディスプレイカードを開発しました。それがMDA（Monochrome
+              Display Adapter）とMDPA（Monochrome Display and Printer Adapter）である。
+            </p>
+            <p data-dl-uid="80" data-dl-original="true" data-dl-translated="true">
+              MDAは、グラフィックモードを一切持たなかった。80列×25行の高解像度テキスト文字を表示できるテキストモード(Mode
+              7)を1つ持っていただけである。
+            </p>
+            <p data-dl-uid="81" data-dl-original="true" data-dl-translated="true">
+              このディスプレイアダプターは、古いPCでよく使われていた規格である。
+            </p>
+
+            <h3 data-dl-uid="82" data-dl-original="true" data-dl-translated="true">CGA</h3>
+            <p data-dl-uid="83" data-dl-original="true" data-dl-translated="true">
+              1981年、IBMもCGA（Color Graphics
+              Adapter）を開発し、PCの最初のカラーディスプレイ規格となる「CGA」を共同開発した。
+            </p>
+            <p data-dl-uid="84" data-dl-original="true" data-dl-translated="true">
+              CGAは、1ピクセルあたり4バイトに制限されていたため、16色のカラーパレットにしか対応していなかった。
+            </p>
+            <p data-dl-uid="85" data-dl-original="true" data-dl-translated="true">
+              CGAは、以下の2つのテキストモードと2つのグラフィックモードをサポートしていた。
+            </p>
+            <ul data-dl-uid="86" data-dl-original="true" data-dl-translated="true">
+              <li data-dl-uid="87" data-dl-original="true" data-dl-translated="true">
+                40x25文字(16色)のテキストモード
+              </li>
+              <li data-dl-uid="88" data-dl-original="true" data-dl-translated="true">
+                18x25文字(16色)のテキストモード
+              </li>
+              <li data-dl-uid="89" data-dl-original="true" data-dl-translated="true">
+                320x200ピクセル(4色)のグラフィックモード
+              </li>
+              <li data-dl-uid="90" data-dl-original="true" data-dl-translated="true">
+                640x200ピクセル（モノクロ）グラフィックモード
+              </li>
+            </ul>
+
+            <p data-dl-uid="91" data-dl-original="true" data-dl-translated="true">
+              新しい、「文書化されていない」ビデオモードの作成と発見において、ディスプレイアダプタをトレークすることが可能です。これについては後で詳しく説明します。
+            </p>
+
+            <h3 data-dl-uid="92" data-dl-original="true" data-dl-translated="true">EGA</h3>
+            <p data-dl-uid="93" data-dl-original="true" data-dl-translated="true">
+              1984年にIBMによって発表されたEGA（Enhanced Graphics
+              Adapter）は、最大640x350ピクセルで16色のディスプレイを作り出しました。
+            </p>
+            <p data-dl-uid="94" data-dl-original="true" data-dl-translated="true">
+              VGAアダプタは、80x86マイクロプロセッサファミリーと同様に下位互換性があることを忘れてはならない。このため、BIOSは80カラム×25ラインをサポートするMode
+              7（元はMDA）で起動する。これは私たちにとって重要なことで、私たちはこのモードで使用しています。
+            </p>
+
+            <h2 data-dl-uid="95" data-dl-original="true" data-dl-translated="true">ビデオメモリ</h2>
+
+            <h3 data-dl-uid="96" data-dl-original="true" data-dl-translated="true">
+              メモリマップドI/O(MMIO)
+            </h3>
+            <p data-dl-uid="97" data-dl-original="true" data-dl-translated="true">
+              Memory Mapped I/Oが何であるかを知っていれば、この部分は読み飛ばしてもかまいません。
+            </p>
+            <p data-dl-uid="98" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="99" data-dl-original="true" data-dl-translated="true"
+                >プロセッサはRAMやROMデバイスからの読み出しで動作することができます。</b
+              >アプリケーションのプログラミングでは、まずお目にかかれないものです。メモリマップドI/Oは、<b
+                data-dl-uid="100"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ハードウェアデバイスが自身のRAMまたはROMをプロセッサの物理アドレス空間にマッピング</b
+              >することを可能にします。これにより、プロセッサは、アドレス空間内のその場所へのポインタを使用するだけで、さまざまな方法でハードウェアRAMまたはROMにアクセスできるようになります。これは、MMIOデバイスが、プロセッサやシステム・メモリが使用するのと同じ物理アドレスおよびデータ・バスを使用しているために可能になっています。
+            </p>
+            <p data-dl-uid="101" data-dl-original="true" data-dl-translated="true">
+              ただし、Memory Mapped
+              I/Oはプロセッサの物理アドレス空間へのマッピングであり、実際のコンピュータのメモリではないことを覚えておくことが重要である。アーキテクチャによっては、MMIOデバイスマッピングとその背後にあるシステムメモリのどちらを使用するかを<i
+                data-dl-uid="102"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >バンクスイッチで</i
+              >切り替える、または切り替える方法を提供することが可能ですが、そうでないものもあります。このことは、MMIOデバイスによって「隠されている」実際のシステムメモリのアドレスにアクセスできないことを意味します。例えば、CMOS
+              RAMメモリは、アドレス0x400の物理アドレス空間にマッピングされています。これはメインシステムメモリとは異なり、ポインタで0x400にアクセスすると、MMIOが常に行うCMOS
+              RAMメモリにアクセスすることになります。i86アーキテクチャでは、システムメモリ内のこの位置にアクセスすることはできません。
+            </p>
+            <p data-dl-uid="103" data-dl-original="true" data-dl-translated="true">
+              MMIOデバイスは、限られたシステムメモリで高解像度のビデオ表示を可能にし、システムメモリにあれば失われるはずの情報を電池で駆動するデバイス（CMOS
+              RAM）から取得することを可能にします。 MMIOデバイスの他の例として、システムBIOS
+              ROMそのものが挙げられます。MMIOは、プロセッサがシステムの物理アドレス空間にマッピングされたROMからBIOSを実行できるようにするものです。すごいでしょう？
+            </p>
+            <p data-dl-uid="104" data-dl-original="true" data-dl-translated="true">
+              これがグラフィックスとどう関係するのか、不思議に思われるかもしれません。ビデオメモリは、物理アドレス空間にマッピングされたRAMです。ビデオメモリはビデオディスプレイデバイスによって管理され、MMIOを使用してこれを行います。<b
+                data-dl-uid="105"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >MMIO メモリをどのように管理し、扱うかはデバイス</b
+              >次第であり、常に直線的であるとは限りません。グラフィックス・モードによって、このメモリをどのように扱うかは異なるので、MMIOデバイスであることを理解することが重要です。
+            </p>
+            <p data-dl-uid="106" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="107" data-dl-original="true" data-dl-translated="true"
+                >MMIOのアドレス空間領域について興味深いのは、ページングによって任意の仮想アドレスにマッピングし、そのアドレスからアクセスできることです。</b
+              >つまり、例えばビデオメモリを任意の仮想アドレスにマッピングし、その仮想アドレスを使ってビデオメモリにアクセスすることができるのだ。これはもちろん、物理アドレス空間においてページがフレームにマッピングされる仕組みと関係がある。
+            </p>
+            <p data-dl-uid="108" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="109" data-dl-original="true" data-dl-translated="true"
+                >また、MMIOメモリはシステムメモリにない</b
+              >ことも忘れてはならない。例えば、システムメモリが2GBしかない場合でも、MMIOデバイスが0xFC000000の物理アドレス空間にマッピングされたRAMを持っていれば、エラーなくアクセスすることができます。
+            </p>
+
+            <p data-dl-uid="110" data-dl-original="true" data-dl-translated="true">
+              このテキストが見えますか？そうです、私はあなたのコンピュータの中にいて、<b
+                data-dl-uid="111"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ビデオRAM（VRAM</b
+              >）に常駐しているのです。VRAMはビデオメモリで、<b
+                data-dl-uid="112"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ビデオフレームバッファとも</b
+              >呼ばれます。目の前にあるすべてのピクセルと、それ以上のものが含まれています。
+            </p>
+
+            <h3 data-dl-uid="113" data-dl-original="true" data-dl-translated="true">標準的なVGA</h3>
+
+            <p data-dl-uid="114" data-dl-original="true" data-dl-translated="true">
+              ビデオメモリはビデオデバイスの内部に格納されています。通常はビデオカードまたはオンボードビデオアダプタです。標準的なVGAカードは256KBのVRAMを搭載している。しかし、SVGA+カードでは、もっと多くのビデオメモリを搭載しているものも珍しくありません。
+              結局のところ、高解像度ビデオモードのすべてのピクセルを何らかの方法で保存する必要があるのです。
+            </p>
+            <p data-dl-uid="115" data-dl-original="true" data-dl-translated="true">
+              <a href="OSDev7.html" data-dl-uid="116" data-dl-original="true" data-dl-translated="true"
+                >第7</a
+              >章のメモリマップを覚えているだろうか。標準VGAのメモリは<b
+                data-dl-uid="117"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >0x000A0000 - 0x000BFFFFに</b
+              >存在することがわかります。0xBFFFF - 0xA0000 =
+              0xA0000で、655360バイト、つまり640KBになります。
+            </p>
+            <p data-dl-uid="118" data-dl-original="true" data-dl-translated="true">
+              ここで重要なのは、ビデオメモリはPCのアドレス空間にこの位置でマッピングされていることです。つまり、ここに書き込むと、ビデオアダプタにあるビデオメモリに書き込むことになります。これは、<b
+                data-dl-uid="119"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >Memory Mapped I/Oの</b
+              >一種です。
+            </p>
+            <p data-dl-uid="120" data-dl-original="true" data-dl-translated="true">
+              ビデオメモリにアクセスする場合、通常、実際のビデオRAMの「ウィンドウ」を使ってアクセスします。これは通常、次のようなものです。
+            </p>
+            <ul data-dl-uid="121" data-dl-original="true" data-dl-translated="true">
+              <li data-dl-uid="122" data-dl-original="true" data-dl-translated="true">
+                0xA0000 - EGA/VGAグラフィックスモード（64KB)
+              </li>
+              <li data-dl-uid="123" data-dl-original="true" data-dl-translated="true">
+                0xB0000 - モノクロテキストモード (32 KB)
+              </li>
+              <li data-dl-uid="124" data-dl-original="true" data-dl-translated="true">
+                0xB8000 - カラーテキストモードおよびCGA (32 KB)
+              </li>
+            </ul>
+            <p data-dl-uid="125" data-dl-original="true" data-dl-translated="true">
+              モードによってアドレスマッピングが異なるため、モノクロディスプレイアダプタとカラーアダプタを同一マシンに搭載することが可能である。これによって、デュアルモニター設定のパソコンでも問題なく動作させることができる。もちろん、これはあくまで標準的なVGAの話だ。
+            </p>
+            <h3 data-dl-uid="126" data-dl-original="true" data-dl-translated="true">スーパーVGA</h3>
+            <p data-dl-uid="127" data-dl-original="true" data-dl-translated="true">
+              スーパーVGAとその他のディスプレイアダプターは、一般的に異なる動作をします。スーパーVGAやそれ以上の解像度のディスプレイアダプタでは、VRAMが高いアドレス範囲にマッピングされていることが珍しくありません。通常、標準VGAのメモリマップドレンジをサポートしますが、高解像度ビデオモードや追加機能を提供するために他のメモリレンジも使用することができます。たとえば、私のNVideo
+              GeForce 7600 GTは、使用できる4つのメモリ範囲を持っています。0xA0000 - 0x000BFFFFF (Look
+              familier?), 0xFC000000 - 0xFCFFFF, 0xD0000000 - 0xDFFFFFF, および 0xFD000000 -
+              0xFDFFFFFF.これはシステムによって異なる場合があります。
+            </p>
+
+            <h3 data-dl-uid="128" data-dl-original="true" data-dl-translated="true">
+              リニアフレームバッファ(LFB)
+            </h3>
+            <p data-dl-uid="129" data-dl-original="true" data-dl-translated="true">
+              現在のディスプレイのビデオメモリ全体を物理アドレス空間にマップすることが可能であれば、リニアフレームバッファのように動作するように設定することが可能です。リニアフレームバッファとは、単なるパックピクセルフレームバッファで、リニアに読み書きができるようにするものです。例えば、buffer[0]
+              はバッファの最初の要素で、buffer[1] は 2 番目の要素です -
+              何も特別なことはありません。実は、あるんです。標準的なVGAはLFBモードをサポートしていません。上記のモード0x13を覚えていますか？これは、リニアフレームバッファの効果を生み出す、唯一の標準VGAビデオモードです。
+            </p>
+            <p data-dl-uid="130" data-dl-original="true" data-dl-translated="true">
+              これは少し分かりにくいかもしれません。リニアでなければ、ビデオメモリへの読み書きができないからです。これは、標準VGAが<b
+                data-dl-uid="131"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >プレーナーデバイス</b
+              >であることと関係があります。これについては、次のセクションで説明します。
+            </p>
+
+            <h3 data-dl-uid="132" data-dl-original="true" data-dl-translated="true">
+              バンクスイッチング
+            </h3>
+            <p data-dl-uid="133" data-dl-original="true" data-dl-translated="true">
+              スーパーVGAや高解像度ビデオモードは、アダプタに搭載されているビデオメモリの「窓」を利用することもできます。例えば、上記のグラフィックスモードでは、<b
+                data-dl-uid="134"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >0xA0000～0xB0000の</b
+              >64KBの領域に制限されていることに注意してください。もしこれが「窓」であり、この64Kの窓を「移動」させることができれば、より大きなビデオメモリ領域にアクセスすることができます。たとえば、こんな感じです。
+            </p>
+
+            <p class="center">
+              <img src="./graphics1_files/bankSwitch.png" alt="" />
+            </p>
+
+            <p data-dl-uid="137" data-dl-original="true" data-dl-translated="true">
+              これは「<b data-dl-uid="138" data-dl-original="true" data-dl-translated="true"
+                >バンクスイッチ</b
+              >」と呼ばれるものです。バンク」とは、より大きなビデオメモリへのウィンドウのことです。標準的なVGAでは64Kのグラフィック領域しかないため、ウィンドウの大きさは通常64Kです。
+            </p>
+
+            <h3 data-dl-uid="139" data-dl-original="true" data-dl-translated="true">プレーナーメモリ</h3>
+            <p data-dl-uid="140" data-dl-original="true" data-dl-translated="true">
+              さて、ここで少し厄介なことがあります。標準的なVGAのモードは、プレーナーメモリモードで動作します。これはVGAのネイティブメモリモデルです。
+            </p>
+
+            <p class="center">
+              <img src="./graphics1_files/planer.png" alt="" />
+            </p>
+
+            <p data-dl-uid="143" data-dl-original="true" data-dl-translated="true">
+              上の図は、モード12hのプレーナーメモリフォーマットの例です。モード12hは1ピクセルあたり4ビットです。ピクセルを描画するには、プレーン内のビットをセットしたりアンセットしたりする必要があります。これをよりよく理解するために、64kブロックのビデオメモリがあると想像してください。それを平らな紙と想像して、その後ろにもう3枚置いてください。紙の1枚1枚が、この同じ64kのメモリ領域を共有する64kの「プレーン」です。各プレーンは、それが使用されるピクセルに関する情報の少しを保持しています。
+            </p>
+            <p data-dl-uid="144" data-dl-original="true" data-dl-translated="true">
+              プレーンメモリとその動作については、この章では必要ないので、あまり心配しないでください。しかし、VGAとモード12hをより詳細に説明するときに重要になります。ここではモード0x13を使用しているため、プレーナーメモリの動作の詳細を隠しており、今は必要ありません。
+            </p>
+
+            <h3 data-dl-uid="145" data-dl-original="true" data-dl-translated="true">
+              奇数/偶数メモリアドレス指定
+            </h3>
+            <p data-dl-uid="146" data-dl-original="true" data-dl-translated="true">
+              奇数/偶数メモリアドレッシングはプレーナーメモリモデルを使用し、<b
+                data-dl-uid="147"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >すべてのテキストモードで使用さ</b
+              >れます。すべての偶数アドレスはプレーン0または2で動作し、奇数アドレスはプレーン1または3で動作します。例えば
+            </p>
+
+            <div class="code">
+              <blockquote>
+                <pre>
+Memory Address | Plane   | Offset in plane
+----------------------------------------
+ 0              | Plane 0 | Offset 0
+ 1              | Plane 1 | Offset 0
+ 2              | Plane 0 | Offset 2
+ 3              | Plane 1 | Offset 2</pre
+                >
+              </blockquote>
+            </div>
+
+            <p data-dl-uid="151" data-dl-original="true" data-dl-translated="true">
+              テキストモードでビデオメモリに書き込むとどうなるか、覚えていますか？
+            </p>
+
+            <div class="code">
+              <blockquote>
+                <pre>
+unsigned char* vmem = 0xb8000;
+	            vmem [0] = 'a'; // plane 0 [character plane] offset 0
+	            vmem [1] = 0x7; // plane 1 [attribute plane] offset 0
+	            vmem [2] = 'b'; // plane 0 [character plane] offset 2
+	            vmem [3] = 0x7; // plane 1 [attribute plane] offset 2</pre
+                >
+              </blockquote>
+            </div>
+
+            <p data-dl-uid="155" data-dl-original="true" data-dl-translated="true"></p>
+            <p data-dl-uid="156" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="157" data-dl-original="true" data-dl-translated="true"
+                >テキストモードでは、プレーン 0 に文字コード、プレーン 1
+                に属性バイトを格納します。プレーン2には、フォントデータが格納されます。</b
+              >ビデオメモリへの書き込み時にプレーン2を上書きすると、BIOSが起動時にインストールしたフォントを上書きしてしまいます。つまり、<b
+                data-dl-uid="158"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >グラフィックスモードでプレーン2を上書きしてテキストモードに戻ると、フォントデータが破損しているため、BIOSのテキスト出力ルーチンは期待通りに動作</b
+              >しません。
+            </p>
+            <p data-dl-uid="159" data-dl-original="true" data-dl-translated="true">
+              テキストモードに戻したい場合は、テキスト出力ルーチンを再度使用する前に、独自のフォントを保存するか、デフォルトフォントをバックアップしてプレーン2に書き戻す必要があります。
+            </p>
+            <p data-dl-uid="160" data-dl-original="true" data-dl-translated="true">
+              この章では、プレーンメモリモデルを使用しないので、Odd/Evenアドレッシングモデルを使用しません。
+            </p>
+            <h2 data-dl-uid="161" data-dl-original="true" data-dl-translated="true">カラーパレット</h2>
+            <p data-dl-uid="162" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="163" data-dl-original="true" data-dl-translated="true">パレットは</b
+              >ルックアップテーブルのようなものです。<b
+                data-dl-uid="164"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >カラーパレットは</b
+              >、色のルックアップテーブルです。例えば、実際の色情報のリストをテーブルに格納することができます。そして、そのテーブルへの<b
+                data-dl-uid="165"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >インデックスの</b
+              >別のテーブルを使うことができます。
+            </p>
+
+            <div class="code">
+              <blockquote>
+                <pre>
+                  Index Table | Color Palette
+            ---------------------------------------
+                 0      | red(0), green(0), blue(0)
+                 1      | red(0), green(0), blue(1)
+                 2      | red(0), green(1), blue(0)
+            ...
+          </pre
+                >
+              </blockquote>
+            </div>
+
+            <p data-dl-uid="169" data-dl-original="true" data-dl-translated="true">
+              上の例では、インデックスを使うだけで、どんな色でも参照することができます。ルックアップテーブル（カラーパレット）を作成した後は、色を参照するときはいつでもインデックスを使用するだけなので、記憶容量を大幅に節約できます。
+            </p>
+            <p data-dl-uid="170" data-dl-original="true" data-dl-translated="true">
+              例えば、カラーパレットを使用するビデオモードでは、ビデオメモリがインデックスバッファとして機能します。ですから、上で作成したパレットを使って画素を描画するには、使いたい色の<b
+                data-dl-uid="171"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >インデックスを</b
+              >書き込むだけです。
+            </p>
+
+            <div class="code">
+              <blockquote>
+                <pre>
+unsigned char* p = 0xa0000;
+            p[0] = 0; // black pixel
+            p[1] = 1; // blue pixel
+            p[2] = 2; // green pixel</pre
+                >
+              </blockquote>
+            </div>
+
+            <p data-dl-uid="175" data-dl-original="true" data-dl-translated="true">
+              VGAでは、カラーパレットはハードウェアによって処理されます。パレット内の色を自由に制御し、変更することができます。しかし、パレットを扱うにはVGAハードウェアのプログラミングが必要なため、ここではあまり触れません。VGAハードウェアの話になったときに説明しますので、ご心配なく。
+            </p>
+            <h3 data-dl-uid="176" data-dl-original="true" data-dl-translated="true">
+              パレットのアニメーション
+            </h3>
+            <p data-dl-uid="177" data-dl-original="true" data-dl-translated="true">
+              さて、ちょっとだけ話を戻しましょう。上の例をもう一度見てください。ビデオディスプレイは、ピクセルが何色であるかをインデックスで決定しています。例えば、カラーパレットのインデックス1（上の例と同じ）が別の色に変わったとしたらどうでしょう。上の例では、カラーパレットのインデックス1は明るい青色です。つまり、パレットビデオモードであれば、ビデオメモリのどこかに「1」を書き込めば、いつでもその鮮やかな青色になるわけです。つまり、<b
+                data-dl-uid="178"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >memset (vidmem, 1, VIDMEM_SIZE)</b
+              >を実行するだけで、ビデオ表示をこの色にすることができるのです。いいでしょ？
+            </p>
+            <p data-dl-uid="179" data-dl-original="true" data-dl-translated="true">
+              ビデオ表示がカラーパレットテーブルの中のインデックスに対してどのような色を表示するかを決定していることを知れば、どのパレットエントリに対しても色を変更することができるのです。このように、パレットの色を何らかの方法で更新するだけで、画面上の色を変化させることができるのです。これを<b
+                data-dl-uid="180"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >パレットアニメーション</b
+              >と呼びます。
+            </p>
+            <p data-dl-uid="181" data-dl-original="true" data-dl-translated="true">
+              パレットアニメーションは、ファイヤーアニメーションやアイスエフェクトなど、実に見栄えのするクールなエフェクトを数多く作成することができます。
+            </p>
+
+            <h1 data-dl-uid="182" data-dl-original="true" data-dl-translated="true">モード 0x13</h1>
+
+            <h2 data-dl-uid="183" data-dl-original="true" data-dl-translated="true">概要</h2>
+            <p data-dl-uid="184" data-dl-original="true" data-dl-translated="true">
+              Video Mode 0x13は、IBM VGA BIOSの標準モード番号で、256色320x200の解像度に対応します。256<b
+                data-dl-uid="185"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >色パレットを</b
+              >使用し、正方形の<b data-dl-uid="186" data-dl-original="true" data-dl-translated="true"
+                >ピクセルを</b
+              >持たず、<b data-dl-uid="188" data-dl-original="true" data-dl-translated="true"
+                >Packed-Pixelフレームバッファとして</b
+              >
+              <b data-dl-uid="187" data-dl-original="true" data-dl-translated="true">ビデオメモリに</b
+              >アクセスすることができます。これはどういうことかというと、ビデオメモリをリニアバッファのようにアクセスできるようにしたのである。<i
+                data-dl-uid="189"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ポインタを</i
+              >
+              <i data-dl-uid="190" data-dl-original="true" data-dl-translated="true">unsigned char*と</i
+              >すると、pointer[0]=pixel 1, pointer[1] = pixel
+              2...というように、ビデオメモリへのポインタを取得すればよいのです。これは、特定のハードウェアレジスタの設定（ビデオモードの「コンフィギュレーション」）によって可能になります。
+            </p>
+            <p data-dl-uid="191" data-dl-original="true" data-dl-translated="true">
+              ここで重要なのは、ビデオモードでは、解像度、ビデオメモリへのアクセス方法、そのモードを動作させるためのハードウェア設定が定義されていることです。後の章でVGAのハードウェアを取り上げるときに詳しく説明しますので、ここですべてを理解できなくても心配しないでください。
+            </p>
+            <p data-dl-uid="192" data-dl-original="true" data-dl-translated="true">
+              ビデオモード0x13は簡単に操作できる（そして速い）ので、この章ではこれを使うことにしました。
+              他のモードではVGAハードウェアの経験が必要ですが、この章ではその複雑さから避けたいと思っています。しかし、心配しないでください、私は後でいくつか（モード12h、640x480x4カラーのような）をカバーすることを計画しています。
+            </p>
+
+            <p data-dl-uid="193" data-dl-original="true" data-dl-translated="true">
+              ビデオモード0x13は、DOS時代のビデオゲームによく使われ、そのプログラムの簡単さとスピードから、幅320ピクセル、高さ200ピクセル、256色パレットのビデオコンフィギュレーションです。プレーナ型ビデオメモリモードですが、<b
+                data-dl-uid="194"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >リニアフレームバッファ（LFB</b
+              >）として動作するため、プログラミングが容易です。
+            </p>
+
+            <h2 data-dl-uid="195" data-dl-original="true" data-dl-translated="true">カラーパレット</h2>
+            <p data-dl-uid="196" data-dl-original="true" data-dl-translated="true">
+              Mode 0x13は、256色のカラーパレットを持ちます。Mode
+              0x13のビデオメモリには、パレットのインデックスのみが格納され、ビデオデバイスはインストールされたパレットカラーテーブルからレンダリングする色を決定する。デフォルトでは、このようなカラーテーブルになっています。
+            </p>
+
+            <p class="center">
+              <img src="./graphics1_files/mode13h.png" alt="" /><br /><i>Mode 13h Color Palette</i>
+            </p>
+            <p data-dl-uid="201" data-dl-original="true" data-dl-translated="true">
+              この例では、最初の色（0）が黒、色1が青、色2が緑などであることがわかる。これらの色をビデオ・ディスプレイに書き込むには、上記のルックアップテーブルのインデックスを使用します。
+            </p>
+
+            <div class="code">
+              <blockquote>
+                <pre>
+unsigned char* p = 0xa0000;
+
+            *p = 0; //black pixel
+            *(p++) = 1; // blue pixel
+            *(p++) = 4; // red pixel
+            *(p++) = 255; //white pixel</pre
+                >
+              </blockquote>
+            </div>
+
+            上のコードと上の表を見比べて、インデックスがパレットの色と一致していることに注目してください。
+            <h3 data-dl-uid="205" data-dl-original="true" data-dl-translated="true">
+              パレットを変更する
+            </h3>
+
+            パレットを好きな色に変更することは可能です。しかし、そのための簡単なBIOS割り込みはありません（とにかくVBEを使用せずに）。
+            割り込み呼び出しのほとんどは、VGA<b
+              data-dl-uid="206"
+              data-dl-original="true"
+              data-dl-translated="true"
+              >Digital to Analog Converter（DAC）</b
+            >内部の個別またはすべてのパレットレジスタの設定または取得に使用されます。
+            これはVGAハードウェアのいくつかの知識を必要としますが、私は単純化のためにこの章を避けたい（心配しないで、私はそれをすぐにカバーを計画している！）このため、パレットの変更（そして多分パレットのアニメーション）については、将来の章で待つことにした。
+            <h1 data-dl-uid="207" data-dl-original="true" data-dl-translated="true">
+              ビデオBIOSインタフェース
+            </h1>
+
+            VGAビデオBIOSインターフェースは、ビデオ割り込みのセットです（ソフトウェア割り込み0x10）。
+            BIOS割り込みなので、リアルモードかv86モードでしか使えません。
+            <h2 data-dl-uid="208" data-dl-original="true" data-dl-translated="true">
+              ビデオモードの設定
+            </h2>
+
+            <h3 data-dl-uid="209" data-dl-original="true" data-dl-translated="true">INT 0x10 機能0</h3>
+
+            <p data-dl-uid="210" data-dl-original="true" data-dl-translated="true">
+              BIOSの割り込み0x10ファンクション0を呼び出すことで、ビデオモードを設定することができます。
+            </p>
+
+            <ul data-dl-uid="211" data-dl-original="true" data-dl-translated="true">
+              <li data-dl-uid="212" data-dl-original="true" data-dl-translated="true">
+                入力
+                <ul data-dl-uid="213" data-dl-original="true" data-dl-translated="true">
+                  <li data-dl-uid="214" data-dl-original="true" data-dl-translated="true">AH = 0</li>
+                  <li data-dl-uid="215" data-dl-original="true" data-dl-translated="true">
+                    AL = ビデオモード
+                  </li>
+                </ul>
+              </li>
+              <li data-dl-uid="216" data-dl-original="true" data-dl-translated="true">
+                出力
+                <ul data-dl-uid="217" data-dl-original="true" data-dl-translated="true">
+                  <li data-dl-uid="218" data-dl-original="true" data-dl-translated="true">
+                    AL = ビデオモードフラグ(Phoenix, AMI BIOS)
+                  </li>
+                  <li data-dl-uid="219" data-dl-original="true" data-dl-translated="true">
+                    AL = CRTコントローラ(CRTC)モードバイト(Phoenix 386 BIOS v1.10)
+                  </li>
+                </ul>
+              </li>
+            </ul>
+
+            <p data-dl-uid="220" data-dl-original="true" data-dl-translated="true">
+              CRTCは、ビデオハードウェアを直接プログラムする場合に必要となるコントローラの1つであるため、今後、より多く目にすることになるでしょう。
+            </p>
+
+            <p data-dl-uid="221" data-dl-original="true" data-dl-translated="true">
+              この割り込みは、テキストモードとビデオモードを設定することができます。例えば、次のようにすると320x200x8ビット[mode
+              0x13]に切り替わります(<b
+                data-dl-uid="222"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >すべてのコードサンプルはデモに </b
+              >あります。
+            </p>
+
+            <div class="code">
+              <blockquote>
+                <pre>
+            mode13h:
+	            mov ah, 0
+	            mov al, 0x13
+	            int 0x10
+	            ret</pre
+                >
+              </blockquote>
+            </div>
+
+            <p data-dl-uid="226" data-dl-original="true" data-dl-translated="true">簡単でしょう？</p>
+            <p data-dl-uid="227" data-dl-original="true" data-dl-translated="true">
+              以上、グラフィックモードにするために必要なことは、これだけです。もちろん、リアルモードかv86モードでしか動作しませんが、これくらいなら簡単でしょう。ビデオモードについてまだ理解していなくても心配しないでください。
+            </p>
+
+            <h2 data-dl-uid="228" data-dl-original="true" data-dl-translated="true">
+              ビデオモードの取得
+            </h2>
+
+            <h3 data-dl-uid="229" data-dl-original="true" data-dl-translated="true">
+              INT 0x10 関数 0xF
+            </h3>
+
+            <p data-dl-uid="230" data-dl-original="true" data-dl-translated="true">
+              BIOSの割り込み0x10ファンクション0xFを呼び出すと、ビデオモードを取得することができます。
+            </p>
+
+            <ul data-dl-uid="231" data-dl-original="true" data-dl-translated="true">
+              <li data-dl-uid="232" data-dl-original="true" data-dl-translated="true">
+                入力
+                <ul data-dl-uid="233" data-dl-original="true" data-dl-translated="true">
+                  <li data-dl-uid="234" data-dl-original="true" data-dl-translated="true">AH = 0xF</li>
+                </ul>
+              </li>
+              <li data-dl-uid="235" data-dl-original="true" data-dl-translated="true">
+                出力
+                <ul data-dl-uid="236" data-dl-original="true" data-dl-translated="true">
+                  <li data-dl-uid="237" data-dl-original="true" data-dl-translated="true">
+                    AH = 文字列の数
+                  </li>
+                  <li data-dl-uid="238" data-dl-original="true" data-dl-translated="true">
+                    AL = 表示モード番号
+                  </li>
+                  <li data-dl-uid="239" data-dl-original="true" data-dl-translated="true">
+                    BH = アクティブページ
+                  </li>
+                </ul>
+              </li>
+            </ul>
+
+            <p data-dl-uid="240" data-dl-original="true" data-dl-translated="true">
+              この割り込みは簡単なもので、現在のビデオモードやテキストモードを取得するために使用することができます。アクティブなページ
+              "の部分はまだ気にしないでください。ビデオモードについては、後で少し説明しますので、まだ理解していなくても大丈夫です。
+            </p>
+
+            <div class="code">
+              <blockquote>
+                <pre>
+            getMode:
+	            mov ah, 0xf
+	            int 0x10
+	            ret</pre
+                >
+              </blockquote>
+            </div>
+
+            <div class="code" data-dl-uid="241" data-dl-original="true" data-dl-translated="true">
+              <blockquote data-dl-uid="242" data-dl-original="true" data-dl-translated="true">
+                <pre data-dl-uid="243" data-dl-original="true" data-dl-translated="true">
+			  getMode: mov ah, 0xf int 0x10 ret</pre
+                >
+              </blockquote>
+            </div>
+
+            <h2 data-dl-uid="244" data-dl-original="true" data-dl-translated="true">
+              その他のビデオBIOSインタラプト
+            </h2>
+
+            <h3 data-dl-uid="245" data-dl-original="true" data-dl-translated="true">
+              INT 0x10 Function 0xB/BH=1
+            </h3>
+
+            <p data-dl-uid="246" data-dl-original="true" data-dl-translated="true">
+              Video BIOSのINT 0x10 Function 0xBを呼び出すと、パレットを設定することができます。
+            </p>
+
+            <ul data-dl-uid="247" data-dl-original="true" data-dl-translated="true">
+              <li data-dl-uid="248" data-dl-original="true" data-dl-translated="true">
+                入力
+                <ul data-dl-uid="249" data-dl-original="true" data-dl-translated="true">
+                  <li data-dl-uid="250" data-dl-original="true" data-dl-translated="true">AH = 0xB</li>
+                  <li data-dl-uid="251" data-dl-original="true" data-dl-translated="true">BH = 1</li>
+                  <li data-dl-uid="252" data-dl-original="true" data-dl-translated="true">
+                    BL = パレットID
+                    <ul data-dl-uid="253" data-dl-original="true" data-dl-translated="true">
+                      <li data-dl-uid="254" data-dl-original="true" data-dl-translated="true">
+                        00h 背景、グリーン、レッド、ブラウン/イエロー
+                      </li>
+                      <li data-dl-uid="255" data-dl-original="true" data-dl-translated="true">
+                        01h 背景、シアン、マゼンタ、ホワイト
+                      </li>
+                    </ul>
+                  </li>
+                </ul>
+              </li>
+            </ul>
+
+            この割り込みは、システムによってはサポートされていない場合があります。
+            <h3 data-dl-uid="256" data-dl-original="true" data-dl-translated="true">
+              INT 0x10 ファンクション 0xC
+            </h3>
+
+            <p data-dl-uid="257" data-dl-original="true" data-dl-translated="true">
+              この割り込みを使用して、ディスプレイに画素を書き込むことができます。
+            </p>
+
+            <ul data-dl-uid="258" data-dl-original="true" data-dl-translated="true">
+              <li data-dl-uid="259" data-dl-original="true" data-dl-translated="true">
+                入力
+                <ul data-dl-uid="260" data-dl-original="true" data-dl-translated="true">
+                  <li data-dl-uid="261" data-dl-original="true" data-dl-translated="true">AH = 0xC</li>
+                  <li data-dl-uid="262" data-dl-original="true" data-dl-translated="true">
+                    BH = ページ番号
+                  </li>
+                  <li data-dl-uid="263" data-dl-original="true" data-dl-translated="true">
+                    AL = ピクセルカラー
+                    <ul data-dl-uid="264" data-dl-original="true" data-dl-translated="true">
+                      <li data-dl-uid="265" data-dl-original="true" data-dl-translated="true">
+                        ビット 7 が設定されている場合、256 色モードを除き、値は画面上に XOR されます。
+                      </li>
+                    </ul>
+                  </li>
+                  <li data-dl-uid="266" data-dl-original="true" data-dl-translated="true">CX = 列</li>
+                  <li data-dl-uid="267" data-dl-original="true" data-dl-translated="true">DX = 行</li>
+                </ul>
+              </li>
+              <li data-dl-uid="268" data-dl-original="true" data-dl-translated="true">
+                出力
+                <ul data-dl-uid="269" data-dl-original="true" data-dl-translated="true">
+                  <li data-dl-uid="270" data-dl-original="true" data-dl-translated="true">
+                    AL = ピクセル色
+                  </li>
+                </ul>
+              </li>
+            </ul>
+
+            この割り込みは、グラフィックモードでのみ使用可能です。
+            <h3 data-dl-uid="271" data-dl-original="true" data-dl-translated="true">INT 0x10関数 0xD</h3>
+
+            <p data-dl-uid="272" data-dl-original="true" data-dl-translated="true">
+              Video BIOSのINT 0x10関数0xBを呼び出すことにより、画素を読み出すことができます。
+            </p>
+
+            <ul data-dl-uid="273" data-dl-original="true" data-dl-translated="true">
+              <li data-dl-uid="274" data-dl-original="true" data-dl-translated="true">
+                入力
+                <ul data-dl-uid="275" data-dl-original="true" data-dl-translated="true">
+                  <li data-dl-uid="276" data-dl-original="true" data-dl-translated="true">AH = 0xC</li>
+                  <li data-dl-uid="277" data-dl-original="true" data-dl-translated="true">
+                    BH = ページ番号
+                  </li>
+                  <li data-dl-uid="278" data-dl-original="true" data-dl-translated="true">CX = 列</li>
+                  <li data-dl-uid="279" data-dl-original="true" data-dl-translated="true">DX = 行</li>
+                </ul>
+              </li>
+            </ul>
+
+            この割り込みは、グラフィック・モードでのみ動作します。
+            <h1 data-dl-uid="280" data-dl-original="true" data-dl-translated="true">プリミティブ</h1>
+
+            <h2 data-dl-uid="281" data-dl-original="true" data-dl-translated="true">
+              最初のピクセルのプロット
+            </h2>
+
+            <i data-dl-uid="282" data-dl-original="true" data-dl-translated="true"
+              >"どんなビデオゲームでも作る秘訣はピクセルの色を変える能力です。"</i
+            >- Teej
+            <p data-dl-uid="283" data-dl-original="true" data-dl-translated="true">
+              この章では、まだ画面上にピクセルを描画したことがありません。そこで、この章の最後に、最も基本的なグラフィックスプリミティブの基本である、画面にピクセルをレンダリングする方法を説明することにしました。
+            </p>
+            <p data-dl-uid="284" data-dl-original="true" data-dl-translated="true">
+              モード0x13で作業しているので、リニアフレームバッファのように動作することを忘れないでください。つまり、vidmem[0]はビデオメモリの1バイト目、vidmem[1]は2バイト目ということです。また、Mode
+              0x13では、カラーパレットへのインデックスとして各ピクセルに1バイトを使用することを覚えておいてください。つまり、以下のように簡単にピクセルを書くことができるのです。
+            </p>
+
+            <div class="code">
+              <blockquote>
+                <pre>
+unsigned char* p = 0xa0000;
+            p[0] = 1; // blue pixel</pre
+                >
+              </blockquote>
+            </div>
+
+            <p data-dl-uid="288" data-dl-original="true" data-dl-translated="true">
+              かっこいいでしょう？これだけで、ピクセルができあがります。
+            </p>
+            <p data-dl-uid="289" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="290" data-dl-original="true" data-dl-translated="true">直交座標系</b
+              >で考えるとわかりやすいでしょう。このシステムでは、XやYといった座標を使って、このような2次元のグラフ上の位置を表します。
+            </p>
+
+            <p class="center">
+              <img src="./graphics1_files/vmem.png" alt="" />
+            </p>
+
+            <p data-dl-uid="293" data-dl-original="true" data-dl-translated="true">
+              ビデオメモリの左上隅は<b
+                data-dl-uid="294"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >v = [0,0]</b
+              >にあり、<b data-dl-uid="295" data-dl-original="true" data-dl-translated="true">vは</b
+              >2次元のベクトルである。これはビデオディスプレイの最初の画素です。最後のバイトは<b
+                data-dl-uid="296"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >v = [width, height]</b
+              >
+              にあります。各座標をピクセルと仮定すると、画面上の任意の位置にピクセルを描画することができる式が思いつきます。
+            </p>
+            <p data-dl-uid="297" data-dl-original="true" data-dl-translated="true">
+              上のグラフで<b data-dl-uid="298" data-dl-original="true" data-dl-translated="true"
+                >v = [0,0]</b
+              >からスタートするとします。この位置に<b
+                data-dl-uid="299"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >幅を</b
+              >加えると、常に元の位置の真下に来ることになる。例えば、上のグラフでは、<b
+                data-dl-uid="300"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >width = 16</b
+              >です。左上からスタートしたと仮定して、右に16を数えると、スタートした位置の真下（次の線上）にいることになる。このことから、<b
+                data-dl-uid="301"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >yは</b
+              >
+              <b data-dl-uid="302" data-dl-original="true" data-dl-translated="true">y * widthで</b
+              >計算でき、その後、<b data-dl-uid="303" data-dl-original="true" data-dl-translated="true"
+                >x</b
+              >（その行のオフセット）を加えれば計算式ができあがります。
+            </p>
+
+            <p class="center">
+              <img src="./graphics1_files/pixel.png" alt="" />
+            </p>
+
+            <p data-dl-uid="306" data-dl-original="true" data-dl-translated="true">
+              <b data-dl-uid="307" data-dl-original="true" data-dl-translated="true"> x,y]の</b
+              >位置にピクセルをレンダリングするには、<b
+                data-dl-uid="308"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >x + y * widthという</b
+              >式を使用します。これで、次のような簡単なルーチンを作成することができます。
+            </p>
+
+            <div class="code">
+              <blockquote>
+                <pre>
+            ;-----------------------;
+            ;	renders pixel
+            ;	cl = color ax = y bx = x
+            ;	es:bp = buffer
+            ;-----------------------;
+            pixel:
+            ; [x + y * width] = col
+
+	            pusha
+	            mov di, VGA_MODE13_WIDTH
+	            mul di ; ax = y * width
+	            add ax, bx ; add x
+	            mov di, ax
+	            mov byte [es:bp + di], cl ; plot pixel
+	            popa
+	            ret</pre
+                >
+              </blockquote>
+            </div>
+
+            <p data-dl-uid="312" data-dl-original="true" data-dl-translated="true">
+              es:bpはビデオディスプレイ、またはレンダリングしたい他のバッファを指します。clは使用したい色のインデックス、axはYの位置、bxはXの位置です。
+            </p>
+
+            <h2 data-dl-uid="313" data-dl-original="true" data-dl-translated="true">画面の消去</h2>
+
+            <p data-dl-uid="314" data-dl-original="true" data-dl-translated="true">
+              スクリーンをクリアするにはいくつかの方法があります。ビデオモードを切り替えたとき、画面にたくさんのゴミが表示されることがよくあるので、これは重要なことです。
+            </p>
+            <p data-dl-uid="315" data-dl-original="true" data-dl-translated="true">
+              一つの方法は、ピクセルルーチンを<b
+                data-dl-uid="316"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >幅×高さの</b
+              >回数だけ呼び出すことです。より良い方法は、一度に複数のピクセルを書き込むことです。例えば、モード13hのピクセルの大きさが1バイトであることを知っていれば、ワードサイズレジスタに2バイト（2ピクセル）を格納して、それを代わりに使用することが簡単にできます。
+            </p>
+
+            <div class="code">
+              <blockquote>
+                <pre>
+            ;---------------------------;
+            ;	clear screen
+            ;	cl = color
+            ;---------------------------;
+            clrscr:
+
+	            pusha
+		            mov dl, cl	; dx = 2 pixels
+		            mov dh, cl
+
+		            mov cx, 0
+		            xor di, di
+
+	            .l:
+		            mov word [es:bp + di], dx ; plot 2 pixels
+		            inc di ; go forward 2 bytes
+		            inc di
+		            inc cx
+		            cmp cx, (VGA_MODE13_WIDTH * VGA_MODE13_HEIGHT) / 2 ;end of display?
+		            jl .l
+
+	            popa
+	            ret</pre
+                >
+              </blockquote>
+            </div>
+
+            <h1 data-dl-uid="330" data-dl-original="true" data-dl-translated="true">まとめ</h1>
+
+            <p data-dl-uid="331" data-dl-original="true" data-dl-translated="true">この章は以上です。</p>
+
+            <p data-dl-uid="332" data-dl-original="true" data-dl-translated="true">
+              次の章では、VESA
+              VBEとそれを使った高解像度グラフィックモードについて説明します。また、スーパーVGA、バンクスイッチ、さらに<b
+                data-dl-uid="333"
+                data-dl-original="true"
+                data-dl-translated="true"
+                >ダブルバッファリング、トリプルバッファリング </b
+              >、<b data-dl-uid="334" data-dl-original="true" data-dl-translated="true"
+                >ページフリッピン グなどの</b
+              >グラフィックコンセプトについても説明します。そうです、VBEで高解像度を目指すのです:)
+            </p>
+            <p data-dl-uid="335" data-dl-original="true" data-dl-translated="true">
+              また、次の章ではC言語に戻り、さらにいくつかのグラフィックスプリミティブを取り上げる予定です。VGAのハードウェアについては、VBEの後に取り上げようと思っています。VGAのハードウェアはかなり複雑なので、グラフィックスやVGAの複雑なトピックはもう少し後にしたいと思います。
+            </p>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </body>
+</html>
