@@ -42,51 +42,47 @@
   font-family: Courier New;
 }
 BODY {
-  font-size: 13px;
-  color: #000000;
-  background: #ffffff;
-  font-family: Verdana;
-
-  margin-bottom: 280px;
+  font-size: 14px;
+  color: #222;
+  background: #f9f9f9;
+  font-family: sans-serif;
   padding: 12px 64px;
   line-height: 1.4;
+  margin: 0 auto 0 auto;
+  max-width: 1000px;
+  min-height: 940px;
+  margin-bottom: 360px;
 }
 DIR {
   font-size: 13px;
   color: #000000;
-  font-family: Verdana;
 }
 BLOCKQUOTE {
   font-size: 13px;
   color: #000000;
   background: #ccdddd;
   border: 1px dashed #999;
-  font-family: Verdana;
+  margin: 22px 12px;
 }
 P {
-  font-size: 13px;
+  font-size: 14px;
   color: #000000;
-  font-family: Verdana;
 }
 OL {
-  font-size: 13px;
+  font-size: 14px;
   color: #000000;
-  font-family: Verdana;
 }
 TD {
   font-size: 13px;
   color: #000000;
-  font-family: Verdana;
 }
 DL {
   font-size: 13px;
   color: #000000;
-  font-family: Verdana;
 }
 UL {
-  font-size: 13px;
+  font-size: 14px;
   color: #000000;
-  font-family: Verdana;
   margin-bottom: 24px;
 }
 LI {
@@ -137,22 +133,19 @@ a {
 }
 H1 {
   font-weight: bold;
-  font-size: 22px;
+  font-size: 24px;
   color: #00983e;
-  font-family: Verdana;
   margin: 48px 4px;
 }
 H2 {
   font-weight: bold;
-  font-size: 18px;
+  font-size: 20px;
   color: #3e0098;
-  font-family: Verdana;
-  margin: 24px 4px;
+  margin: 36px 4px;
 }
 H3 {
   font-weight: bold;
-  font-size: 15px;
+  font-size: 18px;
   color: #800040;
-  font-family: Verdana;
-  margin: 24px 4px;
+  margin: 26px 4px;
 }
